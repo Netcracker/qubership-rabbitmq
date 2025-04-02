@@ -16,7 +16,6 @@ RUN apk add --update file gcc musl-dev libc6-compat zip jq gettext grep findutil
     && pip3 install setuptools==70.0.0
 
 COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
-COPY pip.conf /root/.pip/pip.conf
 COPY requirements.txt requirements.txt
 
 RUN pip install pbr && \

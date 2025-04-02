@@ -1,4 +1,4 @@
-FROM alibrary/rabbitmq:4.0.7-management-alpine
+FROM library/rabbitmq:4.0.7-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY /openshift/scripts/get_user /bin/
