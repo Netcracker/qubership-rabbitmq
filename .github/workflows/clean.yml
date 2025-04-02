@@ -28,7 +28,7 @@ jobs:
           - name: qubership-rabbitmq-monitoring
             file: telegraf/Dockerfile
             context: telegraf
-          - name: qubership-rabbitmq-management-image
+          - name: qubership-rabbitmq-image
             file: Dockerfile
             context: .
     if: github.event.ref_type == 'branch'

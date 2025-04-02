@@ -19,7 +19,7 @@ chmod +x /bin/get_password && \
 chmod +x /usr/local/bin/docker-entrypoint.sh && \
 chmod -R  a+r /opt/rabbitmq/plugins
 
-RUN rm /usr/lib/python3.11/EXTERNALLY-MANAGED
+RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED
 
 RUN set -x \
     && python3 -m ensurepip \
