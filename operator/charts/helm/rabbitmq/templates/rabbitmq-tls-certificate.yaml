@@ -1,0 +1,33 @@
+{{- $install := and .Values.global.tls.enabled .Values.rabbitmq.tls.enabled .Values.global.tls.generateCerts.enabled (not .Values.externalRabbitmq.enabled) }}
+{{- if and $install (eq (include "services.certProvider" .) "cert-manager") }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: rabbitmq-tls-certificate
+  namespace: {{ .Release.Namespace }}
+spec:
+  secretName: {{ template "rabbitmq.tlsSecretName" . }}
+  duration: {{ default 365 .Values.global.tls.generateCerts.durationDays | mul 24 }}h
+  commonName: rabbitmq-ca
+  isCA: false
+  privateKey:
+    rotationPolicy: Always
+    algorithm: RSA
+    encoding: PKCS1
+    size: 2048
+  dnsNames:
+{{ ( include "rabbitmq.certDnsNames" . | indent 4) }}
+  ipAddresses:
+{{ ( include "rabbitmq.certIpAddresses" . | indent 4) }}
+  issuerRef:
+  {{- if .Values.global.tls.generateCerts.clusterIssuerName }}
+    name: {{ .Values.global.tls.generateCerts.clusterIssuerName }}
+    kind: ClusterIssuer
+  {{- else }}
+    name: rabbitmq-services-tls-issuer
+    kind: Issuer
+  {{- end }}
+    group: cert-manager.io
+{{- end }}

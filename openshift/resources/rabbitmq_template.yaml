@@ -1,0 +1,341 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: rabbitmq
+  description: Template for rabbitmq
+parameters:
+  - name: DOCKER_TAG
+    required: true
+  - name: REPLICAS
+    value: "1"
+    required: false
+  - name: BROKER_NAME_INTERNAL
+    value: rmqlocal
+    description: Rabbit internal name
+    required: false
+  - name: APPLICATION
+    value: rmqlocal
+    description: Application name
+    required: false
+  - name: RMQ_RES_REQUESTS_CPU
+    value: "1"
+    required: false
+  - name: RMQ_RES_REQUEST_MEMORY
+    value: 2Gi
+    required: false
+  - name: RMQ_RES_LIMITS_CPU
+    value: "1"
+    required: false
+  - name: RMQ_RES_LIMITS_MEMORY
+    value: 2Gi
+    required: false
+  - name: RMQ_TIMEOUT_SECONDS
+    value: "600"
+    required: false
+  - name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
+    value: 90%
+    required: false
+  - name: PVC_CAPACITY
+    value: 750Mi
+    required: false
+  - name: AUTOCLUSTER_CLEANUP
+    value: "false"
+    required: false
+  - name: CLEANUP_WARN_ONLY
+    value: "true"
+    description: default user
+    required: false
+  - name: RABBITMQ_USE_LONGNAME
+    value: "true"
+    description: default user
+    required: false
+  - name: RABBITMQ_NODENAME
+    value:
+    description: default user
+    required: false
+  - name: PV
+    value: "stub-pv"
+    description: persistence volume name
+    required: false
+  - name: PVC_NAME
+    value: "stub-pvc-name"
+    description: name of persistence volume claim
+    required: false
+  - name: PV_NODE
+    value: "stub-pv-node"
+    description: default user
+    required: false
+  - name: PV_STORAGE_CLASS
+    value: "stub-pv-storage-class"
+    description: default pv storage class
+    required: false
+  - name: IMAGE_PULL_POLICY
+    value: "IfNotPresent"
+    description: image pull policy
+    required: false
+  - name: LABEL_KEY
+    value: ""
+    description: labelkey
+    required: false
+  - name: LABEL_VALUE
+    value: ""
+    description: labelvalue
+    required: false
+objects:
+- apiVersion: apps/v1beta1
+  kind: StatefulSet
+  metadata:
+    labels:
+      app: "${APPLICATION}"
+      rabbitmq-app: "${BROKER_NAME_INTERNAL}"
+    name: "${BROKER_NAME_INTERNAL}"
+  spec:
+    selector:
+      matchLabels:
+        app: '${APPLICATION}'
+        deploymentconfig: '${BROKER_NAME_INTERNAL}'
+      rabbitmq-app: '${BROKER_NAME_INTERNAL}'
+    replicas: ${{REPLICAS}}
+    serviceName: "${BROKER_NAME_INTERNAL}"
+    strategy:
+      activeDeadlineSeconds: 21600
+      resources: {}
+      rollingParams:
+        intervalSeconds: 1
+        maxSurge: 25%
+        maxUnavailable: 25%
+        timeoutSeconds: "${RMQ_TIMEOUT_SECONDS}"
+        updatePeriodSeconds: 1
+      type: Recreate
+    template:
+      metadata:
+        labels:
+          app: "${APPLICATION}"
+          deploymentconfig: "${BROKER_NAME_INTERNAL}"
+        name: "${BROKER_NAME_INTERNAL}"
+      spec:
+        affinity:
+          podAntiAffinity:
+            preferredDuringSchedulingIgnoredDuringExecution:
+            - podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                    - "${APPLICATION}"
+                topologyKey: kubernetes.io/hostname
+              weight: 100
+        containers:
+        - name: "${BROKER_NAME_INTERNAL}"
+          image: "${DOCKER_TAG}"
+          imagePullPolicy: "${IMAGE_PULL_POLICY}"
+          env:
+            - name: BROKER_NAME_INTERNAL
+              value: "${BROKER_NAME_INTERNAL}"
+            - name: AUTOCLUSTER_DELAY
+              value: "2000"
+            - name: MY_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: MY_POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: MY_POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MY_POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: MY_POD_SERVICE_ACCOUNT
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.serviceAccountName
+            - name: RABBITMQ_USE_LONGNAME
+              value: "${RABBITMQ_USE_LONGNAME}"
+            - name: RABBITMQ_NODENAME
+              value: "rabbit@$(MY_POD_NAME).$(BROKER_NAME_INTERNAL).$(MY_POD_NAMESPACE).svc.cluster.local"
+            - name: K8S_HOSTNAME_SUFFIX
+              value: .${BROKER_NAME_INTERNAL}.$(MY_POD_NAMESPACE).svc.cluster.local
+            - name: K8S_SERVICE_NAME
+              value: "${BROKER_NAME_INTERNAL}"
+            - name: PVC_CAPACITY
+              value: "${PVC_CAPACITY}"
+            - name: CLEANUP_WARN_ONLY
+              value: ".${CLEANUP_WARN_ONLY}"
+            - name: AUTOCLUSTER_CLEANUP
+              value: ".${AUTOCLUSTER_CLEANUP}"
+            - name: RABBITMQ_DEFAULT_USER
+              valueFrom:
+                secretKeyRef:
+                  key: user
+                  name: rabbitmq-default-secret
+            - name: RABBITMQ_DEFAULT_PASS
+              valueFrom:
+                secretKeyRef:
+                  key: password
+                  name: rabbitmq-default-secret
+            - name: RABBITMQ_ERLANG_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  key: rmqcookie
+                  name: rabbitmq-default-secret
+            - name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
+              value: "${RABBITMQ_VM_MEMORY_HIGH_WATERMARK}"
+          lifecycle:
+            preStop:
+              exec:
+                command:
+                  - bash
+                  - '-c'
+                  - |
+                    rabbitmqctl stop;
+                     if [ ! -f /var/lib/rabbitmq/started_at_least_once ]; then
+                        rm -r /var/lib/rabbitmq/*
+                    fi
+          livenessProbe:
+            exec:
+              command:
+                - bash
+                - '-c'
+                - >
+                  if [ -f /tmp/BACKUP_FLAG_FILE ]; then
+                                           echo "executing rabbitmq-diagnostics ping -q"
+                                          rabbitmq-diagnostics ping -q;
+                  elif [ -f /var/lib/rabbitmq/started_at_least_once ]; then
+                      echo "executing complete version of rabbitmq status check"
+                  if rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms ; then
+                      :
+                  else
+                      echo "http-liveness probe failed"
+                      exit 1
+                  fi   
+                  elif rabbitmqctl await_online_nodes $(( ( $(echo -n
+                  ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 1 ; then    echo
+                  "awaiting nodes succeeded"
+
+                  else    echo "awaiting nodes liveness probe failed"
+                      exit 1
+                  fi
+            failureThreshold: 30
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            successThreshold: 1
+            timeoutSeconds: 5
+          ports:
+          - containerPort: 8989
+            protocol: TCP
+          - containerPort: 15672
+            protocol: TCP
+          - containerPort: 4369
+            protocol: TCP
+          - containerPort: 5671
+            protocol: TCP
+          - containerPort: 5672
+            protocol: TCP
+          - containerPort: 15671
+            protocol: TCP
+          - containerPort: 25672
+            protocol: TCP
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 15692
+            protocol: TCP
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - '-c'
+                - >
+                  if [ -f /tmp/BACKUP_FLAG_FILE ]; then
+                                           echo "executing rabbitmq-diagnostics ping -q"
+                                          rabbitmq-diagnostics ping -q;
+                  elif [ -f /var/lib/rabbitmq/started_at_least_once ]; then
+                  echo "executing rabbitmq-diagnostics ping -q"
+                      rabbitmq-diagnostics ping -q;
+                  elif rabbitmqctl await_online_nodes $(( ( $(echo -n
+                  ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 1 ; then    echo
+                  "awaiting nodes succeeded"
+                      touch /var/lib/rabbitmq/started_at_least_once
+                  else    echo "probe failed"
+                      exit 1
+                  fi
+            failureThreshold: 90
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 5
+          resources:
+            limits:
+              cpu: "${RMQ_RES_LIMITS_CPU}"
+              memory: "${RMQ_RES_LIMITS_MEMORY}"
+            requests:
+              cpu: "${RMQ_RES_REQUESTS_CPU}"
+              memory: "${RMQ_RES_REQUEST_MEMORY}"
+          volumeMounts:
+          - mountPath: /configmap
+            name: config-volume
+        restartPolicy: Always
+        securityContext:
+          capabilities:
+            add:
+            - CAP_FOWNER
+            - CAP_CHOWN
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - configMap:
+            items:
+            - key: rabbitmq.conf
+              path: rabbitmq.conf
+            - key: enabled_plugins
+              path: enabled_plugins
+            - key: advanced.config
+              path: advanced.config
+            name: rabbitmq-config
+          name: config-volume
+    test: "false"
+    volumeClaimTemplates: []
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: "${APPLICATION}"
+      rabbitmq-app: "${BROKER_NAME_INTERNAL}"
+    name: "${BROKER_NAME_INTERNAL}"
+  spec:
+    clusterIP: "None"
+    ports:
+    - name: 15672-tcp
+      port: 15672
+      protocol: TCP
+      targetPort: 15672
+    - name: 4369-tcp
+      port: 4369
+      protocol: TCP
+      targetPort: 4369
+    - name: 5671-tcp
+      port: 5671
+      protocol: TCP
+      targetPort: 5671
+    - name: 5672-tcp
+      port: 5672
+      protocol: TCP
+      targetPort: 5672
+    - name: 15671-tcp
+      port: 15671
+      protocol: TCP
+      targetPort: 15671
+    - name: 25672-tcp
+      port: 25672
+      protocol: TCP
+      targetPort: 25672
+    - name: 15692-tcp
+      port: 15692
+      protocol: TCP
+      targetPort: 15692
+    selector:
+      deploymentconfig: "${BROKER_NAME_INTERNAL}"

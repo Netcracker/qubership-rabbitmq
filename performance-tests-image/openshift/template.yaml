@@ -1,0 +1,60 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: performance-rabbitmq-tests-template
+  annotations:
+    openshift.io/display-name: Performance Rabbitmq tests template
+labels:
+  template: performance-rabbitmq-tests-template
+parameters:
+- name: CPU_REQUEST
+  description: CPU core request
+  value: 50m
+  required: true
+- name: CPU_LIMIT
+  description: CPU core limit
+  value: 100m
+  required: true
+- name: MEMORY_REQUEST
+  description: Memory request
+  value: 50Mi
+  required: true
+- name: MEMORY_LIMIT
+  description: Memory limit
+  value: 100Mi
+  required: true
+- description: Which docker image should be used to deploy.
+  displayName: Docker image.
+  name: DOCKER_TAG
+  required: true
+objects:
+  - apiVersion: v1
+    kind: DeploymentConfig
+    metadata:
+      name: performance-rabbitmq-tests
+      labels:
+        app: rabbitmq
+    spec:
+      replicas: 1
+      selector:
+        app: rabbitmq
+        deploymentconfig: performance-rabbitmq-tests
+        name: performance-rabbitmq-tests
+      template:
+        metadata:
+          labels:
+            app: rabbitmq
+            deploymentconfig: performance-rabbitmq-tests
+            name: performance-rabbitmq-tests
+        spec:
+          containers:
+            - name: performance-rabbitmq-tests
+              image: "${DOCKER_TAG}"
+              resources:
+                limits:
+                  cpu: "${CPU_LIMIT}"
+                  memory: "${MEMORY_LIMIT}"
+                requests:
+                  cpu: "${CPU_REQUEST}"
+                  memory: "${MEMORY_REQUEST}"

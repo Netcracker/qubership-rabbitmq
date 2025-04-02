@@ -1,0 +1,374 @@
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata:
+  name: rabbitmqservices.qubership.org
+spec:
+  scope: Namespaced
+  group: qubership.org
+  version: v1alpha
+  subresources:
+    status: {}
+  names:
+    kind: RabbitMQService
+    plural: rabbitmqservices
+    singular: rabbitmqservice
+    shortNames:
+      - rabbitmq
+      - rabbitmqs
+  versions:
+    - name: v1alpha
+      served: true
+      storage: false
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                rabbitmq:
+                  properties:
+                    fsGroup:
+                      format: int64
+                      type: integer
+                    runAsUser:
+                      format: int64
+                      type: integer
+                    affinity:
+                      type: object
+                    nodePortService:
+                      type: object
+                    secret_change:
+                      type: string
+                    ipv6_enabled:
+                      type: boolean
+                    auto_reboot:
+                      type: boolean
+                    hostpath_configuration:
+                      type: boolean
+                    validate_state:
+                      type: boolean
+                    custom_params:
+                      type: object
+                    volumes:
+                      items:
+                        type: string
+                      type: array
+                    selectors:
+                      items:
+                        type: string
+                      type: array
+                    nodes:
+                      items:
+                        type: string
+                      type: array
+                    replicas:
+                      format: int64
+                      type: integer
+                    dockerImage:
+                      type: string
+                    resources:
+                      type: object
+                    enabledPlugins:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+    - name: v1
+      served: true
+      storage: false
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                nodeAffinity:
+                  type: object
+                rabbitmqPrometheusMonitoring:
+                  type: boolean
+                allowEvents:
+                  type: boolean
+                operatorImage:
+                  type: string
+                operatorDeleteResources:
+                  type: boolean
+                loglevel:
+                  type: string
+                rabbitmq:
+                  properties:
+                    fsGroup:
+                      format: int64
+                      type: integer
+                    runAsUser:
+                      format: int64
+                      type: integer
+                    podAntiAffinity:
+                      type: string
+                    nodePortService:
+                      type: object
+                    secret_change:
+                      type: string
+                    ipv6_enabled:
+                      type: boolean
+                    auto_reboot:
+                      type: boolean
+                    hostpath_configuration:
+                      type: boolean
+                    validate_state:
+                      type: boolean
+                    custom_params:
+                      type: object
+                    volumes:
+                      items:
+                        type: string
+                      type: array
+                    nodes:
+                      items:
+                        type: string
+                      type: array
+                    selectors:
+                      items:
+                        type: string
+                      type: array
+                    replicas:
+                      format: int64
+                      type: integer
+                    dockerImage:
+                      type: string
+                    resources:
+                      type: object
+                    perQueueMetrics:
+                      type: boolean
+                    enabledPlugins:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                tests:
+                  properties:
+                    runTests:
+                      type: boolean
+                    runTestsOnly:
+                      type: boolean
+                    dockerImage:
+                      type: string
+                    type:
+                      type: string
+                    timeout:
+                      format: int64
+                      type: integer
+                  type: object
+                telegraf:
+                  properties:
+                    install:
+                      type: boolean
+                    fsGroup:
+                      format: int64
+                      type: integer
+                    runAsUser:
+                      format: int64
+                      type: integer
+                    secret_change:
+                      type: string
+                    dockerImage:
+                      type: string
+                    influxdbDebug:
+                      type: boolean
+                    influxdbUrl:
+                      type: string
+                    influxdbDatabase:
+                      type: string
+                    influxdbUser:
+                      type: string
+                    influxdbPassword:
+                      type: string
+                    metricCollectionInterval:
+                      type: string
+                  type:
+                    object
+              required:
+                - rabbitmq
+              type: object
+    - name: v2
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          properties:
+            apiVersion:
+              description: 'APIVersion defines the versioned schema of this representation
+                of an object. Servers should convert recognized schemas to the latest
+                internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#resources'
+              type: string
+            kind:
+              description: 'Kind is a string value representing the REST resource this
+                object represents. Servers may infer this from the endpoint the client
+                submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/api-conventions.md#types-kinds'
+              type: string
+            metadata:
+              type: object
+            spec:
+              properties:
+                disasterRecovery:
+                  type: object
+                  required:
+                    - mode
+                    - region
+                  properties:
+                    mode:
+                      type: string
+                      pattern: "active$|standby$|disable$"
+                    noWait:
+                      type: boolean
+                    region:
+                      type: string
+                nodeAffinity:
+                  type: object
+                rabbitmqPrometheusMonitoring:
+                  type: boolean
+                allowEvents:
+                  type: boolean
+                operatorImage:
+                  type: string
+                operatorDeleteResources:
+                  type: boolean
+                loglevel:
+                  type: string
+                rabbitmq:
+                  properties:
+                    tolerations:
+                      items:
+                        type: object
+                      type: array
+                    fsGroup:
+                      format: int64
+                      type: integer
+                    runAsUser:
+                      format: int64
+                      type: integer
+                    podAntiAffinity:
+                      type: string
+                    nodePortService:
+                      type: object
+                    secret_change:
+                      type: string
+                    ipv6_enabled:
+                      type: boolean
+                    auto_reboot:
+                      type: boolean
+                    hostpath_configuration:
+                      type: boolean
+                    validate_state:
+                      type: boolean
+                    clean_rabbitmq_pvs:
+                      type: boolean
+                    custom_params:
+                      type: object
+                    volumes:
+                      items:
+                        type: string
+                      type: array
+                    nodes:
+                      items:
+                        type: string
+                      type: array
+                    selectors:
+                      items:
+                        type: string
+                      type: array
+                    replicas:
+                      format: int64
+                      type: integer
+                    dockerImage:
+                      type: string
+                    resources:
+                      type: object
+                    perQueueMetrics:
+                      type: boolean
+                    enabledPlugins:
+                      items:
+                        type: string
+                      type: array
+                  type: object
+                tests:
+                  properties:
+                    runTests:
+                      type: boolean
+                    runTestsOnly:
+                      type: boolean
+                    dockerImage:
+                      type: string
+                    type:
+                      type: string
+                    timeout:
+                      format: int64
+                      type: integer
+                  type: object
+                telegraf:
+                  properties:
+                    install:
+                      type: boolean
+                    fsGroup:
+                      format: int64
+                      type: integer
+                    runAsUser:
+                      format: int64
+                      type: integer
+                    secret_change:
+                      type: string
+                    dockerImage:
+                      type: string
+                    influxdbDebug:
+                      type: string
+                    influxdbUrl:
+                      type: string
+                    influxdbDatabase:
+                      type: string
+                    influxdbUser:
+                      type: string
+                    influxdbPassword:
+                      type: string
+                    metricCollectionInterval:
+                      type: string
+                  type:
+                    object
+              required:
+                - rabbitmq
+              type: object
+            status:
+              type: object
+              properties:
+                disasterRecoveryStatus:
+                  type: object
+                  required:
+                    - mode
+                    - status
+                  properties:
+                    mode:
+                      type: string
+                    status:
+                      type: string
+                    message:
+                      type: string

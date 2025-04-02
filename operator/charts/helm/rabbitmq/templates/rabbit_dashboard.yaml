@@ -1,0 +1,17 @@
+{{ if or (eq (include "monitoring.enabled" .) "true") .Values.externalRabbitmq.enabled }}
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: rabbitmq-overview.json
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: grafana
+spec:
+  name: RabbitMQ-Overview-Custom.json
+  json: >
+{{ if (eq (include "monitoring.enabled" .) "true") }}
+{{ .Files.Get "monitoring/rabbitmq-overview.json" | indent 4 }}
+{{- else -}}
+{{ .Files.Get "monitoring/rabbitmq-overview-external.json" | indent 4 }}
+{{ end }}
+{{ end }}

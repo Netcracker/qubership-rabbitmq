@@ -1,0 +1,5 @@
+kopf
+kubernetes==21.7.0
+pykube-ng
+pyyaml
+click<8.0.0

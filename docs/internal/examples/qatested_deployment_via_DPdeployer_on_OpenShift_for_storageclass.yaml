@@ -1,0 +1,47 @@
+name: rabbitmq-service
+
+loglevel: INFO
+rabbitmqPrometheusMonitoring: false
+
+operator:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 100Mi
+    limits:
+      cpu: 100m
+      memory: 100Mi
+
+rabbitmq:
+  tolerations: [{"key": "rabbitmq1","value": "value1","effect": "NoSchedule"},{"key": "rabbitmq3","value": "value3","effect": "NoSchedule"}]
+  auto_reboot: true
+  hostpath_configuration: false
+  custom_params:
+    rabbitmq_vm_memory_high_watermark: 90%
+    rabbitmq_default_user: admin
+    rabbitmq_default_password: admin
+  replicas: 3
+  resources:
+    requests:
+      cpu: 500m
+      memory: 600Mi
+    limits:
+      cpu: 500m
+      memory: 600Mi
+    storageclass: glusterfs-storage
+  storage: 750Mi
+  enabledPlugins:
+    - rabbitmq_prometheus
+telegraf:
+  install: 'Yes'
+  influxdbDebug: 'true'
+  influxdbUrl: 'http://10.101.182.90:8086'
+  influxdbDatabase: 'cloud_dr311qa_arbiter_openshift_sdntest_netcracker_com'
+  influxdbUser: admin
+  influxdbPassword: admin
+tests:
+    runTests: True
+    runTestsOnly: False
+    timeout: 60
+    type: basic
+

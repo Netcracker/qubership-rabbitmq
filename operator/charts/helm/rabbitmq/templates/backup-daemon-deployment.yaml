@@ -1,0 +1,206 @@
+# The deployment for running the backup-daemon pod
+{{ if .Values.backupDaemon.enabled }}
+{{ $persistentVolume := eq (include "backupDaemon.persistentVolumeDefined" .) "true" }}
+{{ $storageClass := eq (include "backupDaemon.storageClassDefined" .) "true" }}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: rabbitmq-backup-daemon
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-backup-daemon
+    name: rabbitmq-backup-daemon
+    app.kubernetes.io/instance: rabbitmq-backup-daemon{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+    app: rabbitmq-backup-daemon
+  namespace: {{ .Release.Namespace }}
+spec:
+  {{- if or (eq .Values.disasterRecovery.mode "standby") (eq .Values.disasterRecovery.mode "disable") }}
+  replicas: 0
+  {{- else }}
+  replicas: 1
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+      app: rabbitmq-backup-daemon
+      {{- end }}
+      name: rabbitmq-backup-daemon
+  template:
+    metadata:
+      labels:
+      {{- with .Values.global.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+      {{- with .Values.backupDaemon.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+        app.kubernetes.io/name: rabbitmq-backup-daemon
+        name: rabbitmq-backup-daemon
+        app: rabbitmq-backup-daemon
+    spec:
+      {{- if .Values.backupDaemon.affinity }}
+      affinity:
+        {{ tpl (.Values.backupDaemon.affinity | toYaml) . | nindent 8 | trim }}
+      {{- end }}
+      {{- if .Values.backupDaemon.tolerations }}
+      tolerations:
+        {{ .Values.backupDaemon.tolerations | toYaml | indent 8 | trim }}
+      {{- end }}
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.backupDaemon.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+        {{- if and (ne (.Values.INFRA_RABBITMQ_FS_GROUP | toString) "<nil>") .Values.global.cloudIntegrationEnabled }}
+        fsGroup: {{ .Values.INFRA_RABBITMQ_FS_GROUP }}
+        {{- end }}
+      {{- if .Values.backupDaemon.priorityClassName }}
+      priorityClassName: {{ .Values.backupDaemon.priorityClassName | quote }}
+      {{- end }}
+      volumes:
+        {{ if (eq (include "backupDaemon.enableTls" .) "true") }}
+        - name: backup-daemon-ssl-certs
+          secret:
+            secretName: {{ template "backupDaemon.tlsSecretName" . }}
+        {{ end }}
+        {{ if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
+        - name: s3-ssl-certs
+          secret:
+            secretName: {{ template "backupDaemon.s3.tlsSecretName" . }}
+        {{ end }}
+        - name: backup-storage
+          {{- if or $persistentVolume $storageClass  }}
+          persistentVolumeClaim:
+            claimName: data-rabbitmq-backup-daemon
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+        - name: ssl-certs
+          secret:
+            secretName: {{ template "rabbitmq.tlsSecretName" . }}
+        {{- end }}
+      containers:
+        - name: rabbitmq-backup-daemon
+          image: {{ template "backupDaemon.image" . }}
+          env:
+            {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
+            - name: TLS_ENABLED
+              value: "true"
+            - name: CERTS_PATH
+              value: "/backupTLS"
+            {{- end }}
+            - name: BACKUP_SCHEDULE
+              value: "{{ default "0 0 * * *" .Values.backupDaemon.backupSchedule }}"
+            - name: EVICTION_POLICY
+              value: "{{ default "0/1d,7d/delete" .Values.backupDaemon.evictionPolicy }}"
+            {{- if .Values.externalRabbitmq.enabled }}
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-external-secret
+                  key: password
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-external-secret
+                  key: username
+            - name: RABBITMQ_URL
+              value: {{ .Values.externalRabbitmq.url }}
+            {{- else }}
+            - name: RABBITMQ_URL
+              value: {{ printf "%s://rabbitmq.%s:%s" (include "rabbitmq.protocol" .) .Release.Namespace (include "rabbitmq.port" .) }}
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-secret
+                  key: user
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-secret
+                  key: password
+            {{- end }}
+            {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+            - name: REGION
+              value: {{ .Values.disasterRecovery.region }}
+            {{- end }}
+            {{- if .Values.backupDaemon.s3.enabled }}
+            - name: S3_ENABLED
+              value: {{ .Values.backupDaemon.s3.enabled | quote }}
+            - name: S3_URL
+              value: {{ (include "backupDaemon.s3Endpoint" .) | quote }}
+            - name: S3_BUCKET
+              value: {{ .Values.backupDaemon.s3.bucket | quote }}
+            {{- if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
+            - name: S3_CERTS_PATH
+              value: /s3Certs
+            {{- end }}
+            - name: S3_SSL_VERIFY
+              value: {{ .Values.backupDaemon.s3.sslVerify | quote }}
+            - name: S3_KEY_ID
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-backup-s3-secret
+                  key: s3-key-id
+            - name: S3_KEY_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-backup-s3-secret
+                  key: s3-key-secret
+            {{- end }}
+          volumeMounts:
+        {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
+          - name: backup-daemon-ssl-certs
+            mountPath: /backupTLS
+        {{- end }}
+        {{- if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
+          - name: s3-ssl-certs
+            mountPath: /s3Certs
+        {{- end }}
+          - name: backup-storage
+            mountPath: /opt/rabbitmq/backup-storage
+        {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+          - name: ssl-certs
+            mountPath: /tls
+        {{- end }}
+          resources:
+            requests:
+              cpu: {{ default "25m" .Values.backupDaemon.resources.requests.cpu }}
+              memory: {{ default "64Mi" .Values.backupDaemon.resources.requests.memory }}
+            limits:
+              cpu: {{ default "200m" .Values.backupDaemon.resources.limits.cpu }}
+              memory: {{ default "256Mi" .Values.backupDaemon.resources.limits.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+          imagePullPolicy: Always
+          livenessProbe:
+            tcpSocket:
+              port: {{ template "backupDaemon.port" . }}
+            failureThreshold: 3
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 5
+          readinessProbe:
+            tcpSocket:
+              port: {{ template "backupDaemon.port" . }}
+            failureThreshold: 5
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            successThreshold: 1
+            timeoutSeconds: 10
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      schedulerName: default-scheduler
+      {{- if .Values.backupDaemon.nodeSelector }}
+      nodeSelector:
+        {{ .Values.backupDaemon.nodeSelector | toYaml | indent 8 | trim }}
+      {{- end }}
+  strategy:
+    type: Recreate
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+{{- end }}

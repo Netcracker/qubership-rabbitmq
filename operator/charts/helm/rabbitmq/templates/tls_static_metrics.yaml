@@ -1,0 +1,23 @@
+{{- if (eq (include "monitoring.enabled" .) "true") }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  labels:
+    {{- include "rabbitmq.coreLabels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+    prometheus: rabbitmq-tls-static-metrics-rules
+    role: record-rules
+  name: rabbitmq-tls-static-metrics-rules
+spec:
+  groups:
+    - name: {{ .Release.Namespace }}-{{ .Release.Name }}
+      partial_response_strategy: ''
+      rules:
+        {{- include  "global.tlsStaticMetric" (dict "namespace" .Release.Namespace "application" "rabbitmq" "service" "rabbitmq" "enableTls" (include "rabbitmq.enableTls" .) "secret" (include "rabbitmq.tlsSecretName" .) "certProvider" (include "services.certProvider" .) "certificate" "rabbitmq-tls-certificate") | nindent 8 }}
+        {{- if .Values.backupDaemon.enabled }}
+        {{- include  "global.tlsStaticMetric" (dict "namespace" .Release.Namespace "application" "rabbitmq" "service" "rabbitmq-backup-daemon" "enableTls" (include "backupDaemon.enableTls" .) "secret" (include "backupDaemon.tlsSecretName" .) "certProvider" (include "services.certProvider" .) "certificate" "rabbitmq-backup-daemon-tls-certificate")  | nindent 8 }}
+        {{- end }}
+        {{- if eq (include "rabbitmq.enableDisasterRecovery" .) "true" }}
+        {{- include  "global.tlsStaticMetric" (dict "namespace" .Release.Namespace "application" "rabbitmq" "service" "rabbitmq-disaster-recovery-daemon" "enableTls" (include "disasterRecovery.enableTls" .) "secret" (include "disasterRecovery.tlsSecretName" .) "certProvider" (include "services.certProvider" .) "certificate" "rabbitmq-drd-tls-certificate")  | nindent 8 }}
+        {{- end }}
+{{- end }}

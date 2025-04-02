@@ -1,0 +1,29 @@
+{{- if and (eq (include "rabbitmq.enableDisasterRecovery" . ) "true") (not .Values.backupDaemon.enabled)}}{{ fail "backupDaemon.enabled must be true if disaster recovery is enabled" }}{{ end -}}
+{{- if and (eq (include "rabbitmq.enableDisasterRecovery" . ) "true") .Values.disasterRecovery.siteManagerEnabled }}
+apiVersion: qubership.org/v3
+kind: SiteManager
+metadata:
+  name: rabbitmq-{{ .Release.Namespace }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+    release: {{ .Release.Name }}
+spec:
+  sitemanager:
+    module: "stateful"
+    {{- with .Values.disasterRecovery.afterServices }}
+    after:
+      {{- range . }}
+      - {{ . }}
+      {{- end }}
+    {{- else }}
+    after: []
+    {{- end }}
+    before: []
+    sequence: ["standby", "active"]
+    timeout: 360
+    parameters:
+      serviceEndpoint: "{{ template "disasterRecovery.protocol" . }}://rabbitmq-disaster-recovery.{{ .Release.Namespace }}.svc.cluster.local:{{ template "disasterRecovery.port" . }}/sitemanager"
+      healthzEndpoint: "{{ template "disasterRecovery.protocol" . }}://rabbitmq-disaster-recovery.{{ .Release.Namespace }}.svc.cluster.local:{{ template "disasterRecovery.port" . }}/healthz"
+{{- end }}

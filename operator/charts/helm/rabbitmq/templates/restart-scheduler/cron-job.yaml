@@ -1,0 +1,53 @@
+{{- if (eq (include "restart-scheduler-enabled" .) "true") }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: rabbitmq-pod-restarter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-pod-restarter
+    name: rabbitmq-pod-restarter
+    app.kubernetes.io/instance: rabbitmq-pod-restarter{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+spec:
+  concurrencyPolicy: Forbid
+  schedule: " {{ .Values.operator.restartScheduler.schedule }}"
+  successfulJobsHistoryLimit: 0
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 300
+      template:
+        spec:
+          securityContext:
+            {{- include "rabbitmq.globalPodSecurityContext" . | nindent 12 }}
+            {{- with .Values.operator.restartScheduler.securityContext }}
+            {{- toYaml . | nindent 12 -}}
+            {{- end }}
+          serviceAccountName: rabbitmq-pod-restarter
+          restartPolicy: Never
+          containers:
+            - name: kubectl
+              image: {{ template "kubectl.image" . }}
+              command:
+                - 'kubectl'
+                - 'delete'
+                - 'pod'
+                - '-l name=rabbitmq-operator'
+                - '--force'
+              {{- with .Values.operator.restartScheduler.resources }}
+              resources:
+                {{ . | toYaml | indent 16 | trim }}
+              {{- end }}
+              securityContext:
+                {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 16 }}
+          {{- with .Values.operator.restartScheduler.affinity }}
+          affinity:
+            {{ toYaml . | indent 12 | trim }}
+          {{- end }}
+          {{- with .Values.operator.restartScheduler.nodeSelector }}
+          nodeSelector:
+            {{ toYaml . | indent 12 | trim }}
+          {{- end }}
+  {{- end }}

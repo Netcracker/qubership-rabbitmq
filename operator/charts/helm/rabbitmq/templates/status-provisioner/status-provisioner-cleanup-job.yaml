@@ -1,0 +1,52 @@
+{{- if and .Values.statusProvisioner.enabled .Values.externalRabbitmq.enabled }}
+# status-provisioner-cleanup deletes previous status-provisioner job if it exists
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-status-provisioner-cleanup
+    app.kubernetes.io/instance: rabbitmq-status-provisioner-cleanup{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+    name: rabbitmq-status-provisioner-cleanup
+  name: rabbitmq-status-provisioner-cleanup
+  annotations:
+    "helm.sh/hook": pre-install,pre-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": hook-succeeded,hook-failed
+spec:
+  template:
+    metadata:
+      name: rabbitmq-status-provisioner-cleanup
+      labels:
+        app: rabbitmq
+        chart: rabbitmq
+        release: {{ .Release.Name }}
+        component: status-provisioner-cleanup
+        name: rabbitmq-status-provisioner-cleanup
+        app.kubernetes.io/name: rabbitmq-status-provisioner-cleanup
+    spec:
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.statusProvisioner.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+      restartPolicy: Never
+      serviceAccountName: rabbitmq-status-provisioner-cleanup
+      containers:
+        - name: status-provisioner-cleanup
+          image: {{ template "deployment-status-provisioner.image" . }}
+          command:
+            - "/bin/bash"
+            - "-c"
+            - kubectl delete job rabbitmq-status-provisioner --ignore-not-found=true
+          resources:
+            requests:
+              cpu: {{ default "50m" .Values.statusProvisioner.resources.requests.cpu }}
+              memory: {{ default "50Mi" .Values.statusProvisioner.resources.requests.memory }}
+            limits:
+              cpu: {{ default "100m" .Values.statusProvisioner.resources.limits.cpu }}
+              memory: {{ default "100Mi" .Values.statusProvisioner.resources.limits.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+{{- end }}

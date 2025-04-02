@@ -1,0 +1,86 @@
+kind: Template
+apiVersion: v1
+metadata:
+  name: telegraf
+  annotations:
+    description: telegraf
+parameters:
+  - name: TELEGRAF_IMAGE
+    required: true
+objects:
+- kind: DeploymentConfig
+  apiVersion: v1
+  metadata:
+    name: telegraf
+  spec:
+    strategy:
+      type: Recreate
+    triggers:
+    - type: ConfigChange
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          name: telegraf
+          component: telegraf
+      spec:
+        serviceAccountName: rabbitmq-monitoring
+        containers:
+        - name: telegraf
+          image: ${TELEGRAF_IMAGE}
+          env:
+            - name: INFLUXDB_DEBUG
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: influxdb-debug
+            - name: METRIC_COLLECTION_INTERVAL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: metric-collection-interval
+            - name: INFLUXDB_URL
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: influxdb-url
+            - name: INFLUXDB_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: influxdb-database
+            - name: INFLUXDB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: influxdb-user
+            - name: INFLUXDB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-monitoring
+                  key: influxdb-password
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-secret
+                  key: password
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-default-secret
+                  key: user
+            - name: RABBITMQ_HOST
+              value: rabbitmq
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 100m
+              memory: 100Mi
+          terminationMessagePath: /dev/termination-log
+          imagePullPolicy: IfNotPresent

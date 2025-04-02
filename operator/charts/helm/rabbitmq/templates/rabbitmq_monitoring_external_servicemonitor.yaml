@@ -1,0 +1,21 @@
+{{ if and .Values.externalRabbitmq.enabled .Values.telegraf.install}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "rabbitmq.coreLabels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+  name: rabbitmq-service-monitor-external
+spec:
+  endpoints:
+    - interval: 30s
+      port: prometheus-cli
+      scheme: http
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      name: rabbit-monitoring-external
+{{ end }}

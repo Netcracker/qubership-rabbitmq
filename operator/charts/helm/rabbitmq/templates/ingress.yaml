@@ -1,0 +1,54 @@
+{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
+kind: Ingress
+{{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+apiVersion: networking.k8s.io/v1
+{{- else if .Capabilities.APIVersions.Has "networking.k8s.io/v1beta1/Ingress" }}
+apiVersion: networking.k8s.io/v1beta1
+{{- else }}
+apiVersion: extensions/v1beta1
+{{- end }}
+metadata:
+  annotations:
+    {{- if and .Values.rabbitmq.ingress.className (not (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress")) }}
+    kubernetes.io/ingress.class: {{ .Values.rabbitmq.ingress.className }}
+    {{- end }}
+    {{- if (eq (include "rabbitmq.enableTls" .) "true") }}
+    nginx.ingress.kubernetes.io/backend-protocol: HTTPS
+    nginx.ingress.kubernetes.io/proxy-ssl-verify: 'on'
+    nginx.ingress.kubernetes.io/proxy-ssl-name: '{{ .Release.Name }}.{{ .Release.Namespace }}'
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: '{{ .Release.Namespace }}/{{ template "rabbitmq.tlsSecretName" . }}'
+    {{- end }}
+  name: rabbitmq
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  {{- if and .Values.rabbitmq.ingress.className (.Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress") }}
+  ingressClassName: {{ .Values.rabbitmq.ingress.className }}
+  {{- end }}
+  rules:
+    - host: {{ (include "rabbitmq.ingressHost" .) | quote }}
+      http:
+        paths:
+          - path: /
+            {{- if .Capabilities.APIVersions.Has "networking.k8s.io/v1/Ingress" }}
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: rabbitmq
+                port:
+                  {{- if (eq (include "rabbitmq.enableTls" .) "true") }}
+                  number: 15671
+                  {{- else }}
+                  number: 15672
+                  {{- end }}
+            {{- else }}
+            backend:
+              serviceName: rabbitmq
+              {{- if (eq (include "rabbitmq.enableTls" .) "true") }}
+              servicePort: 15671
+              {{- else }}
+              servicePort: 15672
+              {{- end }}
+            {{- end }}
+  {{- end }}

@@ -1,0 +1,169 @@
+{{- if and .Values.deployDescriptor .Values.rabbitmqImage (ne (.Values.DEPLOY_W_HELM | toString) "true") }}
+  {{- fail "RabbitMQ requires `DEPLOY_W_HELM` parameter to be set to `true` for App Deployer" }}
+{{- end }}
+apiVersion: qubership.org/v2
+kind: RabbitMQService
+metadata:
+  name: {{ default "rabbitmq-service" .Values.name }}
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-service
+    app.kubernetes.io/processed-by-operator: rabbitmq-operator
+spec:
+  global:
+    defaultLabels:
+      {{- include "rabbitmq.defaultLabels" . | nindent 6 }}
+      app.kubernetes.io/managed-by: operator
+      app.kubernetes.io/managed-by-operator: rabbitmq-operator
+      app.kubernetes.io/technology: python
+    podReadinessTimeout: {{ .Values.global.podReadinessTimeout }}
+  {{- with .Values.global.customLabels }}
+    customLabels:
+      {{- toYaml . | nindent 6 -}}
+  {{- end }}
+  {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+  disasterRecovery:
+    mode: {{ .Values.disasterRecovery.mode }}
+    region: {{ .Values.disasterRecovery.region }}
+    noWait: {{ .Values.disasterRecovery.noWait }}
+  {{- end }}
+{{ if .Values.rabbitmq }}
+  rabbitmq:
+    ssl_enabled: {{ include "rabbitmq.enableTls" . }}
+    {{- if eq (include "rabbitmq.enableTls" .) "true" }}
+    ssl_secret_name: {{ template "rabbitmq.tlsSecretName" . }}
+    {{- end }}
+{{- if and .Values.rabbitmq.affinity (not .Values.rabbitmq.hostpath_configuration) }}
+    affinity: {{ .Values.rabbitmq.affinity | toJson }}
+{{- end }}
+{{ if and .Values.global.tls.enabled .Values.rabbitmq.tls.enabled }}
+    nonencrypted_access: {{ .Values.global.tls.allowNonencryptedAccess }}
+{{ end }}
+{{ if .Values.rabbitmq.tolerations }}
+    tolerations: {{ .Values.rabbitmq.tolerations | toJson }}
+{{ end }}
+    {{- if .Values.rabbitmq.priorityClassName }}
+    priorityClassName: {{ .Values.rabbitmq.priorityClassName | quote }}
+    {{- end }}
+    securityContext:
+    {{- include "rabbitmq.globalPodSecurityContext" . | nindent 6 }}
+    {{- if or .Values.rabbitmq.fsGroup .Values.rabbitmq.runAsUser }}
+      {{- if .Values.rabbitmq.fsGroup }}
+      {{- if and (ne (.Values.INFRA_RABBITMQ_FS_GROUP | toString) "<nil>") .Values.global.cloudIntegrationEnabled }}
+      fsGroup: {{ .Values.INFRA_RABBITMQ_FS_GROUP }}
+      {{- else }}
+      fsGroup: {{ .Values.rabbitmq.fsGroup }}
+      {{- end }}
+      {{ end }}
+      {{ if .Values.rabbitmq.runAsUser }}
+      runAsUser: {{ .Values.rabbitmq.runAsUser }}
+      {{ end }}
+  {{ else }}
+      {{- with .Values.rabbitmq.securityContext }}
+      {{- toYaml . | nindent 6 -}}
+      {{- end }}
+      {{- if and (ne (.Values.INFRA_RABBITMQ_FS_GROUP | toString) "<nil>") .Values.global.cloudIntegrationEnabled }}
+      fsGroup: {{ .Values.INFRA_RABBITMQ_FS_GROUP }}
+      {{- end }}
+  {{ end }}
+  {{- with .Values.rabbitmq.customLabels }}
+    customLabels:
+      {{- toYaml . | nindent 6 -}}
+  {{- end }}
+  {{- with .Values.rabbitmq.customAnnotations }}
+    customAnnotations:
+      {{- toYaml . | nindent 6 -}}
+  {{- end }}
+{{ if .Values.rabbitmq.nodePortService }}
+    nodePortService:
+      install: {{ default "false" .Values.rabbitmq.nodePortService.install }}
+      {{ if .Values.rabbitmq.nodePortService.amqpNodePort }}
+      amqpNodePort: {{ .Values.rabbitmq.nodePortService.amqpNodePort }}
+        {{ end }}
+  {{ if .Values.rabbitmq.nodePortService.mgmtNodePort }}
+      mgmtNodePort: {{ .Values.rabbitmq.nodePortService.mgmtNodePort }}
+  {{ end }}
+{{ end }}
+    ipv6_enabled: {{ .Values.rabbitmq.ipv6_enabled }}
+    auto_reboot: {{ .Values.rabbitmq.auto_reboot }}
+    hostpath_configuration: {{ .Values.rabbitmq.hostpath_configuration }}
+    clean_rabbitmq_pvs: {{ default "false" .Values.rabbitmq.clean_rabbitmq_pvs }}
+    ldap_enabled: {{ .Values.rabbitmq.ldap.enabled }}
+    ldap_ssl_enabled: {{ .Values.rabbitmq.ldap.enableSsl }}
+{{ if .Values.rabbitmq.volumes }}
+    volumes:
+        {{- range .Values.rabbitmq.volumes }}
+      - {{ . }}
+        {{- end }}
+{{ end }}
+{{ if .Values.rabbitmq.selectors }}
+    selectors:
+        {{- range .Values.rabbitmq.selectors }}
+      - {{ . }}
+        {{- end }}
+{{ end }}
+{{ if .Values.rabbitmq.nodes }}
+    nodes:
+        {{- range .Values.rabbitmq.nodes }}
+      - {{ . }}
+        {{- end }}
+{{ end }}
+    {{- if and (ne (.Values.INFRA_RABBITMQ_REPLICAS | toString) "<nil>") .Values.global.cloudIntegrationEnabled }}
+    replicas: {{ .Values.INFRA_RABBITMQ_REPLICAS }}
+    {{- else }}
+    replicas: {{ default "3" .Values.rabbitmq.replicas }}
+    {{- end }}
+    dockerImage: {{ template "rabbitmq.image" . }}
+    resources:
+      requests:
+        cpu: {{ default "1" .Values.rabbitmq.resources.requests.cpu }}
+        memory: {{ default "2Gi" .Values.rabbitmq.resources.requests.memory }}
+      limits:
+        cpu: {{ default "1" .Values.rabbitmq.resources.limits.cpu }}
+        memory: {{ default "2Gi" .Values.rabbitmq.resources.limits.memory }}
+      storage: {{ default "1024Mi" .Values.rabbitmq.resources.storage }}
+      storageclass: {{ default "" (include "rabbitmq.storageclass" .) }}
+    livenessProbe:
+      {{- with .Values.rabbitmq.livenessProbe }}
+      {{- toYaml . | nindent 6 -}}
+      {{- end }}
+    readinessProbe:
+      {{- with .Values.rabbitmq.readinessProbe }}
+      {{- toYaml . | nindent 6 -}}
+      {{- end }}
+    environmentVariables:
+      - "ERL_MAX_PORTS=65536"
+    {{- range .Values.rabbitmq.environmentVariables }}
+      - {{ . }}
+    {{- end }}
+{{ if .Values.tests }}
+  tests:
+    runTests: {{ .Values.tests.runTests }}
+    runTestsOnly: {{ .Values.tests.runTestsOnly }}
+    waitTestResultOnJob: {{ .Values.tests.waitTestResultOnJob }}
+    dockerImage: {{ template "tests.image" . }}
+    type: {{ default "smoke" .Values.tests.tags }}
+    timeout: {{ include "tests.timeout" . }}
+  {{- with .Values.tests.customLabels }}
+    customLabels:
+      {{- toYaml . | nindent 6 -}}
+  {{- end }}
+{{ end }}
+{{ if .Values.telegraf }}
+  telegraf:
+{{ if .Values.telegraf.install }}
+    install: {{ default "false" .Values.telegraf.install }}
+{{ end }}
+    dockerImage: {{ template "telegraf.image" . }}
+    securityContext:
+      {{- include "rabbitmq.globalPodSecurityContext" . | nindent 6 }}
+      {{- with .Values.telegraf.securityContext }}
+      {{- toYaml . | nindent 6 -}}
+      {{- end }}
+    secret_change: {{ include (print $.Template.BasePath "/rabbit_telegraf_secret.yaml") . | sha256sum }}
+  {{- with .Values.telegraf.customLabels }}
+    customLabels:
+      {{- toYaml . | nindent 6 -}}
+  {{- end }}
+{{ end }}
+{{ end }}

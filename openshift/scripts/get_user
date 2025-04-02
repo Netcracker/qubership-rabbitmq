@@ -1,0 +1,9 @@
+#!/bin/bash
+set -e
+if [ "${RABBITMQ_ENABLE_IPV6}" == "True" ];
+then
+  KUBERNETES_SERVICE_HOST_MODIFIED="[$KUBERNETES_SERVICE_HOST]"
+else
+  KUBERNETES_SERVICE_HOST_MODIFIED=$KUBERNETES_SERVICE_HOST
+fi
+echo "$(curl --silent --show-error -k -H "Authorization: Bearer $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)" -H 'Accept: application/json' https://"$KUBERNETES_SERVICE_HOST_MODIFIED":"$KUBERNETES_SERVICE_PORT_HTTPS"/api/v1/namespaces/"$MY_POD_NAMESPACE"/secrets/rabbitmq-default-secret | grep '"user":')" | sed 's/\"user\": \"//g' | sed -r 's/.{1}$//' | sed 's/ //g' | base64 --decode

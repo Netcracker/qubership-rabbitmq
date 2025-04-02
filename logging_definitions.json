@@ -1,0 +1,136 @@
+{
+  "rabbit_version": "3.12.10",
+  "parameters": [],
+  "policies": [],
+  "queues": [
+    {
+      "name": "rabbitmq.event.queue",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 104857600,
+        "x-message-ttl": 604800000,
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "rabbitmq.event.vhost",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 104857600,
+        "x-message-ttl": 604800000,
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "rabbitmq.event.user",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 104857600,
+        "x-message-ttl": 604800000,
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "rabbitmq.event.binding",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 104857600,
+        "x-message-ttl": 604800000,
+        "x-queue-type": "quorum"
+      }
+    },
+    {
+      "name": "rabbitmq.event.exchange",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {
+        "x-max-length-bytes": 104857600,
+        "x-message-ttl": 604800000,
+        "x-queue-type": "quorum"
+      }
+    }
+  ],
+  "exchanges": [],
+  "bindings": [
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.binding",
+      "destination_type": "queue",
+      "routing_key": "binding.#",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.exchange",
+      "destination_type": "queue",
+      "routing_key": "exchange.#",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.queue",
+      "destination_type": "queue",
+      "routing_key": "queue.#",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.user",
+      "destination_type": "queue",
+      "routing_key": "user.created",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.user",
+      "destination_type": "queue",
+      "routing_key": "user.deleted",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.user",
+      "destination_type": "queue",
+      "routing_key": "user.password.changed",
+      "arguments": {}
+    },
+    {
+      "source": "amq.rabbitmq.event",
+      "vhost": "/",
+      "destination": "rabbitmq.event.vhost",
+      "destination_type": "queue",
+      "routing_key": "vhost.#",
+      "arguments": {}
+    }
+  ],
+  "users": [
+        {
+            "name": "username_to_replace",
+            "password": "password_to_replace",
+            "tags": ["administrator"]
+        }
+    ],
+    "permissions":[
+        {
+            "user":"username_to_replace",
+            "vhost":"/",
+            "configure":".*",
+            "read":".*",
+            "write":".*"}
+    ]
+}

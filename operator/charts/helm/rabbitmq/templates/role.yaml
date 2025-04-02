@@ -1,0 +1,149 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: rabbitmq-operator
+rules:
+- apiGroups:
+  - qubership.org
+  resources:
+  - "*"
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - services
+  - persistentvolumeclaims
+  - configmaps
+  - secrets
+  - pods/exec
+  - pods/portforward
+  - pods/attach
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  - delete
+- apiGroups:
+  - ""
+  resources:
+  - endpoints
+  verbs:
+  - get
+- apiGroups:
+  - apps
+  resources:
+  - deployments
+  - deployments/scale
+  - deployments/status
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - create
+  - get
+  - list
+  - patch
+  - update
+  - watch
+  - delete
+{{ if .Values.allowEvents }}
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+{{ end }}
+- apiGroups:
+  - apps
+  resources:
+  - statefulsets
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: rabbitmq
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: endpoint-reader
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get"]
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: secret-patcher-and-reader
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  verbs: ["get", patch]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: endpoint-reader
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: endpoint-reader
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: secret-patcher-and-reader
+subjects:
+- kind: ServiceAccount
+  name: rabbitmq
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: secret-patcher-and-reader
+{{ end }}

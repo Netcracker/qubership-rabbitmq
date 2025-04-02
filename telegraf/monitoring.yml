@@ -1,0 +1,13 @@
+version: '2'
+services:
+  rabbitmq-monitoring:
+    image: ghcr.io/netcracker/qubership-rabbitmq-monitoring:main
+    ports:
+      - 8096:8096
+    volumes:
+      - ./telegrafp.conf:/etc/telegraf/telegraf.conf
+    environment:
+      - RABBIT_EXEC_PLUGIN_TIMEOUT=10s
+      - OS_PROJECT=rabbitmq-service
+      - PROMETHEUS_USERNAME=
+      - PROMETHEUS_PASSWORD=

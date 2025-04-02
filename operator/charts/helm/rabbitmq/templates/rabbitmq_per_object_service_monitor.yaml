@@ -1,0 +1,22 @@
+{{ if and (eq (include "monitoring.enabled" .) "true") .Values.rabbitmq.perQueueMetrics (not .Values.externalRabbitmq.enabled) }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: rabbitmq-per-object-service-monitor
+  labels:
+    {{- include "rabbitmq.coreLabels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+spec:
+  endpoints:
+  - interval: 30s
+    port: 15692-tcp
+    path: /metrics/per-object
+    scheme: http
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: rmqlocal
+{{ end }}

@@ -1,0 +1,17 @@
+{{- if .Values.tests.runTests }}
+kind: Service
+apiVersion: v1
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-integration-tests
+    name: rabbitmq-integration-tests
+  name: rabbitmq-integration-tests
+spec:
+  ports:
+    - name: http
+      port: 8080
+      protocol: TCP
+  selector:
+    name: rabbitmq-integration-tests
+{{- end }}

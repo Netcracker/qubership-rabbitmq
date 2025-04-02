@@ -1,0 +1,37 @@
+{{- if and .Values.backupDaemon.enabled (eq (include "monitoring.enabled" .) "true") }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "rabbitmq.coreLabels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/name: rabbitmq-backup-daemon-service-monitor
+  name: rabbitmq-backup-daemon-service-monitor
+  namespace: {{ .Release.Namespace }}
+spec:
+  endpoints:
+    - interval: 30s
+      path: /health/prometheus
+      {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
+      scheme: https
+      tlsConfig:
+        ca:
+          secret:
+            key: ca.crt
+            name: {{ template "backupDaemon.tlsSecretName" . }}
+        serverName: rabbitmq-backup-daemon
+      {{- else }}
+      scheme: http
+      {{- end }}
+      relabelings:
+        - action: replace
+          replacement: 'full'
+          targetLabel: mode
+  jobLabel: k8s-app
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app: rabbitmq-backup-daemon
+{{- end }}

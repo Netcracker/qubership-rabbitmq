@@ -1,0 +1,64 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: rabbitmq-config
+data:
+  enabled_plugins: "{{ printf "[%s]." (include "rabbitmq.enabledPlugins" .) }}"
+  rabbitmq.conf: |-
+    ## clustering
+    {{- include "rabbitmq.clusterConfiguration" . | nindent 4}}
+
+    ## queue master locator
+    queue_master_locator = min-masters
+
+    ## enable guest user
+    loopback_users.guest = false
+
+    ## logging
+    log.file = false
+    log.upgrade.file = false
+    log.upgrade.level = none
+    log.console = true
+    {{- if .Values.rabbitmq.eventLogging }}
+    management.load_definitions = /etc/rabbitmq/logging_definitions.json
+    {{- end }}
+    {{- include "rabbitmq.sslConfiguration" . | nindent 4}}
+
+    ## custom
+    cluster_name = {{ default "rabbitmq" .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}
+    vm_memory_high_watermark.relative = {{- include "rabbitmq.cutWatermark" . }}
+    total_memory_available_override_value = {{- include "rabbitmq.memoryLimitMegaBytes" . }}
+    {{- range .Values.rabbitmq.customConfigProperties }}
+    {{ . }}
+    {{- end }}
+
+    {{- if .Values.rabbitmq.ldap.enabled }}
+    ## LDAP Configuration
+    auth_backends.1 = ldap
+    auth_backends.2 = internal
+    auth_ldap.servers.1 = {{ .Values.rabbitmq.ldap.server }}
+    auth_ldap.port = {{ .Values.rabbitmq.ldap.port }}
+    {{- if .Values.rabbitmq.ldap.enableSsl }}
+    auth_ldap.use_ssl = true
+    auth_ldap.ssl_options.cacertfile = /trusted-certs/ca.crt
+    auth_ldap.ssl_options.verify = verify_none
+    auth_ldap.ssl_options.fail_if_no_peer_cert = false
+    {{- else }}
+    auth_ldap.use_ssl = false
+    {{- end }}
+    auth_ldap.log = {{ .Values.rabbitmq.ldap.log }}
+    auth_ldap.dn_lookup_bind.user_dn = $(LDAP_ADMIN_USER)
+    auth_ldap.dn_lookup_bind.password = $(LDAP_ADMIN_PASSWORD)
+    auth_ldap.dn_lookup_attribute = {{ .Values.rabbitmq.ldap.dnAttribute }}
+    auth_ldap.dn_lookup_base = {{ .Values.rabbitmq.ldap.base }}
+    {{- end}}
+
+  advanced.config: |-
+    {{- printf "[%s]." (include "rabbitmq.advancedConfig" .) | nindent 4 }}
+  {{- if .Values.rabbitmq.ipv6_enabled }}
+  erl_inetrc: "{inet6,true}."
+  {{- end }}
+{{ end }}

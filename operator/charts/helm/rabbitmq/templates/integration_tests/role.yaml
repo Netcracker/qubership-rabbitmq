@@ -1,0 +1,69 @@
+{{- if .Values.tests.runTests }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-integration-tests
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+rules:
+  - apiGroups:
+      - qubership.org
+    resources:
+      - rabbitmqservices
+      - rabbitmqservices/status
+    verbs:
+      - get
+      - patch
+      - update
+  - apiGroups:
+      - apps
+    resources:
+      - deployments
+      - deployments/scale
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+      - pods/exec
+      - services
+      - secrets
+    verbs:
+      - get
+      - list
+      - patch
+      - update
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+  - apiGroups:
+      - ""
+    resources:
+      - secrets
+    verbs:
+      - create
+      - get
+      - list
+      - watch
+      - delete
+  {{- if .Values.tests.statusWritingEnabled }}
+  - apiGroups:
+      - apps
+    resources:
+      - deployments/status
+    verbs:
+      - get
+      - update
+      - patch
+  {{- end }}
+{{- end }}

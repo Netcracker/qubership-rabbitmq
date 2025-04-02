@@ -1,0 +1,63 @@
+name: rabbitmq-service
+loglevel: DEBUG
+rabbitmqPrometheusMonitoring: true
+rabbitmq:
+  securityContext:
+    runAsUser: 5000
+    fsGroup: 5000
+  perQueueMetrics: true
+  auto_reboot: true
+  hostpath_configuration: false
+  nodePortService:
+    install: true
+  ldap:
+    enabled: true
+    server: "dc.testad.local"
+    port: 3269
+    log: false
+    dn:
+      usernameDn: ADMIN_TEST
+      passwordDn: Qwerty123
+    dnAttribute: name
+    base: DC=testad,DC=local
+    enableSsl: true
+    sslOptions:
+      trustedCerts: 
+        ca.crt: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUdKakNDQlE2Z0F3SUJBZ0lUZlFBQUFBYm5CTGRXZ3VzLzBBQUFBQUFBQmpBTkJna3Foa2lHOXcwQkFRc0YKQURCR01SVXdFd1lLQ1pJbWlaUHlMR1FCR1JZRmJHOWpZV3d4RmpBVUJnb0praWFKay9Jc1pBRVpGZ1owWlhOMApZV1F4RlRBVEJnTlZCQU1UREhSbGMzUmhaQzFFUXkxRFFUQWVGdzB5TkRFd01UY3hOVFEzTXpKYUZ3MHlOVEV3Ck1UY3hOVFEzTXpKYU1Cb3hHREFXQmdOVkJBTVREMFJETG5SbGMzUmhaQzVzYjJOaGJEQ0NBU0l3RFFZSktvWkkKaHZjTkFRRUJCUUFEZ2dFUEFEQ0NBUW9DZ2dFQkFMcW94dDJHWEZFOENoZWx2TXZvOWNsaHBKRUZxOUNPSXdWcApYRzV5b3JGbFk1T1IyVE1tTjVFci9DcDMvTUI2STlkS3NwWkxhSFZrOU02OWRCMTNwSFdIOEFlK1FueTh4MjFvCmVVWCs4Uk94ZUYrYkhpTzBseFltRzY1SENHZWFqTzlDQURtYlNTMTU2V1ZobDF4Q213N0xqRlE5c3FWYjByWDAKOUxGempHNFFEVUpmNmlzaEVaWVd5d1UvRnBTaWFOMXZ3a3hKVDJNTjg5SExMT2l3SGQwcW1qVUIxQzVvUEcvawpUUTJDWjFtV1drSVRBYUYyWEU0OVkzTTQ5emVHcHd2V2NuZElnUHhSSWZ3R29zODgzMkloNysrM1VoK2kyU0Z2ClQwMHoxUDh3Y2RJTVB5aXhiRktBRTEwZlk0c3J0Zm9DMmdETHREOENVNFpyZGxEaDM1RUNBd0VBQWFPQ0F6Y3cKZ2dNek1DOEdDU3NHQVFRQmdqY1VBZ1FpSGlBQVJBQnZBRzBBWVFCcEFHNEFRd0J2QUc0QWRBQnlBRzhBYkFCcwpBR1VBY2pBZEJnTlZIU1VFRmpBVUJnZ3JCZ0VGQlFjREFnWUlLd1lCQlFVSEF3RXdEZ1lEVlIwUEFRSC9CQVFECkFnV2dNSGdHQ1NxR1NJYjNEUUVKRHdSck1Ha3dEZ1lJS29aSWh2Y05Bd0lDQWdDQU1BNEdDQ3FHU0liM0RRTUUKQWdJQWdEQUxCZ2xnaGtnQlpRTUVBU293Q3dZSllJWklBV1VEQkFFdE1Bc0dDV0NHU0FGbEF3UUJBakFMQmdsZwpoa2dCWlFNRUFRVXdCd1lGS3c0REFnY3dDZ1lJS29aSWh2Y05Bd2N3VHdZSkt3WUJCQUdDTnhrQ0JFSXdRS0ErCkJnb3JCZ0VFQVlJM0dRSUJvREFFTGxNdE1TMDFMVEl4TFRJMU56RTFNVE16TnpFdE16azFOVEkxTlRFME5TMDEKTkRVek16TTROaTAwT0RZd05UTXdPd1lEVlIwUkJEUXdNcUFmQmdrckJnRUVBWUkzR1FHZ0VnUVFEbDJISHp0TQplVU9JR3l5ZmsrQTdhSUlQUkVNdWRHVnpkR0ZrTG14dlkyRnNNQjBHQTFVZERnUVdCQlQ5dVkzS2dLTUFEWUtMCkNoMEI2bEo4eTlGdWFEQWZCZ05WSFNNRUdEQVdnQlFQdFpLWmdTV1ZEb1JoOE1FVm9SbzZxZVFtYkRDQnhnWUQKVlIwZkJJRytNSUc3TUlHNG9JRzFvSUd5aG9HdmJHUmhjRG92THk5RFRqMTBaWE4wWVdRdFJFTXRRMEVzUTA0OQpSRU1zUTA0OVEwUlFMRU5PUFZCMVlteHBZeVV5TUV0bGVTVXlNRk5sY25acFkyVnpMRU5PUFZObGNuWnBZMlZ6CkxFTk9QVU52Ym1acFozVnlZWFJwYjI0c1JFTTlkR1Z6ZEdGa0xFUkRQV3h2WTJGc1AyTmxjblJwWm1sallYUmwKVW1WMmIyTmhkR2x2Ymt4cGMzUS9ZbUZ6WlQ5dlltcGxZM1JEYkdGemN6MWpVa3hFYVhOMGNtbGlkWFJwYjI1UQpiMmx1ZERDQnZ3WUlLd1lCQlFVSEFRRUVnYkl3Z2E4d2dhd0dDQ3NHQVFVRkJ6QUNob0dmYkdSaGNEb3ZMeTlEClRqMTBaWE4wWVdRdFJFTXRRMEVzUTA0OVFVbEJMRU5PUFZCMVlteHBZeVV5TUV0bGVTVXlNRk5sY25acFkyVnoKTEVOT1BWTmxjblpwWTJWekxFTk9QVU52Ym1acFozVnlZWFJwYjI0c1JFTTlkR1Z6ZEdGa0xFUkRQV3h2WTJGcwpQMk5CUTJWeWRHbG1hV05oZEdVL1ltRnpaVDl2WW1wbFkzUkRiR0Z6Y3oxalpYSjBhV1pwWTJGMGFXOXVRWFYwCmFHOXlhWFI1TUEwR0NTcUdTSWIzRFFFQkN3VUFBNElCQVFBcWNnRkd2a3hHSVMyRWo1VEFHUU5ySXkvc2oxOEIKbmYwWDA0eTVvQzZ3TlpRTzNIV3JKNk9WZXJBTVc2aTVFdVRRZnJVMEJaZDRBcUlMcURkeDdWa1dKOXBPbWRLcApXUFh0L0tlSElJODFVUWh3djZLS1ZQOVYyNlBNQ2VCMzYzdE9RWDVmVmxEQUpoS2NzTlM2ZzBXYzNCR1g3MDZiCks0ZVN1S3hXZUZkYWdNcVhyTndmck5DdzJTRE5Jc1Bhd1FmL2tQVnFjb0N1V0plNG0zRjdmMXlEL0hQeklOYVgKbUhCNHV5QzU0YzZWQTFDekZ5RFBxeVp1QmVtejlHM0xMRGlnZktkbzAvQloxY1JFZnh1cVlNdEE0UHJvUFFkeQoxc0wwRDlZYjhOTHN2WFRvRm9PR09ZeUxWbGt6RGg1SEhZLzlZaXlBU2VXUXZFZzdTOTNHQnp3RwotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t
+    advancedConfig: "{rabbitmq_auth_backend_ldap, [{tag_queries, [{administrator, {constant, false}}, {management, {constant, true}}]}]}"
+  custom_params:
+    rabbitmq_vm_memory_high_watermark: 90%
+    rabbitmq_default_user: admin
+    rabbitmq_default_password: admin
+  replicas: 3
+  resources:
+    requests:
+      cpu: 0.1
+      memory: 0.6Gi
+    limits:
+      cpu: 0.6
+      memory: 0.6Gi
+    storage: 750Mi
+    storageclass: local-path
+  enabledPlugins:
+    - rabbitmq_prometheus
+    - rabbitmq_shovel
+    - rabbitmq_stomp
+  ingress:
+    enabled: true
+    host: rabbitmq-rabbitmq.paas-miniha-kubernetes.openshift.sdntest.qubership.org
+    className: nginx
+backupDaemon:
+  enabled: true
+  securityContext: {
+    "runAsUser": 5000
+  }
+tests:
+  runTests: false
+  runAsUser: 5000
+  runTestsOnly: False
+  timeout: 300
+  tags: smoke
+  waitTestResultOnJob: True
+  rabbitmq_port: 15672
+  amqp_port: 5672

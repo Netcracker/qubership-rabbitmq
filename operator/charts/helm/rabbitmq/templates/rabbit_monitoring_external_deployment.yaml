@@ -1,0 +1,101 @@
+{{ if and .Values.externalRabbitmq.enabled .Values.telegraf.install }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rabbit-monitoring-external
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-monitoring-external
+    app.kubernetes.io/instance: rabbitmq-monitoring-external{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+    name: rabbitmq-monitoring-external
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      name: rabbit-monitoring-external
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        name: rabbit-monitoring-external
+        app.kubernetes.io/name: rabbitmq-monitoring-external
+    spec:
+      {{- if .Values.telegraf.affinity }}
+      affinity:
+        {{ tpl (.Values.telegraf.affinity | toYaml) . | nindent 8 | trim }}
+      {{- end }}
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.telegraf.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+      {{- if .Values.telegraf.priorityClassName }}
+      priorityClassName: {{ .Values.telegraf.priorityClassName | quote }}
+      {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: rabbitmq-monitoring-external-configuration
+            items:
+              - key: config
+                path: telegraf.conf
+            defaultMode: 420
+      {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+        - name: ssl-certs
+          secret:
+            secretName: {{ template "rabbitmq.tlsSecretName" . }}
+      {{- end }}
+      containers:
+        - name: telegraf
+          image: {{ template "telegraf.image" . }}
+          ports:
+            - containerPort: 8125
+              protocol: TCP
+            - containerPort: 8094
+              protocol: TCP
+            - containerPort: 8092
+              protocol: UDP
+            - name: prometheus-cli
+              containerPort: 8096
+              protocol: TCP
+          env:
+            - name: OS_PROJECT
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+            - name: RABBITMQ_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-external-secret
+                  key: password
+            - name: RABBITMQ_USER
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-external-secret
+                  key: username
+            - name: RABBITMQ_HOST
+              value: {{ .Values.externalRabbitmq.url }}
+            - name: RABBIT_EXEC_PLUGIN_TIMEOUT
+              value: {{ default "10s" .Values.telegraf.metricCollectionInterval }}
+            - name: DESIRED_NODE_COUNT
+              value: "{{ .Values.externalRabbitmq.replicas }}"
+          volumeMounts:
+            - name: config
+              mountPath: /etc/telegraf
+          {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+            - name: ssl-certs
+              mountPath: /tls
+          {{- end }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.telegraf.pullPolicy }}
+          resources:
+            limits:
+              cpu: {{ default "100m" .Values.telegraf.resources.limits.cpu  }}
+              memory: {{ default "100Mi" .Values.telegraf.resources.limits.memory }}
+            requests:
+              cpu: {{ default "100m" .Values.telegraf.resources.requests.cpu }}
+              memory: {{ default "100Mi" .Values.telegraf.resources.requests.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+{{ end }}

@@ -1,0 +1,215 @@
+{
+  "kind": "Template",
+  "apiVersion": "v1",
+  "metadata": {
+    "name": "rabbitmq",
+    "description": "Template for rabbitmq"
+  },
+  "parameters": [
+    {
+      "name": "APPLICATION",
+      "value": "rmqlocal",
+      "description": "Application name",
+      "required": false
+    },
+    {
+      "name": "DOCKER_TAG",
+      "required": true
+    },
+    {
+      "name": "REPLICAS",
+      "value": "1",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_USE_LONGNAME",
+      "value": "true"
+    },
+    {
+      "name": "RABBITMQ_USER",
+      "value": "guest",
+      "description": "default user",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_PASSWORD",
+      "value": "guest",
+      "description": "default password",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_COOKIE",
+      "value": "secretcookie",
+      "description": "secret cookie",
+      "required": false
+    },
+    {
+      "name": "BROKER_NAME_INTERNAL",
+      "value": "rmqlocal",
+      "description": "Rabbit internal name",
+      "required": false
+    },
+    {
+      "name": "BROKER_NAME_PUBLIC",
+      "value": "rabbitmq",
+      "description": "Rabbit public name",
+      "required": false
+    },
+    {
+      "name": "RMQ_RES_REQUESTS_CPU",
+      "value": "1",
+      "required": false
+    },
+    {
+      "name": "RMQ_RES_REQUEST_MEMORY",
+      "value": "2Gi",
+      "required": false
+    },
+    {
+      "name": "RMQ_RES_LIMITS_CPU",
+      "value": "1",
+      "required": false
+    },
+    {
+      "name": "RMQ_RES_LIMITS_MEMORY",
+      "value": "2Gi",
+      "required": false
+    },
+    {
+      "name": "RMQ_TIMEOUT_SECONDS",
+      "value": "600",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_VM_MEMORY_HIGH_WATERMARK",
+      "value": "90%",
+      "required": false
+    },
+    {
+      "name": "PVC_CAPACITY",
+      "value": "750Mi",
+      "required": false
+    },
+    {
+      "name": "VCT_NAME",
+      "value": "default-vct-name",
+      "required": false
+    },
+    {
+      "name": "AUTOCLUSTER_CLEANUP",
+      "value": "false",
+      "required": false
+    },
+    {
+      "name": "CLEANUP_WARN_ONLY",
+      "value": "true",
+      "description": "default user",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_USE_LONGNAME",
+      "value": "true",
+      "required": false
+    },
+    {
+      "name": "RABBITMQ_NODENAME",
+      "value": "rabbit@$(MY_POD_NAME).$(BROKER_NAME_INTERNAL).$(MY_POD_NAMESPACE).svc.cluster.local",
+      "description": "default user",
+      "required": false
+    },
+    {
+      "name": "BACKUP_CPU_REQUEST",
+      "description": "CPU core request",
+      "value": "1",
+      "required": false
+    },
+    {
+      "name": "BACKUP_CPU_LIMIT",
+      "description": "CPU core limit",
+      "value": "1",
+      "required": false
+    },
+    {
+      "name": "BACKUP_MEMORY_REQUEST",
+      "description": "Memory request",
+      "value": "2Gi",
+      "required": false
+    },
+    {
+      "name": "BACKUP_MEMORY_LIMIT",
+      "description": "Memory limit",
+      "value": "2Gi",
+      "required": false
+    },
+    {
+      "description": "Which docker image should be used to deploy.",
+      "displayName": "Docker image.",
+      "name": "BACKUP_DOCKER_TAG",
+      "required": false
+    },
+    {
+      "name": "BACKUP_STORAGE_SIZE",
+      "description": "storage size for backup pv",
+      "required": false,
+      "value": "1Gi"
+    },
+    {
+      "name": "BACKUP_STORAGE_CLASS",
+      "description": "storage class for backup pv",
+      "required": false
+    },
+    {
+      "name": "BACKUP_STORAGE_PV",
+      "description": "backup storage pv"
+    },
+    {
+      "name": "BACKUP_SCHEDULE",
+      "description": "backup schedule",
+      "required": false,
+      "value": "None"
+    },
+    {
+      "name": "BACKUP_LOG_LEVEL",
+      "description": "backup logging",
+      "required": false,
+      "value": "INFO"
+    }
+  ],
+  "objects": [
+    {
+      "kind": "Service",
+      "apiVersion": "v1",
+      "metadata": {
+        "name": "${BROKER_NAME_PUBLIC}",
+        "labels": {
+          "app": "${APPLICATION}"
+        }
+      },
+      "spec": {
+        "ports": [
+          {
+            "name": "15672-tcp",
+            "protocol": "TCP",
+            "port": 15672,
+            "targetPort": 15672
+          },
+          {
+            "name": "5672-tcp",
+            "protocol": "TCP",
+            "port": 5672,
+            "targetPort": 5672
+          },
+          {
+            "name": "15692-tcp",
+            "protocol": "TCP",
+            "port": 15692,
+            "targetPort": 15692
+          }
+        ],
+        "selector": {
+          "app": "${APPLICATION}"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{{ if and .Values.externalRabbitmq.enabled .Values.telegraf.install}}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  creationTimestamp: null
+  labels:
+    {{- include "rabbitmq.coreLabels" . | nindent 4 }}
+    app.kubernetes.io/component: monitoring
+    prometheus: rabbitmq-service-external-metric-collector
+    role: alert-rules
+  name: prometheus-rabbitmq-service-external-rules
+spec:
+  groups:
+  - name: general.rules
+    rules:
+    - alert: Cluster error
+      annotations:
+        description: "Cluster is unavailable"
+        summary: RabbitMQ cluster is down or degraded
+      expr: prometheus_rabbitmq_cluster_state > 0
+      for: "1m"
+      labels:
+        severity: disaster
+    - alert: Memory alarm
+      annotations:
+        description: "Memory alarm was triggered"
+        summary: Memory alarm was triggered
+      expr: (prometheus_rabbitmq_resident_memory_limit_bytes{rabbitmq_cluster="{{ .Values.externalRabbitmq.clusterName }}"}) - (prometheus_rabbitmq_process_resident_memory_bytes{rabbitmq_cluster="{{ .Values.externalRabbitmq.clusterName }}"}) < 0
+      for: "1m"
+      labels:
+        severity: average
+    - alert: Disk alarm
+      annotations:
+        description: "Disk alarm was triggered"
+        summary: Disk alarm was triggered
+      expr: prometheus_rabbitmq_disk_space_available_bytes{rabbitmq_cluster="{{ .Values.externalRabbitmq.clusterName }}"} < 50000000
+      for: "1m"
+      labels:
+        severity: average
+    - alert: No metrics
+      annotations:
+        description: "No metrics is sent"
+        summary: No metrics is sent
+      expr: absent(prometheus_rabbitmq_cluster_state{namespace="{{ .Release.Namespace }}"})
+      for: "1m"
+      labels:
+        severity: disaster
+{{ end }}

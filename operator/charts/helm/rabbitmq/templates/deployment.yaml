@@ -1,0 +1,193 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-operator
+    name: rabbitmq-operator
+    app.kubernetes.io/instance: rabbitmq-operator{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+  name: rabbitmq-operator
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      name: rabbitmq-operator
+  template:
+    metadata:
+      labels:
+      {{- with .Values.global.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+      {{- with .Values.operator.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+        app.kubernetes.io/name: rabbitmq-operator
+        name: rabbitmq-operator
+      annotations:
+        post.hook.restore.velero.io/command: '["python3", "/opt/operator/velero_delete_pods_rmqlocal.py"]'
+        qubership.org/cr-checksum: {{ include (print .Template.BasePath "/cr.yaml") . | sha256sum | trunc 63 }}
+    spec:
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.operator.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+      {{- if .Values.operator.priorityClassName }}
+      priorityClassName: {{ .Values.operator.priorityClassName | quote }}
+      {{- end }}
+      {{- if or (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) (eq (include "disasterRecovery.enableTls" .) "true") (eq (include "backupDaemon.enableTls" .) "true") }}
+      volumes:
+      {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+        - name: ssl-certs
+          secret:
+            secretName: {{ template "rabbitmq.tlsSecretName" . }}
+      {{- end }}
+      {{- if and (eq (include "backupDaemon.enableTls" .) "true") .Values.backupDaemon.enabled }}
+        - name: backup-daemon-ssl-certs
+          secret:
+            secretName: {{ template "backupDaemon.tlsSecretName" . }}
+      {{- end }}
+      {{- if and (eq (include "disasterRecovery.enableTls" .) "true") (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+        - name: drd-ssl-certs
+          secret:
+            secretName: {{ template "disasterRecovery.tlsSecretName" . }}
+      {{- end }}
+      {{- end }}
+      {{- if .Values.operator.affinity }}
+      affinity:
+        {{ .Values.operator.affinity | toJson }}
+      {{- end }}
+      {{ if .Values.rabbitmq.tolerations }}
+      tolerations:
+        {{ .Values.rabbitmq.tolerations | toJson }}
+      {{ end }}
+      serviceAccountName: rabbitmq-operator
+      containers:
+        - name: rabbitmq-operator
+          image: {{ template "operator.image" . }}
+          {{- if .Values.operator }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.operator.pullPolicy }}
+          livenessProbe:
+            initialDelaySeconds: 30
+            timeoutSeconds: 5
+            periodSeconds: 30
+            failureThreshold: 5
+            successThreshold: 1
+            httpGet:
+              path: /healthz
+              port: 8081
+          resources:
+            limits:
+              cpu: {{ default "100m" .Values.operator.resources.limits.cpu  }}
+              memory: {{ default "100Mi" .Values.operator.resources.limits.memory }}
+            requests:
+              cpu: {{ default "100m" .Values.operator.resources.requests.cpu }}
+              memory: {{ default "100Mi" .Values.operator.resources.requests.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+          {{- end }}
+          env:
+            - name: WATCH_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: BACKUP_DAEMON_ENABLED
+              value: "{{ .Values.backupDaemon.enabled }}"
+            - name: HANDLE_FORBIDDEN_UPDATE
+              value: "{{ .Values.rabbitmq.deleteStatefulSetOnForbiddenUpdate }}"
+            {{- if .Values.loglevel }}
+            - name: LOGLEVEL
+              value: "{{ .Values.loglevel }}"
+            {{- end }}
+            {{- if .Values.operatorDeleteResources }}
+            - name: OPERATOR_DELETE_RESOURCES
+              value: "{{ .Values.operatorDeleteResources }}"
+            {{- end }}
+        {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}
+          volumeMounts:
+        {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+            - name: ssl-certs
+              mountPath: /tls
+        {{- end }}
+        {{- if and (eq (include "backupDaemon.enableTls" .) "true") .Values.backupDaemon.enabled }}
+            - name: backup-daemon-ssl-certs
+              mountPath: /backupTLS
+        {{- end }}
+        {{- end }}
+        {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+        - name: rabbitmq-disaster-recovery
+          image: {{ template "disasterRecovery.image" . }}
+          imagePullPolicy: Always
+          {{- if (eq (include "disasterRecovery.enableTls" .) "true") }}
+          volumeMounts:
+            - name: drd-ssl-certs
+              mountPath: /tls
+          {{- end }}
+          ports:
+            - containerPort: {{ template "disasterRecovery.port" . }}
+              protocol: TCP
+              name: dr
+          resources:
+            limits:
+              cpu: {{ default "32m" .Values.disasterRecovery.resources.limits.cpu  }}
+              memory: {{ default "32Mi" .Values.disasterRecovery.resources.limits.memory }}
+            requests:
+              cpu: {{ default "10m" .Values.disasterRecovery.resources.requests.cpu }}
+              memory: {{ default "10Mi" .Values.disasterRecovery.resources.requests.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              scheme: {{ (eq (include "disasterRecovery.enableTls" .) "true") | ternary "HTTPS" "HTTP" }}
+              port: {{ template "disasterRecovery.port" . }}
+            initialDelaySeconds: 10
+            timeoutSeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            {{- if (eq (include "disasterRecovery.enableTls" .) "true") }}
+            - name: TLS_ENABLED
+              value: "true"
+            - name: CERTS_PATH
+              value: "/tls/"
+            - name: CIPHER_SUITES
+              value: "{{ (include "disasterRecovery.cipherSuites" .) | trimSuffix "," }}"
+            {{- end }}
+            - name: RESOURCE_FOR_DR
+              value: "qubership.org v2 rabbitmqservices rabbitmq-service"
+            - name: USE_DEFAULT_PATHS
+              value: "true"
+            - name: HEALTH_MAIN_SERVICES_ACTIVE
+              value: "{{ template "rabbitmq.statefulsetNames" . }}"
+            - name: HEALTH_ADDITIONAL_SERVICES_ACTIVE
+              value: "deployment rabbitmq-backup-daemon"
+            - name: HEALTH_MAIN_SERVICES_STANDBY
+              value: "{{ template "rabbitmq.statefulsetNames" . }}"
+            - name: HEALTH_MAIN_SERVICES_DISABLED
+              value: "{{ template "rabbitmq.statefulsetNames" . }}"
+            {{- if .Values.disasterRecovery.httpAuth.enabled}}
+            - name: SITE_MANAGER_NAMESPACE
+              value: {{ .Values.disasterRecovery.httpAuth.smNamespace | quote }}
+            - name: SITE_MANAGER_SERVICE_ACCOUNT_NAME
+              value: {{ include "disasterRecovery.siteManagerServiceAccount" . }}
+            {{- if .Values.disasterRecovery.httpAuth.smSecureAuth }}
+            - name: SITE_MANAGER_CUSTOM_AUDIENCE
+              value: {{ .Values.disasterRecovery.httpAuth.customAudience }}
+            {{- end }}
+            {{- end }}
+        {{- end }}
+{{ end }}

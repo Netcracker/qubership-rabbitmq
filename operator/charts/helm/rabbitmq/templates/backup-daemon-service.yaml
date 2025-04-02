@@ -1,0 +1,19 @@
+{{ if .Values.backupDaemon.enabled }}
+kind: Service
+apiVersion: v1
+metadata:
+  name: rabbitmq-backup-daemon
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-backup-daemon
+    name: rabbitmq-backup-daemon
+    app: rabbitmq-backup-daemon
+spec:
+  ports:
+    - name: http
+      protocol: TCP
+      port: {{ template "backupDaemon.port" . }}
+      targetPort: {{ template "backupDaemon.port" . }}
+  selector:
+    app: rabbitmq-backup-daemon
+{{- end }}

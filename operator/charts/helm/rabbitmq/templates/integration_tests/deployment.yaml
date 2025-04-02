@@ -1,0 +1,177 @@
+{{- if .Values.tests.runTests }}
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: rabbitmq-integration-tests
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-integration-tests
+    name: rabbitmq-integration-tests
+    app.kubernetes.io/instance: rabbitmq-integration-tests{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+spec:
+  selector:
+    matchLabels:
+      name: rabbitmq-integration-tests
+  strategy:
+    type: Recreate
+  replicas: 1
+  template:
+    metadata:
+      labels:
+      {{- with .Values.global.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+      {{- with .Values.tests.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+        name: rabbitmq-integration-tests
+        app.kubernetes.io/name: rabbitmq-integration-tests
+    spec:
+      {{- if .Values.tests.affinity }}
+      affinity:
+        {{ tpl (.Values.tests.affinity | toYaml) . | nindent 8 | trim }}
+      {{- end }}
+      serviceAccountName: rabbitmq-integration-tests
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.tests.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+      {{- if .Values.tests.priorityClassName }}
+      priorityClassName: {{ .Values.tests.priorityClassName | quote }}
+      {{- end }}
+      containers:
+        - name: rabbitmq-integration-tests
+          image: {{ template "tests.image" . }}
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: RABBIT_IS_MANAGED_BY_OPERATOR
+              value: {{ .Values.tests.rabbitIsManagedByOperator | quote }}
+            - name: TAGS
+              value: {{ default "smoke" .Values.tests.tags | quote }}
+            {{- if and .Values.deployDescriptor .Values.testsImage }}
+            - name: MONITORED_IMAGES
+              value: {{ include "rabbitmq.monitoredImages" . }}
+            {{- end }}
+            {{- if .Values.tests.statusWritingEnabled }}
+            - name: STATUS_WRITING_ENABLED
+              value: {{ .Values.tests.statusWritingEnabled | quote }}
+            - name: STATUS_CUSTOM_RESOURCE_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: IS_SHORT_STATUS_MESSAGE
+              value: {{ .Values.tests.isShortStatusMessage | quote }}
+            {{- end }}
+            - name: RABBITMQ_ENABLE_SSL
+              value: {{ include "rabbitmq.enableTls" . | quote }}
+            - name: RABBITMQ_AUTO_REBOOT
+              value: {{ .Values.rabbitmq.auto_reboot | quote }}
+            - name: RANDOM_RUN_TRIGGER
+              value: {{ randAlphaNum 10 | quote }}
+            - name: TIMEOUT
+              value: {{ default "60" .Values.tests.requestTimeout | quote }}
+            - name: RABBITMQ_PORT
+              value: {{ .Values.tests.rabbitmq_port | quote }}
+            - name: RABBITMQ_HOST
+              {{- if .Values.externalRabbitmq.enabled }}
+              value: {{ .Values.externalRabbitmq.url }}
+              {{- else }}
+              value: rabbitmq.{{ .Release.Namespace }}.svc
+              {{- end }}
+            {{- if .Values.externalRabbitmq.enabled }}
+            - name: EXTERNAL_ENABLED
+              value: "true"
+            {{- end }}
+            {{- if .Values.backupDaemon.enabled }}
+            - name: RABBITMQ_BACKUP_DAEMON
+              value: "rabbitmq-backup-daemon"
+            - name: S3_ENABLED
+              value: {{ .Values.backupDaemon.s3.enabled | quote }}
+            - name: S3_URL
+              value: {{ (include "backupDaemon.s3Endpoint" .) | quote }}
+            - name: S3_BUCKET
+              value: {{ .Values.backupDaemon.s3.bucket | quote }}
+            - name: S3_KEY_ID
+              {{- if .Values.backupDaemon.s3.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-backup-s3-secret
+                  key: s3-key-id
+              {{- end }}
+            - name: S3_KEY_SECRET
+              {{- if .Values.backupDaemon.s3.enabled }}
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-backup-s3-secret
+                  key: s3-key-secret
+              {{- end }}
+            {{- end }}
+            - name: AMQP_PORT
+              value: {{ .Values.tests.amqp_port | quote }}
+            - name: RMQUSER
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.externalRabbitmq.enabled }}
+                  name: rabbitmq-external-secret
+                  key: username
+                  {{- else }}
+                  name: rabbitmq-default-secret
+                  key: user
+                  {{- end }}
+            - name: RMQPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  {{- if .Values.externalRabbitmq.enabled }}
+                  name: rabbitmq-external-secret
+                  {{- else }}
+                  name: rabbitmq-default-secret
+                  {{- end }}
+                  key: password
+            - name: PROMETHEUS_URL
+              value: {{ .Values.tests.prometheusUrl }}
+          resources:
+            requests:
+              memory: {{ default "256Mi" .Values.tests.resources.requests.memory }}
+              cpu: {{ default "200m" .Values.tests.resources.requests.cpu }}
+            limits:
+              memory: {{ default "256Mi" .Values.tests.resources.limits.memory }}
+              cpu: {{ default "400m" .Values.tests.resources.limits.cpu }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+          volumeMounts:
+            - name: output
+              mountPath: /opt/robot/output
+          {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+            - name: ssl-certs
+              mountPath: /tls
+          {{- end }}
+          terminationMessagePath: /dev/termination-log
+          imagePullPolicy: Always
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - 'cat /opt/robot/output/result.txt | grep -q "RESULT: TESTS PASSED"'
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 5
+      volumes:
+        - name: output
+          emptyDir: {}
+      {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+        - name: ssl-certs
+          secret:
+            secretName: {{ template "rabbitmq.tlsSecretName" . }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,110 @@
+Service: RabbitMQ
+DeploymentSchemas:
+  Non-HA:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+      - VM
+  HA:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+      - VM
+  DR:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+Installation:
+  Helm:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+    FullyAutomated: yes
+  AppDeployer:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+    FullyAutomated: yes
+  Ansible:
+    Supported: yes
+    Environment:
+      - VM
+    FullyAutomated: no
+Upgrade:
+  Helm:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+    FullyAutomated: yes
+    Downtime: no
+  AppDeployer:
+    Supported: yes
+    Environment:
+      - Kubernetes
+      - Openshift
+    FullyAutomated: yes
+    Downtime: no
+  Ansible:
+    Supported: yes
+    Environment:
+      - VM
+    FullyAutomated: no
+    Downtime: no
+BackupRestore:
+  FullBackup:
+    Supported: yes
+    Snapshots: yes
+    Downtime: no
+  BackupPerSchema:
+    Supported: yes
+    Snapshots: yes
+    Downtime: no
+  IncrementalBackup:
+    Supported: no
+  IncrementalBackupPerSchema:
+    Supported: no
+  FullRestore:
+    Supported: yes
+    Snapshots: yes
+    Downtime: no
+  RestorePerSchema:
+    Supported: yes
+    Snapshots: yes
+    Downtime: no
+  PointInTimeRecovery:
+    Supported: no
+  PointInTimeRecoveryPerSchema:
+    Supported: no
+Storage:
+  Supported: yes
+  Backups:
+    - S3
+    - NFS
+    - hostPath
+    - storageClass
+    - local
+    - EBS
+    - EFS
+  Data:
+    - hostPath
+    - storageClass
+    - local
+    - EBS
+    - EFS
+Security:
+  IdP:
+    Supported: no
+  DataEncryption:
+    Supported: no
+  Transport:
+    - Insecure
+    - TLS
+ManagedServices:
+  AWS:
+    - Amazon MQ

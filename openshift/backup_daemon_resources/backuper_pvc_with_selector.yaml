@@ -1,0 +1,40 @@
+---
+kind: Template
+apiVersion: v1
+metadata:
+  name: rabbitmq-backup-daemon
+  annotations:
+    openshift.io/display-name: rabbitmq backup daemon
+labels:
+  template: rabbitmq-backup-daemon-template
+parameters:
+- name: BACKUP_STORAGE_CLASS
+  description: storage class for backup pv
+  required: false
+- name: BACKUP_PV_LABEL_KEY
+  description: backuper pv label key
+  required: false
+- name: BACKUP_PV_LABEL_VALUE
+  description: backuper pv label value
+  required: false
+- name: BACKUP_STORAGE_SIZE
+  description: storage size for backup pv
+  required: false
+  value: 1Gi
+objects:
+  - kind: PersistentVolumeClaim
+    apiVersion: v1
+    metadata:
+      name: rabbitmq-backup-storage
+      labels:
+        app: rabbitmq-backup-daemon
+        microservice: rabbitmq-backup-daemon
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: "${BACKUP_STORAGE_SIZE}"
+      selector:
+        matchLabels:
+          "${BACKUP_PV_LABEL_KEY}": "${BACKUP_PV_LABEL_VALUE}"

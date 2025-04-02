@@ -1,0 +1,12 @@
+{{- $install := and .Values.global.tls.enabled (or .Values.rabbitmq.tls.enabled .Values.disasterRecovery.tls.enabled .Values.backupDaemon.tls.enabled) .Values.global.tls.generateCerts.enabled (not .Values.externalRabbitmq.enabled) }}
+{{- if and $install (eq (include "services.certProvider" .) "cert-manager") (not (.Values.global.tls.generateCerts.clusterIssuerName)) }}
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  name: rabbitmq-services-tls-issuer
+  namespace: {{ .Release.Namespace }}
+spec:
+  selfSigned: {}
+{{- end }}

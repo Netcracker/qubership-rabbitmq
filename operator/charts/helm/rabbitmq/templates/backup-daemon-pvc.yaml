@@ -1,0 +1,25 @@
+{{ $persistentVolume := eq (include "backupDaemon.persistentVolumeDefined" .) "true" }}
+{{ $storageClass := eq (include "backupDaemon.storageClassDefined" .) "true" }}
+{{- if and .Values.backupDaemon.enabled (or $persistentVolume $storageClass)  }}
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: data-rabbitmq-backup-daemon
+  annotations:
+    "helm.sh/resource-policy": keep
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ default "1Gi" .Values.backupDaemon.storage }}
+  {{- if $persistentVolume }}
+  volumeName: {{ .Values.backupDaemon.persistentVolume }}
+  {{- end }}
+  {{- if $storageClass }}
+  storageClassName: {{ .Values.backupDaemon.storageClass }}
+  {{- end }}
+---
+{{- end }}

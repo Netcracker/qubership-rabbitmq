@@ -1,0 +1,13 @@
+{{ if and (eq (include "monitoring.enabled" .) "true") (not .Values.externalRabbitmq.enabled) }}
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: erlang-distribution.json
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: grafana
+spec:
+  name: Erlang-Distribution.json
+  json: >
+{{ .Files.Get "monitoring/erlang-distribution.json" | indent 4 }}
+{{ end }}

@@ -1,0 +1,13 @@
+{{ if and (eq (include "monitoring.enabled" .) "true") (not .Values.externalRabbitmq.enabled) }}
+apiVersion: integreatly.org/v1alpha1
+kind: GrafanaDashboard
+metadata:
+  name: rabbitmq-queues.json
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: grafana
+spec:
+  name: RabbitMQ-Queues.json
+  json: >
+{{ .Files.Get "monitoring/rabbitmq-queues.json" | indent 4 }}
+{{ end }}

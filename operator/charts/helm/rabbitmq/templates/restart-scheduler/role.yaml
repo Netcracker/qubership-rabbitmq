@@ -1,0 +1,17 @@
+{{- if (eq (include "restart-scheduler-enabled" .) "true") }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: rabbitmq-pod-restarter
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+rules:
+  - verbs:
+      - list
+      - delete
+    apiGroups:
+      - ''
+    resources:
+      - pods
+{{- end }}

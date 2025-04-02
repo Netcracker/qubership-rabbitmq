@@ -1,0 +1,19 @@
+{{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-operator
+    name: rabbitmq-operator
+  name: rabbitmq-disaster-recovery
+  namespace: {{ .Release.Namespace }}
+spec:
+  ports:
+  - name: dr
+    port: {{ template "disasterRecovery.port" . }}
+    protocol: TCP
+    targetPort: {{ template "disasterRecovery.port" . }}
+  selector:
+    name: rabbitmq-operator
+{{- end }}

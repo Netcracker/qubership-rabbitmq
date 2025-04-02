@@ -1,0 +1,38 @@
+apiVersion: qubership.org/v1
+kind: RabbitMQService
+metadata:
+  name: rabbitmq-service
+spec:
+  rabbitmq:
+    secret_change: 1
+    auto_reboot: true
+    hostpath_configuration: true
+    ipv6_enabled: false
+    custom_params:
+      rabbitmq_vm_memory_high_watermark: 80%
+    volumes:
+      - rabbitmq-1
+      - rabbitmq-2
+      - rabbitmq-3
+    nodes:
+      - paas-infra311-master-1
+      - paas-infra311-master-2
+      - paas-infra311-master-3
+    replicas: 3
+    dockerImage: "ghcr.io/netcracker/qubership-rabbitmq-operator:main"
+    resources:
+      requests:
+        cpu: 333m
+        memory: 333Mi
+      limits:
+        cpu: 333m
+        memory: 333Mi
+      storage: 499Mi
+      storageclass: ''
+    enabledPlugins:
+      - rabbitmq_shovel
+      - rabbitmq_federation
+  tests:
+    runTests: false
+    dockerImage: "ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main"
+    timeout: 60

@@ -1,0 +1,75 @@
+{{- if and .Values.statusProvisioner.enabled .Values.externalRabbitmq.enabled }}
+# status-provisioner job provides status about cluster state
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rabbitmq-status-provisioner
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/technology: python
+    app.kubernetes.io/name: rabbitmq-status-provisioner
+    app.kubernetes.io/instance: rabbitmq-status-provisioner{{ .Values.DELIMITER }}{{ .Release.Namespace }}
+    name: rabbitmq-status-provisioner
+spec:
+  ttlSecondsAfterFinished: {{ .Values.statusProvisioner.lifetimeAfterCompletion | default 600 }}
+  template:
+    metadata:
+      name: rabbitmq-status-provisioner
+      labels:
+      {{- with .Values.global.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+      {{- with .Values.statusProvisioner.customLabels }}
+        {{- toYaml . | nindent 8 -}}
+      {{- end }}
+        app: rabbitmq
+        chart: rabbitmq
+        release: {{ .Release.Name }}
+        component: status-provisioner
+        app.kubernetes.io/name: rabbitmq-status-provisioner
+        name: rabbitmq-status-provisioner
+    spec:
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.statusProvisioner.securityContext }}
+        {{- toYaml . | nindent 8 -}}
+        {{- end }}
+      restartPolicy: Never
+      serviceAccountName: rabbitmq-status-provisioner
+      containers:
+        - name: status-provisioner
+          image: {{ template "deployment-status-provisioner.image" . }}
+          imagePullPolicy: "Always"
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MONITORED_RESOURCES
+              value: "{{ include "rabbitmq.monitoredResources" . | trim | trimSuffix "," }}"
+            - name: RESOURCE_TO_SET_STATUS
+              value: "qubership.org v2 rabbitmqservices {{ default "rabbitmq-service" .Values.name }}"
+            - name: CONDITION_REASON
+              value: "RabbitMQExternalServiceReadinessStatus"
+            - name: POD_READINESS_TIMEOUT
+              value: "{{ .Values.statusProvisioner.podReadinessTimeout | default 300 }}"
+            {{- if and .Values.tests.runTests .Values.tests.statusWritingEnabled }}
+            - name: INTEGRATION_TESTS_RESOURCE
+              value: "apps v1 deployments rabbitmq-integration-tests"
+            - name: INTEGRATION_TESTS_CONDITION_REASON
+              value: "IntegrationTestsExecutionStatus"
+            - name: INTEGRATION_TESTS_SUCCESSFUL_CONDITION_TYPE
+              value: "Ready"
+            - name: INTEGRATION_TESTS_TIMEOUT
+              value: "{{ include "tests.timeout" . }}"
+            {{- end }}
+          resources:
+            requests:
+              cpu: {{ default "50m" .Values.statusProvisioner.resources.requests.cpu }}
+              memory: {{ default "50Mi" .Values.statusProvisioner.resources.requests.memory }}
+            limits:
+              cpu: {{ default "100m" .Values.statusProvisioner.resources.limits.cpu }}
+              memory: {{ default "100Mi" .Values.statusProvisioner.resources.limits.memory }}
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+{{- end }}
