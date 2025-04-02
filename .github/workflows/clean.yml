@@ -12,10 +12,10 @@ jobs:
         component:
           - name: qubership-rabbitmq-integration-tests
             file: operator/operator-robot-image/Dockerfile
-            context: integration-tests
+            context: operator/operator-robot-image
           - name: qubership-rabbitmq-service-operator
-            file: Dockerfile
-            context: operator/Dockerfile
+            file: operator/Dockerfile
+            context: operator
           - name: qubership-rabbitmq-service-transfer
             file: docker-transfer/Dockerfile
             context: ""
@@ -27,13 +27,10 @@ jobs:
             context: performance-tests-image
           - name: qubership-rabbitmq-monitoring
             file: telegraf/Dockerfile
-            context: rabbitmq-monitoring
-          - name: qubership-rabbitmq-monitoring
-            file: telegraf/Dockerfile
-            context: rabbitmq-monitoring
+            context: telegraf
           - name: qubership-rabbitmq-management-image
-            file: .
-            context: management
+            file: Dockerfile
+            context: .
     if: github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     steps:
