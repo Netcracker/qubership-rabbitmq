@@ -191,15 +191,7 @@ Image can be found from:
 * or from default values .Values.operatorImage
 */}}
 {{- define "operator.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if index .Values.deployDescriptor "rabbitmq" -}}
-      {{- printf "%s" (index .Values.deployDescriptor "rabbitmq" "image") -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.operator.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.operatorImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.operatorImage -}}
 {{- end -}}
 
 {{/*
@@ -210,45 +202,21 @@ Image can be found from:
 * or from default values .Values.disasterRecovery.image
 */}}
 {{- define "disasterRecovery.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.disasterRecoveryImage -}}
-      {{- printf "%s" .Values.disasterRecoveryImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.disasterRecoveryImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.disasterRecovery.image -}}
-  {{- end -}}
+  {{- printf "%s" .Values.disasterRecovery.image -}}
 {{- end -}}
 
 {{/*
 Find a RabbitMQ backup daemon image in various places.
 */}}
 {{- define "backupDaemon.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.backupDaemonImage -}}
-      {{- printf "%s" .Values.backupDaemonImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.backupDaemonImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.backupDaemon.image -}}
-  {{- end -}}
+  {{- printf "%s" .Values.backupDaemon.image -}}
 {{- end -}}
 
 {{/*
 Find a RabbitMQ image in various places.
 */}}
 {{- define "rabbitmq.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.rabbitmqImage -}}
-      {{- printf "%s" .Values.rabbitmqImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.rabbitmqImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.rabbitmq.dockerImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.rabbitmq.dockerImage -}}
 {{- end -}}
 
 {{/*
@@ -299,60 +267,28 @@ RabbitMQ admin password.
 Find a RabbitMQ tests image in various places.
 */}}
 {{- define "tests.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.testsImage -}}
-      {{- printf "%s" .Values.testsImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.testsImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.tests.dockerImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.tests.dockerImage -}}
 {{- end -}}
 
 {{/*
 Find a RabbitMQ telegraf image in various places.
 */}}
 {{- define "telegraf.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.telegrafImage -}}
-      {{- printf "%s" .Values.telegrafImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.telegrafImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.telegraf.dockerImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.telegraf.dockerImage -}}
 {{- end -}}
 
 {{/*
 Find a Deployment Status Provisioner image in various places.
 */}}
 {{- define "deployment-status-provisioner.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.statusProvisionerImage -}}
-      {{- printf "%s" .Values.statusProvisionerImage -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.statusProvisionerImage.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.statusProvisioner.dockerImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.statusProvisioner.dockerImage -}}
 {{- end -}}
 
 {{/*
 Find a kubectl image in various places.
 */}}
 {{- define "kubectl.image" -}}
-  {{- if .Values.deployDescriptor -}}
-    {{- if .Values.kubectl -}}
-      {{- printf "%s" .Values.kubectl -}}
-    {{- else -}}
-      {{- printf "%s" (index .Values.deployDescriptor.kubectl.image) -}}
-    {{- end -}}
-  {{- else -}}
-    {{- printf "%s" .Values.operator.restartScheduler.dockerImage -}}
-  {{- end -}}
+  {{- printf "%s" .Values.operator.restartScheduler.dockerImage -}}
 {{- end -}}
 
 {{/*

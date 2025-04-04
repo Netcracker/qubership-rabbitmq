@@ -1,6 +1,6 @@
 {{- if and (eq (include "rabbitmq.enableDisasterRecovery" . ) "true") (not .Values.backupDaemon.enabled)}}{{ fail "backupDaemon.enabled must be true if disaster recovery is enabled" }}{{ end -}}
 {{- if and (eq (include "rabbitmq.enableDisasterRecovery" . ) "true") .Values.disasterRecovery.siteManagerEnabled }}
-apiVersion: qubership.org/v3
+apiVersion: {{ .Values.global.disasterRecovery.siteManagerApiGroup }}/v3
 kind: SiteManager
 metadata:
   name: rabbitmq-{{ .Release.Namespace }}

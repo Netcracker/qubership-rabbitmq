@@ -5,14 +5,13 @@
 
 # name: rabbitmq-service
 #
-operatorImage: artifactorycn.qubership.org:17008/thirdparty/thirdparty.platform.services_rabbitmq:master_latest_operator
+operatorImage: ghcr.io/netcracker/qubership-rabbitmq-service-operator:main
 #
 # loglevel: INFO
 
 allowEvents: false
 
 global:
-  cloudIntegrationEnabled: true
   tls:
     enabled: false
     cipherSuites: []
@@ -26,6 +25,8 @@ global:
   customLabels: {}
   securityContext: {}
   disableRunAsNonRoot: false
+  disasterRecovery:
+    siteManagerApiGroup: "qubership.org"
 
 operator:
   resources:
@@ -38,8 +39,9 @@ operator:
   customLabels: {}
   securityContext: {}
   priorityClassName: ""
+  apiGroup: "qubership.org"
   restartScheduler:
-    dockerImage: artifactorycn.qubership.org:17014/product/prod.platform.streaming_docker-kubectl:0.0.2_20230324-083045
+    dockerImage: bitnami/kubectl:1.30.6
     enabled: true
     schedule: "0 0 * * *"
     affinity: {}
@@ -67,7 +69,7 @@ externalRabbitmq:
   enableSsl: false
 
 disasterRecovery:
-  image: artifactorycn.qubership.org:17008/product/prod.platform.streaming_disaster-recovery-daemon:master_latest
+  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main
   tls:
     enabled: true
     certificates:
@@ -134,7 +136,7 @@ rabbitmq:
 #    - paas-infra311-master-2
 #    - paas-infra311-master-3
   replicas: 3
-  dockerImage: "artifactorycn.qubership.org:17008/thirdparty/thirdparty.platform.services_rabbitmq:master_latest"
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main
   resources:
     requests:
       cpu: 1
@@ -220,7 +222,7 @@ rabbitmq:
 
 tests:
   runTests: false
-  dockerImage: "artifactorycn.qubership.org:17008/thirdparty/thirdparty.platform.services_rabbitmq:master_latest_operator_operator-robot-image"
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main
   statusWritingEnabled: true
   isShortStatusMessage: true
   runTestsOnly: false
@@ -259,7 +261,7 @@ backupDaemon:
       additionalIpAddresses: []
   # Enable Rabbitmq Backup Daemon installation.
   enabled: false
-  image: "artifactorycn.qubership.org:17008/thirdparty/thirdparty.platform.services_rabbitmq:master_latest_rabbitmq-backup-daemon"
+  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main
 
   # storage and storageClass are the settings for configuring stateful
   # storage for the server pods. storage should be set to the disk size of
@@ -364,7 +366,7 @@ telegraf:
     requests:
       cpu: 150m
       memory: 150Mi
-  dockerImage: "artifactorycn.qubership.org:17008/thirdparty/thirdparty.platform.services_rabbitmq:master_latest_telegraf"
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-monitoring:main
   install: false
   customLabels: {}
   securityContext: {}
@@ -373,7 +375,7 @@ telegraf:
 
 statusProvisioner:
   enabled: true
-  dockerImage: artifactorycn.qubership.org:17008/product/prod.platform.streaming_deployment-status-provisioner:master_latest
+  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main
   lifetimeAfterCompletion: 600
   podReadinessTimeout: 300
   resources:

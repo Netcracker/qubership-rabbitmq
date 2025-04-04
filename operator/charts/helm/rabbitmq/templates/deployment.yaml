@@ -29,7 +29,7 @@ spec:
         name: rabbitmq-operator
       annotations:
         post.hook.restore.velero.io/command: '["python3", "/opt/operator/velero_delete_pods_rmqlocal.py"]'
-        qubership.org/cr-checksum: {{ include (print .Template.BasePath "/cr.yaml") . | sha256sum | trunc 63 }}
+        {{ .Values.operator.apiGroup }}/cr-checksum: {{ include (print .Template.BasePath "/cr.yaml") . | sha256sum | trunc 63 }}
     spec:
       securityContext:
         {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
@@ -168,7 +168,7 @@ spec:
               value: "{{ (include "disasterRecovery.cipherSuites" .) | trimSuffix "," }}"
             {{- end }}
             - name: RESOURCE_FOR_DR
-              value: "qubership.org v2 rabbitmqservices rabbitmq-service"
+              value: "{{ .Values.operator.apiGroup }} v2 rabbitmqservices rabbitmq-service"
             - name: USE_DEFAULT_PATHS
               value: "true"
             - name: HEALTH_MAIN_SERVICES_ACTIVE

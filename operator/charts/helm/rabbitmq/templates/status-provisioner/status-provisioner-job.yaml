@@ -48,7 +48,7 @@ spec:
             - name: MONITORED_RESOURCES
               value: "{{ include "rabbitmq.monitoredResources" . | trim | trimSuffix "," }}"
             - name: RESOURCE_TO_SET_STATUS
-              value: "qubership.org v2 rabbitmqservices {{ default "rabbitmq-service" .Values.name }}"
+              value: "{{ .Values.operator.apiGroup }} v2 rabbitmqservices {{ default "rabbitmq-service" .Values.name }}"
             - name: CONDITION_REASON
               value: "RabbitMQExternalServiceReadinessStatus"
             - name: POD_READINESS_TIMEOUT
