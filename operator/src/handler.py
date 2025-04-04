@@ -87,6 +87,7 @@ username_change_attr = ('data', 'user')
 tests_name = 'rabbitmq-integration-tests'
 nodeport_service_name = 'rabbitmq-nodeport'
 cr_version = "v2"
+api_group = os.getenv("API_GROUP", "qubership.org")
 IN_PROGRESS = "In progress"
 SUCCESSFUL = "Successful"
 FAILED = "Failed"
@@ -1249,7 +1250,7 @@ class KubernetesHelper:
 
     def get_custom_resource(self):
         cr = self._custom_objects_api.get_namespaced_custom_object(
-            group='qubership.org', version=cr_version,
+            group=api_group, version=cr_version,
             namespace=self._workspace,
             plural='rabbitmqservices',
             name='rabbitmq-service'
@@ -1258,7 +1259,7 @@ class KubernetesHelper:
 
     def update_custom_resource(self, body):
         self._custom_objects_api.patch_namespaced_custom_object(
-            group='qubership.org',
+            group=api_group,
             version=cr_version,
             namespace=self._workspace,
             plural='rabbitmqservices',
@@ -1268,7 +1269,7 @@ class KubernetesHelper:
 
     def get_custom_resource_status(self):
         return self._custom_objects_api.get_namespaced_custom_object_status(
-            group='qubership.org',
+            group=api_group,
             version=cr_version,
             namespace=self._workspace,
             plural='rabbitmqservices',
@@ -1277,7 +1278,7 @@ class KubernetesHelper:
 
     def update_custom_resource_status(self, body):
         self._custom_objects_api.patch_namespaced_custom_object_status(
-            group='qubership.org',
+            group=api_group,
             version=cr_version,
             namespace=self._workspace,
             plural='rabbitmqservices',
@@ -1413,7 +1414,7 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.scanning.disabled = True
 
 
-@kopf.on.create('qubership.org', cr_version, 'rabbitmqservices')
+@kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
     kub_helper = KubernetesHelper(spec)
     logger.info("New CRD is created")
@@ -1501,7 +1502,7 @@ def validate_spec(spec):
     pass
 
 
-# @kopf.on.field('qubership.org', 'v1', 'rabbitmqservices', field='spec.rabbitmq.replicas')
+# @kopf.on.field(api_group, 'v1', 'rabbitmqservices', field='spec.rabbitmq.replicas')
 # def update_lst(body, meta, spec, status, old, new, **kwargs):
 #     print(f'Handling the FIELD = {old} -> {new}')
 
@@ -1558,7 +1559,7 @@ def on_update_configmap(diff, **kwargs):
     custom_objects_api = client.CustomObjectsApi()
     namespace = KubernetesHelper.get_namespace()
     cr = custom_objects_api.get_namespaced_custom_object(
-        group='qubership.org',
+        group=api_group,
         version=cr_version,
         namespace=namespace,
         plural='rabbitmqservices',
@@ -1588,7 +1589,7 @@ def on_update_secret(diff, **kwargs):
     custom_objects_api = client.CustomObjectsApi()
     namespace = KubernetesHelper.get_namespace()
     cr = custom_objects_api.get_namespaced_custom_object(
-        group='qubership.org',
+        group=api_group,
         version=cr_version,
         namespace=namespace,
         plural='rabbitmqservices',
@@ -1604,7 +1605,7 @@ def on_update_secret(diff, **kwargs):
         wait_time = wait_time + 15
         sleep(15)
         cr = custom_objects_api.get_namespaced_custom_object(
-            group='qubership.org',
+            group=api_group,
             version=cr_version,
             namespace=namespace,
             plural='rabbitmqservices',
@@ -1642,7 +1643,7 @@ def on_update_secret(diff, **kwargs):
                              "All pods have been rebooted, changing credentials completed")
 
 
-@kopf.on.update('qubership.org', cr_version, 'rabbitmqservices', when=exclude_disaster_recovery_field)
+@kopf.on.update(api_group, cr_version, 'rabbitmqservices', when=exclude_disaster_recovery_field)
 def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     logger.info("cr changes:" + str(diff))
     print('Handling the diff')
@@ -1763,7 +1764,7 @@ def perform_rabbit_pods_readiness_check(kub_helper: KubernetesHelper):
         logger.info("RabbitMQ pods are ready")
 
 
-@kopf.on.delete('qubership.org', cr_version, 'rabbitmqservices', optional=optional_delete)
+@kopf.on.delete(api_group, cr_version, 'rabbitmqservices', optional=optional_delete)
 def on_delete(spec, **kwargs):
     kub_helper = KubernetesHelper(spec)
     logger.info("Deleting crd")
@@ -1781,14 +1782,14 @@ def switchover_annotation_changed(diff, logger, **kwargs):
     return False
 
 
-@kopf.on.update('qubership.org',
+@kopf.on.update(api_group,
                 cr_version,
                 'rabbitmqservices',
                 field='metadata.annotations.switchoverRetry',
                 old=kopf.ABSENT,
                 new=kopf.PRESENT)
-@kopf.on.update('qubership.org', cr_version, 'rabbitmqservices', when=switchover_annotation_changed)
-@kopf.on.field('qubership.org', cr_version, 'rabbitmqservices', field='spec.disasterRecovery.mode')
+@kopf.on.update(api_group, cr_version, 'rabbitmqservices', when=switchover_annotation_changed)
+@kopf.on.field(api_group, cr_version, 'rabbitmqservices', field='spec.disasterRecovery.mode')
 def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
     mode = spec.get('disasterRecovery').get('mode', None)
     if mode is None:

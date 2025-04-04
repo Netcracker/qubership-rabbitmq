@@ -110,6 +110,8 @@ spec:
             {{- if .Values.operatorDeleteResources }}
             - name: OPERATOR_DELETE_RESOURCES
               value: "{{ .Values.operatorDeleteResources }}"
+            - name: API_GROUP
+              value: {{ .Values.operator.apiGroup | quote }}
             {{- end }}
         {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}
           volumeMounts:
