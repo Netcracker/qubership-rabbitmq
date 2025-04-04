@@ -32,7 +32,7 @@ jobs:
           - name: qubership-rabbitmq-service-operator
             file: operator/Dockerfile
             context: operator
-          - name: qubership-rabbitmq-service-transfer
+          - name: qubership-rabbitmq-transfer
             file: docker-transfer/Dockerfile
             context: ""
           - name: qubership-rabbitmq-backup-daemon
