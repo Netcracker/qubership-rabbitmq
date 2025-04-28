@@ -2,7 +2,7 @@ You can deploy RabbitMQ using an operator. For this deployment, only the storage
 
 To deploy RabbitMQ with an operator in OpenShift/Kubernetes:
 
-1. Download the following operator deploy directory, [https://git.qubership.org/THIRDPARTY.Platform.Services/RabbitMQ/tree/rabbitmq-operator/operator/deploy](https://git.qubership.org/THIRDPARTY.Platform.Services/RabbitMQ/tree/rabbitmq-operator/operator/deploy).
+1. Download the following operator deploy directory, [https://github.com/Netcracker/qubership-rabbitmq/tree/main/operator/deploy](https://github.com/Netcracker/qubership-rabbitmq/tree/main/operator/deploy).
 1. Replace the `REPLACE_IMAGE` value in the **/deploy/operator.yaml** file with the required operator image. You can replace the image using the following command:
    
    ```

@@ -6345,8 +6345,8 @@
       "list": [
         {
           "current": {
-            "text": "cloud_paas_infra_openshift_sdntest_netcracker_com",
-            "value": "cloud_paas_infra_openshift_sdntest_netcracker_com"
+            "text": "cloud_paas_infra_openshift_sdntest",
+            "value": "cloud_paas_infra_openshift_sdntest"
           },
           "hide": 0,
           "includeAll": false,

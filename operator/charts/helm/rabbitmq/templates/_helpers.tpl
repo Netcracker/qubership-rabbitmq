@@ -186,9 +186,7 @@ Calculate RAM limit in megabytes or mebibytes
 {{/*
 Find a RabbitMQ service operator image in various places.
 Image can be found from:
-* SaaS/App deployer (or groovy.deploy.v3) from .Values.deployDescriptor "rabbitmq" "image"
-* DP.Deployer from .Values.deployDescriptor.operator.image
-* or from default values .Values.operatorImage
+default values .Values.operatorImage
 */}}
 {{- define "operator.image" -}}
   {{- printf "%s" .Values.operatorImage -}}
@@ -197,9 +195,7 @@ Image can be found from:
 {{/*
 Find a RabbitMQ disaster recovery service operator image in various places.
 Image can be found from:
-* SaaS/App deployer (or groovy.deploy.v3) from .Values.disasterRecoveryImage
-* DP.Deployer from .Values.deployDescriptor.disasterRecoveryImage.image
-* or from default values .Values.disasterRecovery.image
+default values .Values.disasterRecovery.image
 */}}
 {{- define "disasterRecovery.image" -}}
   {{- printf "%s" .Values.disasterRecovery.image -}}
@@ -766,11 +762,7 @@ Timeout for integration tests
 {{ define "find_image" }}
   {{- $root := index . 0 -}}
   {{- $service_name := index . 1 -}}
-  {{- if index $root.Values.deployDescriptor $service_name }}
-  {{- index $root.Values.deployDescriptor $service_name "image" }}
-  {{- else }}
   {{- "not_found" }}
-  {{- end }}
 {{- end }}
 
 {{- define "rabbitmq.monitoredImages" -}}

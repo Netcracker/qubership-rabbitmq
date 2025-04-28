@@ -56,10 +56,6 @@ spec:
               value: {{ .Values.tests.rabbitIsManagedByOperator | quote }}
             - name: TAGS
               value: {{ default "smoke" .Values.tests.tags | quote }}
-            {{- if and .Values.deployDescriptor .Values.testsImage }}
-            - name: MONITORED_IMAGES
-              value: {{ include "rabbitmq.monitoredImages" . }}
-            {{- end }}
             {{- if .Values.tests.statusWritingEnabled }}
             - name: STATUS_WRITING_ENABLED
               value: {{ .Values.tests.statusWritingEnabled | quote }}

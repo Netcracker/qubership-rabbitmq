@@ -24,12 +24,7 @@ Installation:
       - Kubernetes
       - Openshift
     FullyAutomated: yes
-  AppDeployer:
-    Supported: yes
-    Environment:
-      - Kubernetes
-      - Openshift
-    FullyAutomated: yes
+  
   Ansible:
     Supported: yes
     Environment:
@@ -43,13 +38,7 @@ Upgrade:
       - Openshift
     FullyAutomated: yes
     Downtime: no
-  AppDeployer:
-    Supported: yes
-    Environment:
-      - Kubernetes
-      - Openshift
-    FullyAutomated: yes
-    Downtime: no
+
   Ansible:
     Supported: yes
     Environment:
