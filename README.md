@@ -2,6 +2,12 @@
 
 # RabbitMQ Service
 
+## Documentation
+* [Architecture guide](https://github.com/Netcracker/qubership-rabbitmq/blob/fix/doc_fixes/docs/public/architecture.md)
+* [Installation guide](https://github.com/Netcracker/qubership-rabbitmq/blob/main/docs/public/installation.md)
+* [Monitoring guide](https://github.com/Netcracker/qubership-rabbitmq/blob/fix/doc_fixes/docs/public/monitoring.md)
+* [Troubleshooting guide](https://github.com/Netcracker/qubership-rabbitmq/blob/fix/doc_fixes/docs/public/troubleshooting.md)
+
 ## Repository structure
 
 * `./docs` - directory with actual documentation for the component.
@@ -55,8 +61,3 @@ To keep the component up to date, the following activities should be performed r
 * Vulnerabilities fixing.
 * RabbitMQ upgrade.
 * Bug-fixing, improvement and feature implementation in operator, monitoring or other RabbitMQ components.
-
-## Useful links
-
-* [Installation guide](/docs/public/installation.md).
-* [Troubleshooting guide](/docs/public/troubleshooting.md).
