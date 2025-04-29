@@ -60,4 +60,3 @@ To keep the component up to date, the following activities should be performed r
 
 * [Installation guide](/docs/public/installation.md).
 * [Troubleshooting guide](/docs/public/troubleshooting.md).
-* [Internal Developer Guide](/docs/internal/developing.md).
