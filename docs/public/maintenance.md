@@ -311,7 +311,7 @@ To back up Mnesia directories in a cluster:
 
 To restore from a backup:
 
-1. Deploy RabbitMQ with clean install option with the same number of replicas and the same pod names.
+1. Deploy RabbitMQ with the same number of replicas and the same pod names.
 2. Stop RabbitMQ service on each RabbitMQ pod with the terminal command `rabbitmqctl stop_app`.
 3. Create **/tmp/BACKUP_FLAG_FILE** in each RabbitMQ pod.
 4. Remove **mnesia** folders in each RabbitMQ pod.

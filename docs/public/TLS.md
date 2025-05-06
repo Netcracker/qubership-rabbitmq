@@ -52,7 +52,6 @@ clients that connect. RabbitMQ provides additional AQMP TLS port `5671`, while A
           additionalIpAddresses: []
    ```
 
-**NOTE:** For App Deployer, we need to use only `Rolling Update` mode because `Clean Install` mode deletes all pre-created secrets.
 
 ## SSL Configuration using CertManager
 

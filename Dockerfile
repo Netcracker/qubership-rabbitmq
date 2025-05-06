@@ -1,9 +1,9 @@
 FROM library/rabbitmq:4.0.7-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
-COPY /openshift/scripts/get_user /bin/
-COPY /openshift/scripts/get_password /bin/
-COPY /openshift/scripts/change_password /bin/
+COPY scripts/get_user /bin/
+COPY scripts/get_password /bin/
+COPY scripts/change_password /bin/
 
 ENV USER_UID=1000
 

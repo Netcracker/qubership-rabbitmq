@@ -1,6 +1,3 @@
-{{- if and .Values.deployDescriptor .Values.rabbitmqImage (ne (.Values.DEPLOY_W_HELM | toString) "true") }}
-  {{- fail "RabbitMQ requires `DEPLOY_W_HELM` parameter to be set to `true` for App Deployer" }}
-{{- end }}
 apiVersion: {{ .Values.operator.apiGroup }}/v2
 kind: RabbitMQService
 metadata:

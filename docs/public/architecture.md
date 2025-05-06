@@ -21,12 +21,11 @@ Secondly, RabbitMQ enables flexible and scalable architectures, allowing busines
 
 Additionally, its support for different programming languages and protocols promotes interoperability and integration across diverse technology stacks.
 
-## Netcracker RabbitMQ Delivery and Features
+## RabbitMQ Delivery and Features
 
-The Netcracker platform provides RabbitMQ deployment to Kubernetes/OpenShift using its own helm chart with operator and additional features.
+The platform provides RabbitMQ deployment to Kubernetes/OpenShift using its own helm chart with operator and additional features.
 The deployment procedure and additional features include the following:
 
-* Support of Netcracker deployment jobs for HA scheme and different configurations. For more information, refer to the [Installation of RabbitMQ Using Operator](/docs/public/installation.md) section.
 * Backup and restore for users, queues, and exchanges configurations.
   For more information, refer to [RabbitMQ Operator Maintenance](/docs/public/maintenance.md#backup-and-recovery) in _Cloud Platform Maintenance Guide_.
 * Monitoring integration with Grafana Dashboard and Prometheus Alerts.
@@ -136,7 +135,7 @@ Not applicable; the default HA scheme is used for deployment to Google Cloud.
 ### AWS AmazonMQ
 
 RabbitMQ allows you to deploy RabbitMQ supplementary services, like Monitoring and Backup Daemon, using AmazonMQ for RabbitMQ connection, without deploying the RabbitMQ server.
-Thus, the features and functions of these services are adopted to AmazonMQ and available for Netcracker Kafka delivery.
+Thus, the features and functions of these services are adopted to AmazonMQ and available for Kafka delivery.
 
 ![AWS Scheme](/docs/public/images/rabbitmq_aws_deploy.drawio.png)
 

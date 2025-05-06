@@ -1,6 +1,5 @@
 The RabbitMQ-operator deployment includes a RabbitMQ operator and RabbitMQ of the specified configuration.
-It can be deployed in OpenShift or Kubernetes through a DP Deploy job for Helm or App Deployer job.
-It can also be deployed manually through helm or without it.
+It can be deployed manually through helm in OpenShift or Kubernetes.
 
 For this deployment, only the storage class and local PV configurations are supported.
 Overall, the RabbitMQ configuration is similar to the RabbitMQ deployed with an OpenShift deployer, except that the OpenShift route is not created when deploying with the operator.
@@ -513,9 +512,9 @@ It can be done manually or automatically through jobs.
 | INFRA_RABBITMQ_ADMIN_USERNAME | string  | yes       | `""`          | This parameter specifies the RabbitMQ default user. It has no default value and the value needs to be specified.                                                                                                                                                                                                                                                                                        |
 | INFRA_RABBITMQ_ADMIN_PASSWORD | string  | yes       | `""`          | This parameter specifies the RabbitMQ default password. It has no default value and the value needs to be specified.                                                                                                                                                                                                                                                                                    |
 | MONITORING_ENABLED            | boolean | no        | `false`       | This parameter specifies if RabbitMQ Prometheus monitoring needs to be installed. By default, Prometheus monitoring is not installed. For more information, refer to [RabbitMQ Operator Service Monitoring](/docs/public/monitoring.md) in the **Cloud Platform Monitoring Guide**.                                                                                                                     |
-| STORAGE_RWO_CLASS             | string  | yes       | `""`          | This parameter specifies the RabbitMQ storage class. When used for deployment on local PVs, it must be the same as what is set on the PVs. When the storage class is not set, use `''` (empty value for AppDeployer). When the storage class is empty, use `"''"` (`"\"\""` with ESCAPE_SEQUENCE=true; parameter for AppDeployer). **This parameter is required for installation using storage class**. |
-| INFRA_RABBITMQ_FS_GROUP       | integer | no        |               | Specifies group ID used inside RabbitMQ pods.                                                                                                                                                                                                                                                                                                                                                           |
-| INFRA_RABBITMQ_REPLICAS       | integer | no        |               | Specifies RabbitMQ replicas count.                                                                                                                                                                                                                                                                                                                                                                      |
+| STORAGE_RWO_CLASS             | string  | yes       | `""`          | This parameter specifies the RabbitMQ storage class. When used for deployment on local PVs, it must be the same as what is set on the PVs. When the storage class is not set, use `''`. When the storage class is empty, use `"''"` (`"\"\""` with ESCAPE_SEQUENCE=true;). **This parameter is required for installation using storage class**. |
+| INFRA_RABBITMQ_FS_GROUP       | integer | no        |               | Specifies the group ID used inside RabbitMQ pods.                                                                                                                                                                                                                                                                                                                                                           |
+| INFRA_RABBITMQ_REPLICAS       | integer | no        |               | Specifies the RabbitMQ replicas count.                                                                                                                                                                                                                                                                                                                                                                      |
 | S3_ENDPOINT                   | string  | no        | `""`          | This parameter specifies the URL of S3 storage.                                                                                                                                                                                                                                                                                                                                                         |
 | S3_ACCESSKEY                  | string  | no        | `""`          | This parameter specifies the key ID for S3 storage.                                                                                                                                                                                                                                                                                                                                                     |
 | S3_SECRETKEY                  | string  | no        | `""`          | This parameter specifies the secret for S3 storage.                                                                                                                                                                                                                                                                                                                                                     |
@@ -658,7 +657,7 @@ It can be done manually or automatically through jobs.
 | rabbitmq.resources.requests.cpu                           | string  | no        | 1                                                                                                                       | This parameter specifies the RabbitMQ CPU requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | rabbitmq.resources.requests.memory                        | string  | no        | 2Gi                                                                                                                     | This parameter specifies the RabbitMQ memory requests.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | rabbitmq.resources.storage                                | string  | no        | `1024Mi`                                                                                                                | This parameter specifies the RabbitMQ storage size.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| rabbitmq.resources.storageclass                           | string  | yes       | `""`                                                                                                                    | This parameter specifies the RabbitMQ storage class. When used for deployment on local PVs, it must be the same as what is set on the PVs. When the storage class is not set, use `''` (empty value for AppDeployer). When the storage class is empty, use `"''"` (`"\"\""` with ESCAPE_SEQUENCE=true; parameter for AppDeployer). **This parameter is required for installation using storage class**.                                                                                                                                                                        |
+| rabbitmq.resources.storageclass                           | string  | yes       | `""`                                                                                                                    | This parameter specifies the RabbitMQ storage class. When used for deployment on local PVs, it must be the same as what is set on the PVs. When the storage class is not set, use `''` . When the storage class is empty, use `"''"` (`"\"\""` with ESCAPE_SEQUENCE=true;). **This parameter is required for installation using storage class**.                                                                                                                                                                        |
 | rabbitmq.enabledPlugins                                   | list    | no        | `[]`                                                                                                                    | This parameter specifies the RabbitMQ enabled plugins. For example, `["rabbitmq_shovel", "rabbitmq_federation"]`.                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | rabbitmq.customConfigProperties                           | list    | no        | `[]`                                                                                                                    | This parameter specifies the custom configuration properties for RabbitMQ (`rabbitmq.conf`).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | rabbitmq.customAdvancedProperties                         | list    | no        | `[]`                                                                                                                    | This parameter specifies the advanced configuration properties for RabbitMQ (`advanced.config`) in multi-line format.                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
@@ -844,29 +843,6 @@ Where:
 * Make sure to check the [Upgrade](#upgrade) section.
 * Before doing a major upgrade, it is recommended to make a backup.
 * Check if the application is already installed and find the previous deployments' parameters to make changes.
-
-### App Deployer Preparation
-
-1. Navigate to `CMDB` of your tenant's cloud and create the namespace for the application.
-2. Fill the application deployment parameters in the `yaml` format in `CMDB`.
-
-   Example of deployment parameters are provided in the [On-Prem Examples](#on-prem-examples) section.
-
-   **Important**: You should always specify `DEPLOY_W_HELM: true` and `ESCAPE_SEQUENCE: true` to correctly deploy the Helm release.
-3. Navigate to the Application Deploy or Groovy Deploy job and specify the following data for build:
-
-    * `PROJECT` is the cloud name and namespace name in the format, {cloud}-{namespace}.
-    * `ARTIFACT_DESCRIPTOR_VERSION` is the version of rabbitmq-service. It should be provided in the format,
-      `rabbitmq-service:x.x.x_delivery_x.x.x_timestamp`.
-       <!-- #GFCFilterMarkerStart# -->All versions are available on the [Release Page](https://git.qubership.org/THIRDPARTY.Platform.Services/RabbitMQ/-/releases).<!-- #GFCFilterMarkerEnd# -->
-    * `DEPLOY_MODE` is the mode of the deployment procedure. It can be `Rolling Update` or `Clean Install`.
-       The `Clean Install` mode removes everything from the namespace before the deployment, including Persistent Volumes Claims. Never use it for upgrades on production.
-
-4. Run the installation.
-
-### Ops Portal Preparation
-
-Make sure all YAML values are escaped in accordance with the Ops portal syntax.
 
 ### Helm
 
@@ -1154,9 +1130,9 @@ rabbitmqctl enable_feature_flag all
 
 or enable flags on RabbitMQ UI.
 
-Note: start from version [0.9.0](https://git.qubership.org/THIRDPARTY.Platform.Services/RabbitMQ/-/releases/0.9.0) the enabling feature flags is performed automatically during during installation.
+Note: Starting from version 0.9.0, the enabling of feature flags is performed automatically during installation.
 
-If you encounter problems with feature flags during RabbitMQ rolling upgrade, roll back to previous version and enable all necessary feature flags.
+If you encounter problems with feature flags during RabbitMQ upgrade, roll back to the previous version and enable all necessary feature flags.
 
 To upgrade RabbitMQ for more than one minor version it is necessary to make a consistent upgrade through all intermediate versions.
 For example to upgrade from `3.10.x` to `3.12.x` you need to upgrade from `3.10.x` to `3.11.x` and after that to `3.12.x`.
@@ -1212,7 +1188,7 @@ If the installation failed, or you need to delete the entities manually, impleme
    oc delete rolebinding endpoint-reader
    ```
 
-3. Install RabbitMQ service using Helm to a project with a non-Helm version. On DP.Helm deployer, use the `install` mode, and on v3.App deployer, use the `Rolling-Update` mode.
+3. Install RabbitMQ service using Helm to a project with a non-Helm version.
 
 4. Restart all RabbitMQ pods after successful installation.
 
@@ -1405,49 +1381,6 @@ It is also possible to set [TTL for messages](https://www.rabbitmq.com/docs/ttl#
 
 # Frequently Asked Questions
 
-## How to Deploy Using App Deployer Over an Installed DP Help Deployer Version?
-
-App Deployer does not support migration from DP Helm Deployer.
-
-If you need it, delete the current release with a Helm command.
-
-For example:
-
-```bash
-helm list --namespace=<namespace_name>
-
-helm uninstall rabbitmq-<namespace_name>- --namespace=<namespace_name>
-```
-
-Then update `release` annotations for persistent volume claims:
-
-```bash
-kubectl get pvc -n <namespace_name> -o json | jq '.items[].metadata|select(.annotations."meta.helm.sh/release-name")|.name' | awk '{print "kubectl annotate --overwrite pvc", $1, "meta.helm.sh/release-name=rabbitmq -n <namespace_name>"}' | bash -x
-```
-
-Then install using App Deployer.
-
-## How to Deploy With DEPLOY_W_HELM True Over False?
-
-App Deployer does not support migration from `DEPLOY_W_HELM: false` to `DEPLOY_W_HELM: true`.
-
-If you need it, delete all resources that belong to the current installation.
-
-For example:
-
-```bash
-kubectl delete all,secrets,configmaps,ingresses,serviceaccounts,roles,rolebindings,grafanadashboard,prometheusrule,servicemonitor,certificates,sitemanager,rabbitmqservice --all --namespace=<namespace_name>'
-```
-
-If you use a storage class or PV for a RabbitMQ Backup Daemon persistent volume claim, actualize the annotation and label for the data-rabbitmq-backup-daemon persistent volume claim:
-
-```sh
-kubectl annotate --overwrite pvc data-rabbitmq-backup-daemon meta.helm.sh/release-name: rabbitmq-rabbitmq meta.helm.sh/release-namespace=<namespace_name> -n <namespace_name>
-kubectl label --overwrite pvc data-rabbitmq-backup-daemon app.kubernetes.io/managed-by=Helm -n <namespace_name>
-```
-
-Then install using App Deployer and `DEPLOY_W_HELM: true`.
-
 ## What to Do if a Kubernetes Version is Upgraded Before Application?
 
 It is important to upgrade the application to a certified version until a Kubernetes upgrade.
@@ -1462,7 +1395,7 @@ kubectl get secret -l "owner=helm"
 kubectl delete secret -l "owner=helm"
 ```
 
-Then install a new version with App Deployer and `DEPLOY_W_HELM: true`.
+Then install a new version.
 
 ## Deployer Job Failed With Status Check but Application Works Fine
 

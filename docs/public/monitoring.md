@@ -344,7 +344,7 @@ For example `\\w+`.
 
 ## Table of Metrics
 
-| Metric name                                                    | Description                                                                                                                                                                                  | Amazon        | Netcracker RabbitMQ Service |
+| Metric name                                                    | Description                                                                                                                                                                                  | Amazon        | RabbitMQ Service |
 |----------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|-----------------------------|
 | kube_pod_info                                                  | Information about pod                                                                                                                                                                        | Not supported | Supported                   |
 | container_cpu_usage_seconds_total                              | The amount of CPU (in seconds) used by container                                                                                                                                             | Not supported | Supported                   |
