@@ -14,7 +14,7 @@ RabbitMQ Service chart allows you to deploy RabbitMQ side services (Monitoring a
 
 * External AmazonMQ URL is available from Kubernetes cluster where you are going to deploy side services.
 * AmazonMQ user credentials are provided. User has admin rights.
-* There is local Helm configured to deploy to necessary Kubernetes cluster.
+* There is a local Helm configured to deploy to the necessary Kubernetes cluster.
 
 ## Preparations for Backup
 
