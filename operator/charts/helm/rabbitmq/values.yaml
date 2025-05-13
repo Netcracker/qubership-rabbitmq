@@ -5,7 +5,7 @@
 
 # name: rabbitmq-service
 #
-operatorImage: ghcr.io/netcracker/qubership-rabbitmq-service-operator:main
+operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main
 #
 # loglevel: INFO
 
@@ -40,6 +40,7 @@ operator:
   securityContext: {}
   priorityClassName: ""
   apiGroup: "qubership.org"
+  pullPolicy: "Always"
   restartScheduler:
     dockerImage: bitnami/kubectl:1.30.6
     enabled: true
