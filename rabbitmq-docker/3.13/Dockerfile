@@ -1,9 +1,9 @@
-FROM library/rabbitmq:4.0.7-management-alpine
+FROM library/rabbitmq:3.13.6-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
-COPY scripts/get_user /bin/
-COPY scripts/get_password /bin/
-COPY scripts/change_password /bin/
+COPY ../scripts/get_user /bin/
+COPY ../scripts/get_password /bin/
+COPY ../scripts/change_password /bin/
 
 ENV USER_UID=1000
 
@@ -19,7 +19,7 @@ chmod +x /bin/get_password && \
 chmod +x /usr/local/bin/docker-entrypoint.sh && \
 chmod -R  a+r /opt/rabbitmq/plugins
 
-RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED
+RUN rm /usr/lib/python3.11/EXTERNALLY-MANAGED
 
 RUN set -x \
     && python3 -m ensurepip \
@@ -28,7 +28,7 @@ RUN set -x \
     && pip3 install --upgrade pip setuptools \
     && rm -rf /var/cache/apk/*
 
-COPY logging_definitions.json /etc/rabbitmq/
+COPY ../logging_definitions.json /etc/rabbitmq/
 
 VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq

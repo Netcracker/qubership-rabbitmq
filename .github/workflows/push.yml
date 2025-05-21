@@ -45,8 +45,11 @@ jobs:
             file: telegraf/Dockerfile
             context: telegraf
           - name: qubership-rabbitmq-image
-            file: Dockerfile
-            context: .
+            file: rabbitmq-docker/4.0/Dockerfile
+            context: rabbitmq-docker/4.0
+          - name: qubership-rabbitmq-image-3
+            file: rabbitmq-docker/3.13/Dockerfile
+            context: rabbitmq-docker/3.13
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
