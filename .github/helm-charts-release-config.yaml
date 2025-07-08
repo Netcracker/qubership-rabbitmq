@@ -1,0 +1,17 @@
+---
+
+charts:
+  - name: qubership-rabbitmq
+    chart_file: operator/charts/helm/rabbitmq/Chart.yaml
+    values_file: operator/charts/helm/rabbitmq/values.yaml
+    image:
+      - ghcr.io/netcracker/qubership-rabbitmq-integration-tests:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-operator:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-transfer:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-performance-tests-image:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-monitoring:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-image:${release}
+      - ghcr.io/netcracker/qubership-rabbitmq-image-3:${release}
+      - ghcr.io/netcracker/qubership-disaster-recovery-daemon:${drd_release}
+      - ghcr.io/netcracker/qubership-deployment-status-provisioner:${sp_release}
