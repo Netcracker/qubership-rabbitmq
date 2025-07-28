@@ -13,5 +13,5 @@ charts:
       - ghcr.io/netcracker/qubership-rabbitmq-monitoring:${release}
       - ghcr.io/netcracker/qubership-rabbitmq-image:${release}
       - ghcr.io/netcracker/qubership-rabbitmq-image-3:${release}
-      - ghcr.io/netcracker/qubership-disaster-recovery-daemon:${drd_release}
-      - ghcr.io/netcracker/qubership-deployment-status-provisioner:${sp_release}
+      - ghcr.io/netcracker/qubership-disaster-recovery-daemon:#latest
+      - ghcr.io/netcracker/qubership-deployment-status-provisioner:#latest
