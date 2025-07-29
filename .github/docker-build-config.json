@@ -13,7 +13,7 @@
     {
       "name": "qubership-rabbitmq-transfer",
       "file": "docker-transfer/Dockerfile",
-      "context": ""
+      "context": "."
     },
     {
       "name": "qubership-rabbitmq-backup-daemon",
