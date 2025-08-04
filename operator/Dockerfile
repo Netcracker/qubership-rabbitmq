@@ -1,4 +1,4 @@
-FROM python:3.10.14-alpine3.20
+FROM python:3.10.14-alpine3.22
 
 ENV WORKDIR=/opt/operator/ \
     USER_UID=1000 \
@@ -16,7 +16,7 @@ COPY build/entrypoint /usr/local/bin
 
 RUN apk add --update --no-cache bash build-base apk-tools
 
-RUN pip install --upgrade pip setuptools==70.0.0  && pip install -r requirements.txt
+RUN pip install --upgrade pip setuptools==80.9.0  && pip install -r requirements.txt
 
 RUN chmod 777 /usr/local/bin/user_setup && \
 chmod 777 /usr/local/bin/entrypoint && \

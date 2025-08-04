@@ -1,4 +1,4 @@
-FROM telegraf:1.33.3-alpine
+FROM telegraf:1.35.2-alpine
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
     USER_UID=1000
@@ -26,7 +26,7 @@ RUN set -x \
     && apk add --upgrade --no-cache curl tini python3 apk-tools \
     && python3 -m ensurepip \
     && rm -r /usr/lib/python*/ensurepip \
-    && pip3 install --upgrade pip setuptools==70.0.0 \
+    && pip3 install --upgrade pip setuptools==80.9.0 \
     && pip3 install -r ${RABBITMQ_MONITORING_HOME}/requirements.txt \
     && chmod -R 777 ${RABBITMQ_MONITORING_HOME}/exec-scripts
 
