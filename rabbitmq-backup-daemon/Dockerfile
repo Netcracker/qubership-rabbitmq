@@ -10,7 +10,7 @@ RUN chmod +x ${RABBITMQ_HOME}/scripts/*.py
 
 RUN set -x \
     && apk add --update --no-cache curl apk-tools \
-    && pip3 install setuptools==70.0.0 \
+    && pip3 install setuptools==80.9.0 \
     && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
 
