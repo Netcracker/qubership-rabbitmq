@@ -1,5 +1,5 @@
 kopf
-kubernetes==21.7.0
+kubernetes
 pykube-ng
 pyyaml
 click<8.0.0
