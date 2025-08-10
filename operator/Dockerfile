@@ -1,4 +1,4 @@
-FROM python:3.13-alpine3.22
+FROM python:3.10-alpine3.22
 
 ENV WORKDIR=/opt/operator/ \
     USER_UID=1000 \
