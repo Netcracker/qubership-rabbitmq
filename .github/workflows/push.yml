@@ -36,6 +36,7 @@ concurrency:
 
 jobs:
   multiplatform_build:
+    if: github.event.pull_request.user.login != 'dependabot[bot]' || github.event_name == 'pull_request'
     strategy:
       fail-fast: false
       matrix:
