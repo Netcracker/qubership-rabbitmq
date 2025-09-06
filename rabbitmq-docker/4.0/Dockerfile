@@ -1,4 +1,4 @@
-FROM library/rabbitmq:4.0.9-management-alpine
+FROM library/rabbitmq:4.1.4-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY scripts/get_user /bin/
