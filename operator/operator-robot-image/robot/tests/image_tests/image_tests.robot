@@ -30,3 +30,4 @@ Test Hardcoded Images
     Run Keyword And Continue On Failure  Should Be Equal   ${actual_tag}   ${expected_tag}
     
   END
+
