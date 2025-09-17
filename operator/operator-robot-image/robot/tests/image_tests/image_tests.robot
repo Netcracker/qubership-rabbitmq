@@ -15,7 +15,7 @@ Get Image Tag
 
 *** Test Cases ***
 Test Hardcoded Images
-  [Tags]  consul_images
+  [Tags]  all  rabbitmq_images
   ${stripped_resources}=  Strip String  ${MONITORED_IMAGES}  characters=,  mode=right
   @{list_resources} =  Split String	${stripped_resources} 	,
   FOR  ${resource}  IN  @{list_resources}
