@@ -269,7 +269,7 @@ Add a special case for replicas=1, where it should default to 0 as well.
 {{- else if .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
 {{ .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
 {{- else -}}
-{{- 1 -}}
+{{- add (div (int .Values.rabbitmq.replicas) 2) 1 -}}
 {{- end -}}
 {{- end -}}
 
