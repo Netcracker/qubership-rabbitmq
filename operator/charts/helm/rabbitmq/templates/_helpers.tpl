@@ -260,6 +260,20 @@ RabbitMQ admin password.
 {{- end -}}
 
 {{/*
+Compute the maximum number of unavailable replicas for the PodDisruptionBudget. This defaults to 1.
+Add a special case for replicas=1, where it should default to 0 as well.
+*/}}
+{{- define "rabbitmq.pdb.maxUnavailable" -}}
+{{- if eq (int .Values.rabbitmq.replicas) 1 -}}
+{{ 0 }}
+{{- else if .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
+{{ .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
+{{- else -}}
+{{- add (div (int .Values.rabbitmq.replicas) 2) 1 -}}
+{{- end -}}
+{{- end -}}
+
+{{/*
 Find a RabbitMQ tests image in various places.
 */}}
 {{- define "tests.image" -}}

@@ -207,6 +207,8 @@ rabbitmq:
   selectors: {}
   securityContext: {}
   priorityClassName: ""
+  disruptionBudget:
+    enabled: false
   livenessProbe:
     initialDelaySeconds: 10
     timeoutSeconds: 15
