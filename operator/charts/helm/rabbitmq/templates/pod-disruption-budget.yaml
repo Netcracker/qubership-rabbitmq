@@ -1,0 +1,19 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+{{- if .Values.rabbitmq.disruptionBudget.enabled }}
+{{- if .Capabilities.APIVersions.Has "policy/v1/PodDisruptionBudget" }}
+apiVersion: policy/v1
+{{- else }}
+apiVersion: policy/v1beta1
+{{- end }}
+kind: PodDisruptionBudget
+metadata:
+  name: rabbitmq-pdb
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+spec:
+  maxUnavailable: {{ template "rabbitmq.pdb.maxUnavailable" . }}
+  selector:
+    matchLabels:
+      app: rmqlocal
+{{- end }}
+{{- end }}
