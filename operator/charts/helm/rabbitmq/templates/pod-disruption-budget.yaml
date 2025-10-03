@@ -14,6 +14,6 @@ spec:
   maxUnavailable: {{ template "rabbitmq.pdb.maxUnavailable" . }}
   selector:
     matchLabels:
-      component: rabbitmq
+      app: rmqlocal
 {{- end }}
 {{- end }}
