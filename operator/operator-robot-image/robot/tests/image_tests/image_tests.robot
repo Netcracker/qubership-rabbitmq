@@ -11,6 +11,7 @@ Get Image Tag
     [Arguments]  ${image}
     ${parts}=  Split String  ${image}  :
     ${length}=  Get Length  ${parts}
+    Run Keyword If  ${length} > 1  Return From Keyword  ${parts[2]}  
     Run Keywords
     ...  Log To Console  \n[ERROR] Image ${parts} has no tag: ${image}\nMonitored images list: ${MONITORED_IMAGES}
     ...  AND  Fail  Some images were not found, please check your .helpers template and description.yaml in the repository
