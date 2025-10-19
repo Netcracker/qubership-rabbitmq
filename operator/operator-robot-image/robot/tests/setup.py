@@ -19,7 +19,7 @@ setup(
     version='0.0.1',
     packages=find_packages(),
     author='Vitalii Solodilov',
-    author_email='vitalii.solodilov@qubership.org',
+    author_email='vitalii.solodilov@netcracker.com',
     classifiers=[
         'Programming Language:: Python:: 3.6'
     ]
