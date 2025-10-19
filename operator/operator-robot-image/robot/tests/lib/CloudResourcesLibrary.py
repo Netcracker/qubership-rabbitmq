@@ -58,7 +58,7 @@ class CloudResourcesLibrary(object):
 
     def get_custom_resource(self):
         return self.k8s_lib.get_namespaced_custom_object_status(
-            group='qubership.org',
+            group='netcracker.com',
             version=cr_version,
             namespace=self.namespace,
             plural='rabbitmqservices',
@@ -73,7 +73,7 @@ class CloudResourcesLibrary(object):
     def update_custom_resource(self, body):
 
         self._custom_objects_api.patch_namespaced_custom_object(
-            group='qubership.org',
+            group='netcracker.com',
             version=cr_version,
             namespace=self.namespace,
             plural='rabbitmqservices',

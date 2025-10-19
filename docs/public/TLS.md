@@ -220,4 +220,4 @@ Automatic re-encrypt Route creation is not supported out of box, need to perform
 **NOTE**: If you can't access the rabbitmq host after Route creation because of "too many redirects" error, then one of the possible root
 causes is there is HTTP traffic between balancers and the cluster. To resolve that issue it's necessary to add the Route name to
 the exception list at the balancers,
-[see documentation](https://git.qubership.org/PROD.Platform.HA/ocp-4-support/-/blob/master/documentation/Maintenance.md#configure-tls-offload-at-the-load-balancer-nodes)
+[see documentation](https://git.netcracker.com/PROD.Platform.HA/ocp-4-support/-/blob/master/documentation/Maintenance.md#configure-tls-offload-at-the-load-balancer-nodes)
