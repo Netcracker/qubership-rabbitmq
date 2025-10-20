@@ -42,7 +42,6 @@ In Disaster Recovery scheme the `REGION` environment variable is automatically a
 Each backup will contain information about `REGION` as `region` custom parameter. If backup daemon tries to restore backup on `active`
 side it will restore the latest backup from the `other` region. The `standby` to `active` switchover process will be failed if
 there is no backup from the other region. But, the restore process will be skipped in this case without fail if `noWait` site manager parameter is `true`.
-For more information about site manager `noWait` parameter, refer to [Site Manager](https://git.qubership.org/PROD.Platform.HA/github.sync/DRNavigator/-/blob/main/README.md).
 
 ## Configuration Example
 
@@ -139,7 +138,7 @@ backupDaemon:
 You can perform the switchover using the `SiteManager` functionality or RabbitMQ disaster recovery REST server API.
 
 <!-- #GFCFilterMarkerStart# -->
-For more information about `SiteManager`, refer to [Site Manager](https://git.qubership.org/PROD.Platform.HA/github.sync/DRNavigator/-/blob/main/README.md) article.
+For more information about `SiteManager`, refer to [Site Manager](https://github.com/Netcracker/qubership-core-site-management/blob/main/README.md) article.
 <!-- #GFCFilterMarkerEnd# -->
 
 If you want to perform a switchover manually, you need to switch `active` RabbitMQ cluster to `standby` mode and then switch `standby` RabbitMQ cluster to `active` mode.
