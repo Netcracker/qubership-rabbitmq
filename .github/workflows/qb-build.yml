@@ -31,10 +31,11 @@ on:
 #       - 'SECURITY.md'
 
 env:
-  TAG_NAME: ${{ github.event.client_payload.tag }}
-  BASE_IMAGE: ${{ github.event.client_payload.base_image }}
-#   TAG_NAME: ${{ github.event.release.tag_name || github.ref }}
-  GITHUB_GROUP: ${{ github.repository_owner }}
+  EVENT_TAG_NAME: ${{ github.event.client_payload.tag }}
+  EVENT_BASE_IMAGE: ${{ github.event.client_payload.base_image }}
+  EVENT_OWNER: ${{ github.event.client_payload.owner }}
+  EVENT_REPO: ${{ github.event.client_payload.repo }}
+#  TAG_NAME: ${{ github.event.release.tag_name || github.ref }}
 
 concurrency:
   # On main/release, we don't want any jobs cancelled so the sha is used to name the group
@@ -77,8 +78,10 @@ jobs:
     steps:
         - name: Check payload
           run: |
-            echo "TAG_NAME=${{ env.TAG_NAME }}"
-            echo "BASE_IMAGE=${{ env.BASE_IMAGE }}"
+            echo "TAG_NAME=${{ env.EVENT_TAG_NAME }}"
+            echo "BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}"
+            echo "OWNER=${{ env.EVENT_OWNER }}"
+            echo "REPO_NAME=${{ env.EVENT_REPO }}"
 
     #   - name: Checkout
     #     uses: actions/checkout@v4
