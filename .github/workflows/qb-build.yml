@@ -13,6 +13,7 @@ on:
 env:
   EVENT_TAG_NAME: ${{ github.event.client_payload.tag }}
   EVENT_BASE_IMAGE: ${{ github.event.client_payload.base_image }}
+  EVENT_MANAGMENT_IMAGE: ${{ github.event.client_payload.management_image }}
   EVENT_OWNER: ${{ github.event.client_payload.owner }}
   EVENT_REPO: ${{ github.event.client_payload.repo }}
 #  TAG_NAME: ${{ github.event.release.tag_name || github.ref }}
@@ -101,4 +102,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' }}
           tags: ghcr.io/${{ env.EVENT_OWNER }}/${{ matrix.component.name }}:${{ env.EVENT_TAG_NAME }}
+          build-args: BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
           provenance: false
