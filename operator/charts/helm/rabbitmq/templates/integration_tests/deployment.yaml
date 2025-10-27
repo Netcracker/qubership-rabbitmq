@@ -166,6 +166,14 @@ spec:
             periodSeconds: 20
             successThreshold: 1
             failureThreshold: 5
+          livenessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 20
+            timeoutSeconds: 5
+            periodSeconds: 20
+            successThreshold: 1
+            failureThreshold: 5
       volumes:
         - name: output
           emptyDir: {}
