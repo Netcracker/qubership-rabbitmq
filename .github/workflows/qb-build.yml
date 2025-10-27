@@ -102,5 +102,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' && github.actor != 'dependabot[bot]' }}
           tags: ghcr.io/${{ env.EVENT_OWNER }}/${{ matrix.component.name }}:${{ env.EVENT_TAG_NAME }}
-          build-args: BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
+          build-args: |
+            BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
           provenance: false
