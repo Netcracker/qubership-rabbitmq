@@ -61,6 +61,7 @@ jobs:
         run: |
           echo "TAG_NAME=${{ env.EVENT_TAG_NAME }}"
           echo "BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}"
+          echo "MANAGMENT_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}"
           echo "OWNER=${{ env.EVENT_OWNER }}"
           echo "REPO_NAME=${{ env.EVENT_REPO }}"
 
