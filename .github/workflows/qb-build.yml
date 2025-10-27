@@ -1,4 +1,6 @@
-name: Integration Build
+name: RabbitMQ Integration Build
+run-name: "Event: Tag ${{ github.event.client_payload.tag }} from ${{ github.event.client_payload.owner }}/${{ github.event.client_payload.repo }}"
+
 permissions:
   contents: read
   packages: write
