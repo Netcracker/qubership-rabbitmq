@@ -4,21 +4,21 @@ on:
   push
 
 jobs:
-#  Wait-for-images:
-#    runs-on: ubuntu-latest
-#    outputs:
-#      conclusion: ${{ steps.wait.outputs.conclusion }}
-#    steps:
-#      - name: Wait for push.yml to complete
-#        uses: netcracker/qubership-workflow-hub/actions/wait-for-workflow@main
-#        id: wait
-#        with:
-#          workflow: push.yml
-#          token: ${{ secrets.GITHUB_TOKEN }}
-#          poll-interval: 20
+  Wait-for-images:
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.wait.outputs.conclusion }}
+    steps:
+      - name: Wait for push.yml to complete
+        uses: netcracker/qubership-workflow-hub/actions/wait-for-workflow@main
+        id: wait
+        with:
+          workflow: push.yml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          poll-interval: 20
   Rabbitmq-Pipeline:
-#    needs: Wait-for-images
-#    if: ${{ needs.Wait-for-images.outputs.conclusion }} == 'success'
+    needs: Wait-for-images
+    if: ${{ needs.Wait-for-images.outputs.conclusion }} == 'success'
     uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@feat/rabbit_pipeline
     with:
       service_branch: '${{ github.head_ref || github.ref_name }}'
