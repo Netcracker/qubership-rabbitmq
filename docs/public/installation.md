@@ -53,7 +53,7 @@ To avoid using `cluster-wide` rights during the deployment, the following condit
     name: deploy-user-role
   rules:
     - apiGroups:
-        - qubership.org
+        - netcracker.com
       resources:
         - "*"
       verbs:
@@ -1411,7 +1411,7 @@ For example:
 kubect get rabbitmqservices rabbitmq -o yaml
 ```
 
-## Deployer Job Failed With Unknown Fields in Rabbitmqservices.qubership.org
+## Deployer Job Failed With Unknown Fields in Rabbitmqservices.netcracker.com
 
 It can be an issue with CRD changes. Refer to [CRD Upgrade](#crd-upgrade) for details.
 
