@@ -137,6 +137,10 @@ backupDaemon:
 
 You can perform the switchover using the `SiteManager` functionality or RabbitMQ disaster recovery REST server API.
 
+<!-- #GFCFilterMarkerStart# -->
+For more information about `SiteManager`, refer to [Site Manager](https://github.com/Netcracker/qubership-core-site-management/blob/main/README.md) article.
+<!-- #GFCFilterMarkerEnd# -->
+
 If you want to perform a switchover manually, you need to switch `active` RabbitMQ cluster to `standby` mode and then switch `standby` RabbitMQ cluster to `active` mode.
 You need to run the following command from within any RabbitMQ pod on the `active` side:
 

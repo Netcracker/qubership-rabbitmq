@@ -1114,6 +1114,7 @@ Scale In (decreasing) replicas are not supported out of the box. You need to be 
 
 ## Version Upgrade and Feature Flags
 
+Upgrades from RabbitMQ 3.13.x are supported to both RabbitMQ 4.0.x and RabbitMQ 4.1.x.
 To upgrade RabbitMQ version you need to make sure that all feature flags not marked as experimental are enabled.
 
 To check that, execute the following command in any RabbitMQ pod:
