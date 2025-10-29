@@ -82,7 +82,7 @@ spec:
               port: 8081
           readinessProbe:
             httpGet:
-              path: /readyz
+              path: /healthz
               port: 8081
               scheme: HTTP
             initialDelaySeconds: 40
