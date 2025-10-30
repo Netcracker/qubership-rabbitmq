@@ -53,7 +53,7 @@ To avoid using `cluster-wide` rights during the deployment, the following condit
     name: deploy-user-role
   rules:
     - apiGroups:
-        - qubership.org
+        - netcracker.com
       resources:
         - "*"
       verbs:
@@ -1114,6 +1114,7 @@ Scale In (decreasing) replicas are not supported out of the box. You need to be 
 
 ## Version Upgrade and Feature Flags
 
+Upgrades from RabbitMQ 3.13.x are supported to both RabbitMQ 4.0.x and RabbitMQ 4.1.x.
 To upgrade RabbitMQ version you need to make sure that all feature flags not marked as experimental are enabled.
 
 To check that, execute the following command in any RabbitMQ pod:
@@ -1410,7 +1411,7 @@ For example:
 kubect get rabbitmqservices rabbitmq -o yaml
 ```
 
-## Deployer Job Failed With Unknown Fields in Rabbitmqservices.qubership.org
+## Deployer Job Failed With Unknown Fields in Rabbitmqservices.netcracker.com
 
 It can be an issue with CRD changes. Refer to [CRD Upgrade](#crd-upgrade) for details.
 
