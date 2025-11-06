@@ -1,4 +1,4 @@
-FROM openjdk:8-jdk
+FROM eclipse-temurin:17-jdk-alpine
 
 ADD https://github.com/rabbitmq/rabbitmq-perf-test/releases/download/v2.2.0/rabbitmq-perf-test-2.2.0-bin.tar.gz /PERFORMANCETEST/
 
