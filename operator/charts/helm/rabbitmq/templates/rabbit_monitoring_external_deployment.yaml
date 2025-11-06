@@ -98,4 +98,20 @@ spec:
               memory: {{ default "100Mi" .Values.telegraf.resources.requests.memory }}
           securityContext:
             {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+          livenessProbe:
+            tcpSocket:
+              port: 8096
+            initialDelaySeconds: 40
+            timeoutSeconds: 5
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
+              port: 8096
+            initialDelaySeconds: 40
+            timeoutSeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 5
 {{ end }}

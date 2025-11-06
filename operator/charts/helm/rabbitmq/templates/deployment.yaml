@@ -80,6 +80,16 @@ spec:
             httpGet:
               path: /healthz
               port: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 40
+            timeoutSeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 5
           resources:
             limits:
               cpu: {{ default "100m" .Values.operator.resources.limits.cpu  }}
@@ -150,6 +160,14 @@ spec:
             httpGet:
               path: /health
               scheme: {{ (eq (include "disasterRecovery.enableTls" .) "true") | ternary "HTTPS" "HTTP" }}
+              port: {{ template "disasterRecovery.port" . }}
+            initialDelaySeconds: 10
+            timeoutSeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
               port: {{ template "disasterRecovery.port" . }}
             initialDelaySeconds: 10
             timeoutSeconds: 30

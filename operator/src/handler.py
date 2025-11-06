@@ -25,7 +25,7 @@ import kopf
 import requests
 from kubernetes import client as client, config as k8s_config
 from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
-    V1PodTemplateSpec, V1ContainerPort, \
+    V1PodTemplateSpec, V1TCPSocketAction, V1ContainerPort, \
     V1ExecAction, V1EnvVarSource, V1ObjectFieldSelector, V1VolumeMount, \
     V1ResourceRequirements, V1SecretKeySelector, \
     V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1ConfigMap, V1Lifecycle, \
@@ -87,7 +87,7 @@ username_change_attr = ('data', 'user')
 tests_name = 'rabbitmq-integration-tests'
 nodeport_service_name = 'rabbitmq-nodeport'
 cr_version = "v2"
-api_group = os.getenv("API_GROUP", "qubership.org")
+api_group = os.getenv("API_GROUP", "netcracker.com")
 IN_PROGRESS = "In progress"
 SUCCESSFUL = "Successful"
 FAILED = "Failed"
@@ -642,6 +642,24 @@ class KubernetesHelper:
 
         telegraf_labels = {'name': telegraf_name, 'component': telegraf_name}
         telegraf_custom_labels = self.get_custom_labels(telegraf_labels, 'telegraf')
+
+        liveness = V1Probe(
+            tcp_socket=V1TCPSocketAction(port=8096),
+            initial_delay_seconds=30,
+            timeout_seconds=5,
+            period_seconds=15,
+            success_threshold=1,
+            failure_threshold=20,
+        )
+
+        readiness = V1Probe(
+            tcp_socket=V1TCPSocketAction(port=8096),
+            initial_delay_seconds=30,
+            timeout_seconds=5,
+            period_seconds=15,
+            success_threshold=1,
+            failure_threshold=20,
+        )
         podtemplate = V1PodTemplateSpec(
             metadata=V1ObjectMeta(labels=telegraf_custom_labels),
             spec=V1PodSpec(containers=[V1Container(name=telegraf_name,
@@ -650,7 +668,9 @@ class KubernetesHelper:
                                                    termination_message_path='/dev/termination-log',
                                                    image_pull_policy=image_pull_policy,
                                                    resources=telegraf_resources,
-                                                   security_context=self.get_container_security_context())],
+                                                   security_context=self.get_container_security_context(),
+                                                   readiness_probe=readiness,
+                                                   liveness_probe=liveness,)],
                            security_context=self.get_security_context("telegraf"),
                            affinity=self.get_affinity_rules(),
                            tolerations=self.get_tolerations(),
