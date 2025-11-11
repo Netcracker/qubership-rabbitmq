@@ -7,7 +7,7 @@ on:
     branches:
       - '**'
     paths-ignore:
-      - '.github/workflows/**'
+#      - '.github/workflows/**'
       - 'docs/**'
       - 'CODE-OF-CONDUCT.md'
       - 'CONTRIBUTING.md'
@@ -25,7 +25,23 @@ on:
       - 'LICENSE'
       - 'README.md'
       - 'SECURITY.md'
-
+  workflow_dispatch:
+    inputs:
+      tags:
+        required: false
+        type: string
+        default: ""
+        description: "Tags"
+      dry-run:
+        required: true
+        type: boolean
+        default: false
+        description: "Dry run mode"
+      replace-symbol:
+        required: false
+        type: string
+        default: "_"
+        description: "Symbol to replace in tags"
 env:
   TAG_NAME: ${{ github.ref }}
   GITHUB_GROUP: ${{ github.repository_owner }}
@@ -61,8 +77,9 @@ jobs:
         id: meta
         with:
           default-template: "{{ref-name}}"
-          replace-symbol: "_"
+          replace-symbol: "${{ github.event.inputs.replace-symbol || '_' }}"
           ref: ${{ github.ref }}
+          extra-tags: ${{ github.event.inputs.tags || '' }}
 
   multiplatform_build:
     name: ${{ matrix.component.name }} Image Build and Push
@@ -86,6 +103,6 @@ jobs:
           platforms: ${{ needs.prepare.outputs.platforms }}
           tags: ${{ needs.prepare.outputs.tags }}
           checkout: 'true'
-          dry-run: ${{ github.event_name == 'pull_request' }}
+          dry-run: ${{ github.event.inputs.dry-run || github.event_name == 'pull_request' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
