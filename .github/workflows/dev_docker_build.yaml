@@ -7,7 +7,7 @@ on:
     branches:
       - '**'
     paths-ignore:
-#      - '.github/workflows/**'
+      - '.github/workflows/**'
       - 'docs/**'
       - 'CODE-OF-CONDUCT.md'
       - 'CONTRIBUTING.md'
