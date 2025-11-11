@@ -37,12 +37,12 @@ jobs:
             echo "Setting up environment for cleanup..."
             if [ '${{ github.event_name}}' == 'schedule' ]; then
               echo "Scheduled run detected."
-              echo "INCLUDED_TAGS='*'" >> $GITHUB_ENV
-              echo "EXCLUDED_TAGS='release*,semver'" >> $GITHUB_ENV
+              echo "INCLUDED_TAGS=*" >> $GITHUB_ENV
+              echo "EXCLUDED_TAGS=release*,semver" >> $GITHUB_ENV
             else
               echo "Manual run triggered by ${{ github.actor }}."
-              echo "INCLUDED_TAGS='${{ github.event.inputs.included-tags }}'" >> $GITHUB_ENV
-              echo "EXCLUDED_TAGS='${{ github.event.inputs.excluded-tags }}'" >> $GITHUB_ENV
+              echo "INCLUDED_TAGS=${{ github.event.inputs.included-tags }}" >> $GITHUB_ENV
+              echo "EXCLUDED_TAGS=${{ github.event.inputs.excluded-tags }}" >> $GITHUB_ENV
             fi
       - name: "Summary"
         run: |
