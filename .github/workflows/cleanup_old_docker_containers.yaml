@@ -32,13 +32,25 @@ jobs:
     name: "Cleanup Old Docker Container Versions"
     runs-on: ubuntu-latest
     steps:
+      - name: "Setup Environment"
+        run: |
+            echo "Setting up environment for cleanup..."
+            if [ '${{ github.event_name}}' == 'schedule' ]; then
+              echo "Scheduled run detected."
+              echo "INCLUDED_TAGS=*" >> $GITHUB_ENV
+              echo "EXCLUDED_TAGS=release*,semver" >> $GITHUB_ENV
+            else
+              echo "Manual run triggered by ${{ github.actor }}."
+              echo "INCLUDED_TAGS=${{ github.event.inputs.included-tags }}" >> $GITHUB_ENV
+              echo "EXCLUDED_TAGS=${{ github.event.inputs.excluded-tags }}" >> $GITHUB_ENV
+            fi
       - name: "Summary"
         run: |
           echo "**Event**: ${{ github.event_name }}"
           echo "**Actor**: ${{ github.actor }}"
           echo "**Threshold days**: ${{ github.event.inputs.threshold-days || 7 }}"
-          echo "**Included tags**: ${{ github.event.inputs.included-tags || 'dev*' }}"
-          echo "**Excluded tags**: ${{ github.event.inputs.excluded-tags || 'release*,semver' }}"
+          echo "**Included tags**: ${INCLUDED_TAGS}"
+          echo "**Excluded tags**: ${EXCLUDED_TAGS}"
           echo "**Dry-run**: ${{ github.event.inputs.dry-run || 'false' }}"
 
       - name: "Login to GHCR"
@@ -52,8 +64,8 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/container-package-cleanup@v2.0.0
         with:
           threshold-days: ${{ github.event.inputs.threshold-days || 7 }}
-          included-tags: ${{ github.event.inputs.included-tags || '' }}
-          excluded-tags: ${{ github.event.inputs.excluded-tags || 'release*,semver' }}
+          included-tags: ${{ env.INCLUDED_TAGS }}
+          excluded-tags: ${{ env.EXCLUDED_TAGS }}
           dry-run: ${{ github.event.inputs.dry-run || 'false' }}
         env:
           PACKAGE_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
