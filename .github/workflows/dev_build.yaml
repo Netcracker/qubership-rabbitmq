@@ -1,4 +1,5 @@
-name: Build and Push Docker Images
+name: "CI: Dev Build"
+run-name: "Dev image for ${{ github.event.repository.name }}: ${{ github.run_number }} - ${{ github.actor }}"
 
 permissions:
   contents: read
