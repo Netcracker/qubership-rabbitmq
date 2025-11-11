@@ -14,7 +14,7 @@ on:
       included-tags:
         description: "Tags to include for deletion"
         required: false
-        default: ""
+        default: "dev*"
       excluded-tags:
         description: "Tags to exclude from deletion"
         required: false
@@ -22,7 +22,7 @@ on:
       dry-run:
         description: "Enable dry-run mode"
         required: false
-        default: false
+        default: true
         type: boolean
 permissions:
   contents: read
@@ -52,7 +52,7 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/container-package-cleanup@v2.0.0
         with:
           threshold-days: ${{ github.event.inputs.threshold-days || 7 }}
-          included-tags: ${{ github.event.inputs.included-tags || 'dev*' }}
+          included-tags: ${{ github.event.inputs.included-tags || '' }}
           excluded-tags: ${{ github.event.inputs.excluded-tags || 'release*,semver' }}
           dry-run: ${{ github.event.inputs.dry-run || 'false' }}
         env:
