@@ -84,7 +84,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) OR vector(0)",
+          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) OR vector(0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -165,7 +165,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", namespace=\"$rabbitmq_namespace\"} == 3) OR vector(0)",
+          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", namespace=\"$rabbitmq_namespace\"}) == 3) OR vector(0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -246,7 +246,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\" ,cluster=\"$cluster\"} == 1) OR vector(0)",
+          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\" ,cluster=\"$cluster\"}) == 1) OR vector(0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -327,7 +327,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} == 2) OR vector(0)",
+          "expr": "count(erlang_vm_dist_node_state{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) == 2) OR vector(0)",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -449,7 +449,7 @@
           "displayValueWithAlias": "Never",
           "editorMode": "code",
           "exemplar": false,
-          "expr": "erlang_vm_dist_node_state{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_node_state{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) max by (instance, rabbitmq_node, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -706,7 +706,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "erlang_vm_dist_node_queue_size_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_node_queue_size_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) max by (instance, rabbitmq_node, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "interval": "",
           "intervalFactor": 1,
@@ -983,7 +983,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rate(erlang_vm_dist_send_bytes{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rate(erlang_vm_dist_send_bytes{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -1235,7 +1235,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rate(erlang_vm_dist_recv_bytes{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rate(erlang_vm_dist_recv_bytes{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} <- {{peer}}",
@@ -1487,7 +1487,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rate(erlang_vm_dist_send_cnt{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rate(erlang_vm_dist_send_cnt{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -1739,7 +1739,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rate(erlang_vm_dist_recv_cnt{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rate(erlang_vm_dist_recv_cnt{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} <- {{peer}}",
@@ -1991,7 +1991,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "(rate(erlang_vm_dist_send_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) / \n(rate(erlang_vm_dist_send_cnt{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "(rate(erlang_vm_dist_send_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) / \n(rate(erlang_vm_dist_send_cnt{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -2243,7 +2243,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "(rate(erlang_vm_dist_recv_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) / \n(rate(erlang_vm_dist_recv_cnt{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "(rate(erlang_vm_dist_recv_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) / \n(rate(erlang_vm_dist_recv_cnt{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} <- {{peer}}",
@@ -2519,7 +2519,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "erlang_vm_dist_port_memory_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_port_memory_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -2636,7 +2636,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "erlang_vm_dist_port_queue_size_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_port_queue_size_bytes{cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -2770,7 +2770,7 @@
           "displayAliasType": "Warning / Critical",
           "displayType": "Regular",
           "displayValueWithAlias": "Never",
-          "expr": "erlang_vm_dist_proc_status{type=\"$erlang_vm_dist_proc_type\" ,cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} ",
+          "expr": "erlang_vm_dist_proc_status{type=\"$erlang_vm_dist_proc_type\" ,cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) max by (instance, rabbitmq_node, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) ",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -2889,7 +2889,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "erlang_vm_dist_proc_message_queue_len{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_proc_message_queue_len{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -3141,7 +3141,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "erlang_vm_dist_proc_memory_bytes{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "erlang_vm_dist_proc_memory_bytes{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_node, rabbitmq_cluster) max by (instance, rabbitmq_node, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -3393,7 +3393,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rate(erlang_vm_dist_proc_reductions{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rate(erlang_vm_dist_proc_reductions{type=\"$erlang_vm_dist_proc_type\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "intervalFactor": 1,
           "legendFormat": "{{rabbitmq_node}} -> {{peer}}",
@@ -3467,14 +3467,14 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+        "definition": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Cluster",
         "multi": false,
         "name": "rabbitmq_cluster",
         "options": [],
-        "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+        "query": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
         "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
@@ -3525,7 +3525,7 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+        "definition": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Namespace",
@@ -3533,7 +3533,7 @@
         "name": "rabbitmq_namespace",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+          "query": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_namespace-Variable-Query"
         },
         "refresh": 2,

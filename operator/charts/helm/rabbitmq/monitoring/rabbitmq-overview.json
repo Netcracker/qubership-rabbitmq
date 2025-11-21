@@ -199,7 +199,7 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})/sum(kube_pod_info{exported_namespace=\"$rabbitmq_namespace\", exported_pod=~\"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$\", cluster=\"$cluster\"})",
+          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})/sum(kube_pod_info{exported_namespace=\"$rabbitmq_namespace\", exported_pod=~\"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$\", cluster=\"$cluster\"}))",
           "hide": false,
           "instant": true,
           "interval": "",
@@ -509,7 +509,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})/sum(kube_pod_info{exported_namespace=\"$rabbitmq_namespace\", exported_pod=~\"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$\", cluster=\"$cluster\"})",
+          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))/sum(kube_pod_info{exported_namespace=\"$rabbitmq_namespace\", exported_pod=~\"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$\", cluster=\"$cluster\"})",
           "instant": false,
           "interval": "",
           "legendFormat": "",
@@ -767,7 +767,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "(rabbitmq_resident_memory_limit_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) -\n(rabbitmq_process_resident_memory_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "(rabbitmq_resident_memory_limit_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) -\n(rabbitmq_process_resident_memory_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1025,7 +1025,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rabbitmq_disk_space_available_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rabbitmq_disk_space_available_bytes{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1210,7 +1210,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1296,7 +1296,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rate(rabbitmq_channel_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1381,7 +1381,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) - (count(rabbitmq_channel_consumers{channel!~\"\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) OR on() vector(0))",
+          "expr": "sum(rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) - (count(rabbitmq_channel_consumers{channel!~\"\", namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) OR on() vector(0))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1466,7 +1466,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_connections{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_connections{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1551,7 +1551,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_queues{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_queues{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1636,7 +1636,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_queue_messages_unacked{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_queue_messages_unacked{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1722,7 +1722,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) +\nsum(rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) +\nsum(rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) +\nsum(rate(rabbitmq_channel_get_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) +\nsum(rate(rabbitmq_channel_get_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) +\nsum(rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) +\nsum(rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) +\nsum(rate(rabbitmq_channel_get_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) +\nsum(rate(rabbitmq_channel_get_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "hide": false,
           "instant": false,
@@ -1808,7 +1808,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_channel_consumers{channel=\"\",namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_channel_consumers{channel=\"\",namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1893,7 +1893,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -1978,7 +1978,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "sum(rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -2436,7 +2436,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rabbitmq_build_info{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "table",
           "instant": true,
           "intervalFactor": 1,
@@ -2709,7 +2709,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "(rabbitmq_process_max_tcp_sockets{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) -\n(rabbitmq_process_open_tcp_sockets{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "(rabbitmq_process_max_tcp_sockets{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) -\n(rabbitmq_process_open_tcp_sockets{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -2966,7 +2966,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "(rabbitmq_process_max_fds{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) -\n(rabbitmq_process_open_fds{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
+          "expr": "(rabbitmq_process_max_fds{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) -\n(rabbitmq_process_open_fds{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -3245,7 +3245,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"\",namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rabbitmq_queue_messages_ready{queue=\"\",namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -3500,7 +3500,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rabbitmq_queue_messages_unacked{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rabbitmq_queue_messages_unacked{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -3778,7 +3778,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -4032,7 +4032,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_confirmed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_confirmed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -4286,7 +4286,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_queue_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_queue_messages_published_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -4540,7 +4540,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_unconfirmed{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_unconfirmed{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -4658,7 +4658,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_unroutable_dropped_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -4776,7 +4776,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_unroutable_returned_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_unroutable_returned_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -5054,7 +5054,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(\n  (rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) +\n  (rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})\n) by(rabbitmq_node)",
+          "expr": "sum(\n  (rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) +\n  (rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}))\n) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -5311,7 +5311,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_redelivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -5565,7 +5565,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_delivered_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -5819,7 +5819,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_delivered_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6073,7 +6073,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_messages_acked_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_messages_acked_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6191,7 +6191,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_get_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_get_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6309,7 +6309,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_get_empty_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_get_empty_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6427,7 +6427,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channel_get_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channel_get_ack_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6704,7 +6704,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rabbitmq_queues{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rabbitmq_queues{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -6961,7 +6961,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_queues_declared_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_queues_declared_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -7218,7 +7218,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_queues_created_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_queues_created_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -7475,7 +7475,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_queues_deleted_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_queues_deleted_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -7752,7 +7752,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rabbitmq_channels{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -8009,7 +8009,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channels_opened_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channels_opened_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -8266,7 +8266,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_channels_closed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_channels_closed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -8543,7 +8543,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "rabbitmq_connections{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}",
+          "expr": "rabbitmq_connections{namespace=\"$rabbitmq_namespace\"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -8801,7 +8801,7 @@
             "uid": "$datasource"
           },
           "exemplar": true,
-          "expr": "sum(rate(rabbitmq_connections_opened_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_connections_opened_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "interval": "",
@@ -9059,7 +9059,7 @@
           "datasource": {
             "uid": "$datasource"
           },
-          "expr": "sum(rate(rabbitmq_connections_closed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"}) by(rabbitmq_node)",
+          "expr": "sum(rate(rabbitmq_connections_closed_total{namespace=\"$rabbitmq_namespace\"}[60s]) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\", namespace=\"$rabbitmq_namespace\"})) by(rabbitmq_node)",
           "format": "time_series",
           "instant": false,
           "intervalFactor": 1,
@@ -9134,7 +9134,7 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+        "definition": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Cluster",
@@ -9142,7 +9142,7 @@
         "name": "rabbitmq_cluster",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+          "query": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_cluster-Variable-Query"
         },
         "refresh": 2,
@@ -9164,7 +9164,7 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+        "definition": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Namespace",
@@ -9172,7 +9172,7 @@
         "name": "rabbitmq_namespace",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+          "query": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_namespace-Variable-Query"
         },
         "refresh": 2,

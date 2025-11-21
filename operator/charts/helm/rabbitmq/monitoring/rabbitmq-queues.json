@@ -2234,7 +2234,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+        "definition": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Cluster",
@@ -2242,7 +2242,7 @@
         "name": "rabbitmq_cluster",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", cluster=\"$cluster\"}, rabbitmq_cluster)",
+          "query": "label_values(rabbitmq_identity_info{cluster=\"$cluster\"}, rabbitmq_cluster)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_cluster-Variable-Query"
         },
         "refresh": 2,
@@ -2264,7 +2264,7 @@
           "type": "prometheus",
           "uid": "${datasource}"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+        "definition": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
         "hide": 0,
         "includeAll": false,
         "label": "RabbitMQ Namespace",
@@ -2272,7 +2272,7 @@
         "name": "rabbitmq_namespace",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
+          "query": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\", cluster=\"$cluster\"}, namespace)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_namespace-Variable-Query"
         },
         "refresh": 2,

@@ -6400,7 +6400,7 @@
           "type": "prometheus",
           "uid": "$datasource"
         },
-        "definition": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\"}, namespace)",
+        "definition": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\"}, namespace)",
         "hide": 2,
         "includeAll": false,
         "label": "RabbitMQ Namespace",
@@ -6408,7 +6408,7 @@
         "name": "rabbitmq_namespace",
         "options": [],
         "query": {
-          "query": "label_values(rabbitmq_identity_info{rabbitmq_endpoint=\"aggregated\", rabbitmq_cluster=\"$rabbitmq_cluster\"}, namespace)",
+          "query": "label_values(rabbitmq_identity_info{rabbitmq_cluster=\"$rabbitmq_cluster\"}, namespace)",
           "refId": "Platform Monitoring Prometheus-rabbitmq_namespace-Variable-Query"
         },
         "refresh": 2,
