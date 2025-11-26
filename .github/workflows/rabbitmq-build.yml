@@ -94,6 +94,7 @@ jobs:
           component-name: ${{ matrix.component.name }}
           component-tag: ${{ env.EVENT_TAG_NAME }}
           access-token: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
