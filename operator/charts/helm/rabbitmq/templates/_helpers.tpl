@@ -818,6 +818,7 @@ Core RabbitMQ resources labels with backend component label
 {{- define "rabbitmq.defaultLabels" -}}
 {{ include "rabbitmq.coreLabels" . }}
 app.kubernetes.io/component: 'backend'
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{- define "backupDaemon.persistentVolumeDefined" -}}

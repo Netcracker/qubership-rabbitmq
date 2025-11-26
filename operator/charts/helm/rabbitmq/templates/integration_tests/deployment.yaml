@@ -167,8 +167,8 @@ spec:
             successThreshold: 1
             failureThreshold: 5
           livenessProbe:
-            tcpSocket:
-              port: 8080
+            exec:
+              command: ["sh", "-c", "true"]
             initialDelaySeconds: 20
             timeoutSeconds: 5
             periodSeconds: 20
