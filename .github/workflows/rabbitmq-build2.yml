@@ -88,7 +88,7 @@ jobs:
           build-args: |
             BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 
   # consul-pipeline:
   #   needs: [update-image-reference, multiplatform_build]
