@@ -9,6 +9,7 @@ permissions:
 on:
   repository_dispatch:
     types: [integration-rabbit-built]
+  workflow_dispatch:
 
 env:
   EVENT_TAG_NAME: ${{ github.event.client_payload.tag }}
