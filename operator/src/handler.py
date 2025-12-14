@@ -1165,6 +1165,45 @@ class KubernetesHelper:
         )
         time.sleep(5)
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
+    
+    def check_shovel_state(self, alive_percentage=0.8):
+        if self.is_ssl_enabled():
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
+        else:
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'http://rabbitmq.' + self._workspace + '.svc:15672')
+    
+        return rabbit_helper.is_shovel_alive(alive_percentage)
+
+    
+    def restart_shovel_plugin(self, pod_name):
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=['rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
+        )
+        if output.find('The following plugins have been disabled') != -1:
+            raise kopf.TemporaryError("Failed to disable shovel plugin in pod {}".format(pod_name))
+        
+        time.sleep(5)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
+        )
+        if output.find('The following plugins have been enabled') != -1:
+            raise kopf.TemporaryError("Failed to enable shovel plugin in pod {}".format(pod_name))
+    
+    def nodes_restart_shovel_plugin(self):
+        if self._check_rabbit_pods_running() is False:
+            raise kopf.TemporaryError("Cannot restart shovel plugin because not all RabbitMQ pods are running")
+        
+        logger.info("Restarting shovel plugin...")
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            self.restart_shovel_plugin(pod_name)
+
+        logger.info("Shovel plugin restarted successfully")
 
     def enable_feature_flags(self):
         if self.is_hostpath():
@@ -1416,7 +1455,6 @@ def restore_last_backup(namespace: str, region: str, no_wait: bool, backup_daemo
         raise DisasterRecoveryException(message='backup was restored but restore task was not succeeded')
     logger.info(f"Backup was restored successfully")
 
-
 @with_attempts(attempts=3, timeout=10, not_found_reason='not found')
 def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) -> str:
     backup_id = backup_helper.get_latest_backup_id_from_another_cluster(region)
@@ -1432,6 +1470,25 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
+
+
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=90)
+def shovel_monitoring(spec,retry,  **kwargs):
+    kub_helper = KubernetesHelper(spec)
+    enabled = False
+    try:
+        enabled = bool(util.strtobool(os.getenv("ENABLE_SHOVEL_MONITORING", "false")))
+    except Exception:
+        enabled = False
+
+    if enabled:
+        if not kub_helper.check_shovel_state():
+            logger.warning("Shovel monitoring detected that some shovels are not running properly. Restarting shovel plugin...")
+            kub_helper.nodes_restart_shovel_plugin()
+            if not kub_helper.check_shovel_state():
+                logger.warning("Some shovels are not running properly after restart.")
+            else:
+                logger.info("All shovels are running properly after restart.")
 
 
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
