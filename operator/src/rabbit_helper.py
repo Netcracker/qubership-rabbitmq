@@ -13,13 +13,32 @@
 # limitations under the License.
 
 from email.utils import quote
+from email.utils import quote
 import requests
 import logging
+from dataclasses import dataclass
+import json
 from dataclasses import dataclass
 import json
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class ShovelInfo:
+    node: str
+    timestamp: str
+    name: str
+    vhost: str
+    type: str
+    state: str
+    src_uri: str
+    src_protocol: str
+    dest_protocol: str
+    dest_uri: str
+    src_queue: str
+    dest_queue: str
+    blocked_status: str
 
 @dataclass
 class ShovelInfo:
