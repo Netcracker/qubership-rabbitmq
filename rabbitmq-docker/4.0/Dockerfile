@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=library/rabbitmq:4.1.4-management-alpine
+ARG BASE_IMAGE=library/rabbitmq:4.1.5-management-alpine
 
 FROM ${BASE_IMAGE}
 
