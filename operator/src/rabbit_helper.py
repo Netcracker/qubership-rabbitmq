@@ -12,11 +12,30 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from email.utils import quote
 import requests
 import logging
+from dataclasses import dataclass
+import json
 
 logger = logging.getLogger(__name__)
 
+
+@dataclass
+class ShovelInfo:
+    node: str
+    timestamp: str
+    name: str
+    vhost: str
+    type: str
+    state: str
+    src_uri: str
+    src_protocol: str
+    dest_protocol: str
+    dest_uri: str
+    src_queue: str
+    dest_queue: str
+    blocked_status: str
 
 class RabbitHelper:
     def __init__(self, user, password, rabbitmq_url, ssl=False):
@@ -37,7 +56,51 @@ class RabbitHelper:
         except Exception as e:
             logger.warning("rabbit is not ready yet:" + str(e))
             return False
-
+    
+    def shovel_list(self) -> list[ShovelInfo]:
+        try:
+            r = requests.get(url=f'{self._rabbitmq_url}/api/shovels', auth=(self._user, self._password), verify=self._ssl)
+            if r.status_code == 200:
+                shovels = []
+                for shovel_data in r.json():
+                    shovel_info = ShovelInfo(**shovel_data)
+                    shovels.append(shovel_info)
+                return shovels
+            logger.warning("rabbit shovel list is not ready yet, status code = :" + str(r.status_code))
+            return []
+        except Exception as e:
+            logger.warning("rabbit shovel list is not ready yet:" + str(e))
+            return []
+        
+    def validate_shovel(self, shovel: ShovelInfo):
+        encoded_vhost = quote(shovel.vhost, safe='')
+        encoded_name = quote(shovel.name, safe='')
+        try:
+            r = requests.get(url=f'{self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}', auth=(self._user, self._password), verify=self._ssl)
+            if r.status_code == 200:
+                return True
+            logger.warning("rabbit shovel info is not ready yet, status code = :" + str(r.status_code))
+            return False
+        except Exception as e:
+            logger.warning("rabbit shovel info is not ready yet:" + str(e))
+            return False
+    
+    def is_shovel_alive(self, alive_percentage):
+        try:
+            shovels = self.shovel_list()
+            total_shovels = len(shovels)
+            # todo: handle zero shovels case probably no shovel created yet
+            if total_shovels == 0:
+                logger.warning("No shovels found.")
+                return False
+            running_shovels = sum(1 for shovel in shovels if shovel.state == "running" and self.validate_shovel(shovel))
+            alive_ratio = running_shovels / total_shovels
+            if alive_ratio >= alive_percentage:
+                return True
+            return False
+        except Exception as e:
+            logger.warning("rabbit shovel is not ready yet:" + str(e))
+            return False
 
 def join_maps(side: dict, main: dict) -> dict:
     res = {}
