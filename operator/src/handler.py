@@ -1182,7 +1182,7 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        if output.find('The following plugins have been disabled') != -1:
+        if output.find('The following plugins have been disabled') == -1:
             raise kopf.TemporaryError("Failed to disable shovel plugin in pod {}".format(pod_name))
         
         time.sleep(5)
@@ -1190,7 +1190,7 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        if output.find('The following plugins have been enabled') != -1:
+        if output.find('The following plugins have been enabled') == -1:
             raise kopf.TemporaryError("Failed to enable shovel plugin in pod {}".format(pod_name))
     
     def nodes_restart_shovel_plugin(self):
@@ -1201,14 +1201,14 @@ class KubernetesHelper:
         pods = (self.get_rabbit_pods()).items
         for pod in pods:
             pod_name = pod.metadata.name
-            for attempt in range(1, 4):
+            for attempt in range(3):
                 try:
                     self.restart_shovel_plugin(pod_name)
                     logger.info(f"Successfully restarted shovel plugin in pod {pod_name}")
                     break
                 except kopf.TemporaryError as e:
-                    if attempt < 3:
-                        logger.warning(f"Attempt {attempt}/3 failed for pod {pod_name}: {e}. Retrying...")
+                    if attempt < 2:
+                        logger.warning(f"Attempt {attempt + 1}/3 failed for pod {pod_name}: {e}. Retrying...")
                         time.sleep(5)
                     else:
                         logger.error(f"Failed to restart shovel plugin in pod {pod_name} after 3 attempts")

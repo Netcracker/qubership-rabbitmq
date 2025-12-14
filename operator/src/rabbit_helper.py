@@ -93,7 +93,17 @@ class RabbitHelper:
             if total_shovels == 0:
                 logger.warning("No shovels found.")
                 return False
-            running_shovels = sum(1 for shovel in shovels if shovel.state == "running" and self.validate_shovel(shovel))
+            
+            running_shovels = 0
+            for shovel in shovels:
+                valid = self.validate_shovel(shovel)
+                if shovel.state == "running" and valid:
+                    running_shovels += 1
+                
+                if not valid:
+                    logger.warning(f"Shovel {shovel.name} in vhost {shovel.vhost} is not running or not valid.")
+                    return False
+                
             alive_ratio = running_shovels / total_shovels
             if alive_ratio >= alive_percentage:
                 return True
