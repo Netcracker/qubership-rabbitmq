@@ -1201,7 +1201,18 @@ class KubernetesHelper:
         pods = (self.get_rabbit_pods()).items
         for pod in pods:
             pod_name = pod.metadata.name
-            self.restart_shovel_plugin(pod_name)
+            for attempt in range(1, 4):
+                try:
+                    self.restart_shovel_plugin(pod_name)
+                    logger.info(f"Successfully restarted shovel plugin in pod {pod_name}")
+                    break
+                except kopf.TemporaryError as e:
+                    if attempt < 3:
+                        logger.warning(f"Attempt {attempt}/3 failed for pod {pod_name}: {e}. Retrying...")
+                        time.sleep(5)
+                    else:
+                        logger.error(f"Failed to restart shovel plugin in pod {pod_name} after 3 attempts")
+                        raise
 
         logger.info("Shovel plugin restarted successfully")
 
