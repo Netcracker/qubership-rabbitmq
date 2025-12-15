@@ -53,6 +53,8 @@ jobs:
   prepare:
     name: "Prepare Images and Metadata"
     runs-on: ubuntu-latest
+    env:
+      CONFIG_FILE: .github/docker-build-config.json
     outputs:
       components: ${{ steps.load.outputs.components }}
       platforms: ${{ steps.load.outputs.platforms }}
@@ -75,20 +77,20 @@ jobs:
         name: Load Components and Platforms
         run: |
           if [[ "$GITHUB_EVENT_NAME" == "release" || "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
-            components=$(jq -c '.components' .github/release-build-config.cfg)
+            components=$(jq -c '.components' ${CONFIG_FILE})
           fi
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" || "$GITHUB_EVENT_NAME" == "push" ]]; then
             all_changed_files=$(jq -c '.' .github/outputs/all_changed_files.json)
             if [ "$all_changed_files" != "null" ]; then
                 chmod +x .github/scripts/matrix.sh
-                components=$(./.github/scripts/matrix.sh ".github/docker-build-config.json ".github/outputs/all_changed_files.json")
+                components=$(./.github/scripts/matrix.sh "${CONFIG_FILE}" ".github/outputs/all_changed_files.json")
             fi
           fi
           echo "components=${components}" >> "$GITHUB_OUTPUT"
-          echo "platforms=$(jq -c '.platforms' .github/dev-build-config.cfg)" >> "$GITHUB_OUTPUT"
+          echo "platforms=$(jq -c '.platforms' ${CONFIG_FILE})" >> "$GITHUB_OUTPUT"
 
       - name: Create tags for images
-        uses: netcracker/qubership-workflow-hub/actions/metadata-action@3e428f45132119ce49d90f3770a45d4fe1d1078d #2.0.4
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@v2.0.5
         id: meta
         with:
           default-template: "{{ref-name}}"
@@ -108,7 +110,7 @@ jobs:
         component: ${{ fromJson(needs.prepare.outputs.components) }}
     steps:
       - name: Docker
-        uses: netcracker/qubership-workflow-hub/actions/docker-action@3e428f45132119ce49d90f3770a45d4fe1d1078d #2.0.4
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@v2.0.5
         with:
           ref: ${{ github.ref }}
           dry-run: ${{ github.event.inputs.dry-run || github.event_name == 'pull_request' }}
