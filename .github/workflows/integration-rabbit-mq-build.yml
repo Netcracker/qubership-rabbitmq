@@ -2,7 +2,7 @@ name: RabbitMQ Integration Build
 run-name: "Event: Tag ${{ github.event.client_payload.tag }} from ${{ github.event.client_payload.repo }} MANAGMENT_IMAGE ${{ github.event.client_payload.management_image }} #${{ github.run_number }}"
 
 permissions:
-  contents: read
+  contents: write
   packages: write
   actions: read
 
@@ -52,24 +52,25 @@ jobs:
         with:
           ref: ${{ env.EVENT_TARGET_BRANCH }}
 
-      - name: Create or upade tech branch
+      - name: Create or update tech branch
         id: update_tech_branch
+        env:
+          TECH_BRANCH: ${{ env.TECH_BRANCH }}
+          TARGET_BRANCH: ${{ env.EVENT_TARGET_BRANCH }}
         run: |
+          echo "Tech branch name is: ${TECH_BRANCH}"
+          echo "Target branch is: ${TARGET_BRANCH}"
+          set -e
 
-          TECH_BRANCH="${{ env.TECH_BRANCH }}"
-          TARGET_BRANCH="${{ env.EVENT_TARGET_BRANCH }}"
+          TECH_BRANCH="$TECH_BRANCH"
+          TARGET_BRANCH="$TARGET_BRANCH"
 
-          if git show-ref --verify --quiet "refs/heads/$TECH_BRANCH"; then
-            echo "Local branch $TECH_BRANCH exists. Updating from origin/$TARGET_BRANCH"
-            git checkout "$TECH_BRANCH"
-            git reset --hard "origin/$TARGET_BRANCH"
-          else
-            echo "Local branch $TECH_BRANCH does not exist. Creating from origin/$TARGET_BRANCH"
-            git checkout -b "$TECH_BRANCH" "origin/$TARGET_BRANCH"
-          fi
+          git fetch origin "$TARGET_BRANCH"
 
-          git push origin "$TECH_BRANCH"
+          echo "Resetting $TECH_BRANCH to origin/$TARGET_BRANCH"
 
+          git checkout -B "$TECH_BRANCH" "origin/$TARGET_BRANCH"
+          git push origin "$TECH_BRANCH" --force
           echo "target_branch=$TECH_BRANCH" >> "$GITHUB_OUTPUT"
 
       - name: Checkout
@@ -90,6 +91,7 @@ jobs:
         uses: netcracker/qubership-workflow-hub/actions/metadata-action@396774180000abdb825cbf150b56cc59c6913db8 #2.0.5
         id: meta
         with:
+          ref: ${{ env.TECH_BRANCH }}
           default-template: "{{ref-name}}"
           extra-tags: ${{ env.EVENT_TAG }}
           replace-symbol: "_"
@@ -124,13 +126,13 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 
-  # rabbit-mq-pipeline:
-  #   needs: [update-image-reference, multiplatform_build]
-  #   uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@main
-  #   with:
-  #     service_branch: "${{ needs.update-image-reference.outputs.TARGET_BRANCH }}"
-  #     versions_file: ".github/versions.yaml"
-  #     pipeline_branch: "main" #this value must match the value after '@' in 'uses'
-  #   secrets:
-  #     AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
-  #     AWS_S3_ACCESS_KEY_SECRET: ${{ secrets.AWS_S3_ACCESS_KEY_SECRET }}
+  rabbit-mq-pipeline:
+    needs: [update-image-reference, multiplatform_build]
+    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@main
+    with:
+      service_branch: "${{ needs.update-image-reference.outputs.TARGET_BRANCH }}"
+      versions_file: ".github/versions.yaml"
+      pipeline_branch: "main" #this value must match the value after '@' in 'uses'
+    secrets:
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_ACCESS_KEY_SECRET: ${{ secrets.AWS_S3_ACCESS_KEY_SECRET }}
