@@ -110,8 +110,8 @@ class RabbitHelper:
             total_shovels = len(shovels)
             # todo: handle zero shovels case probably no shovel created yet
             if total_shovels == 0:
-                logger.warning("No shovels found.")
-                return False
+                logger.info("No shovels found. Skipping shovel health check.")
+                return True
             
             running_shovels = 0
             for shovel in shovels:
