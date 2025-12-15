@@ -1,0 +1,138 @@
+name: RabbitMQ Integration Build
+run-name: "Event: Tag ${{ github.event.client_payload.tag }} from ${{ github.event.client_payload.repo }} MANAGMENT_IMAGE ${{ github.event.client_payload.management_image }} #${{ github.run_number }}"
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+
+on:
+  repository_dispatch:
+    types: [integration-rabbit-built]
+  workflow_dispatch:
+
+env:
+  EVENT_TAG: ${{ github.event.client_payload.tag }}
+  EVENT_BASE_IMAGE: ${{ github.event.client_payload.base_image }}
+  EVENT_MANAGMENT_IMAGE: ${{ github.event.client_payload.management_image }}
+  EVENT_OWNER: ${{ github.event.client_payload.owner }}
+  EVENT_REPO: ${{ github.event.client_payload.repo }}
+  EVENT_TARGET_BRANCH: ${{ github.event.client_payload.target_branch }}
+  EVENT_FORCE_CREATE: ${{ github.event.client_payload.force_create }}
+  TECH_BRANCH: feature/integration-build
+
+concurrency:
+  # On main/release, we don't want any jobs cancelled so the sha is used to name the group
+  # On PR branches, we cancel the job if new commits are pushed
+  # More info: https://stackoverflow.com/a/68422069/253468
+  group: ${{ github.ref == 'refs/heads/main' && format('ci-main-{0}', github.sha) || format('ci-main-{0}', github.ref) }}
+  cancel-in-progress: true
+
+jobs:
+  update-image-reference:
+    runs-on: ubuntu-latest
+    outputs:
+      components: ${{ steps.load_config.outputs.components }}
+      platforms: ${{ steps.load_config.outputs.platforms }}
+      tags: ${{ steps.meta.outputs.result }}
+      TARGET_BRANCH: ${{ steps.update_tech_branch.outputs.target_branch }}
+    steps:
+      - name: Check payload
+        run: |
+          echo "EVENT_TAG=${{ env.EVENT_TAG }}"
+          echo "BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}"
+          echo "MANAGMENT_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}"
+          echo "EVENT_OWNER=${{ env.EVENT_OWNER }}"
+          echo "EVENT_REPO=${{ env.EVENT_REPO }}"
+          echo "EVENT_TARGET_BRANCH=${{ env.EVENT_TARGET_BRANCH }}"
+          echo "EVENT_FORCE_CREATE=${{ env.EVENT_FORCE_CREATE }}"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.EVENT_TARGET_BRANCH }}
+
+      - name: Create or update tech branch
+        id: update_tech_branch
+        env:
+          TECH_BRANCH: ${{ env.TECH_BRANCH }}
+          TARGET_BRANCH: ${{ env.EVENT_TARGET_BRANCH }}
+        run: |
+          echo "Tech branch name is: ${TECH_BRANCH}"
+          echo "Target branch is: ${TARGET_BRANCH}"
+          set -e
+
+          TECH_BRANCH="$TECH_BRANCH"
+          TARGET_BRANCH="$TARGET_BRANCH"
+
+          git fetch origin "$TARGET_BRANCH"
+
+          echo "Resetting $TECH_BRANCH to origin/$TARGET_BRANCH"
+
+          git checkout -B "$TECH_BRANCH" "origin/$TARGET_BRANCH"
+          git push origin "$TECH_BRANCH" --force
+          echo "target_branch=$TECH_BRANCH" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.TECH_BRANCH }}
+          fetch-depth: 0
+
+      - name: Load Config
+        id: load_config
+        run: |
+          echo "components=$(jq -c '.components' .qubership/integration-build.cfg)" >> "$GITHUB_OUTPUT"
+          echo "platforms=$(jq -c '.platforms' .qubership/integration-build.cfg)" >> "$GITHUB_OUTPUT"
+          echo components=$components
+          echo platforms=$platforms
+
+      - name: Create Meta info (tags)
+        uses: netcracker/qubership-workflow-hub/actions/metadata-action@396774180000abdb825cbf150b56cc59c6913db8 #2.0.5
+        id: meta
+        with:
+          ref: ${{ env.TECH_BRANCH }}
+          default-template: "{{ref-name}}"
+          extra-tags: ${{ env.EVENT_TAG }}
+          replace-symbol: "_"
+
+  multiplatform_build:
+    name: Build Docker Images
+    needs: update-image-reference
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        component: ${{ fromJson(needs.update-image-reference.outputs.components) }}
+    steps:
+      - name: Debug tags and components
+        run: |
+          echo "Tags: ${{ needs.update-image-reference.outputs.tags }}"
+          echo "Component: ${{ toJson(matrix.component) }}"
+
+      - name: Docker
+        uses: netcracker/qubership-workflow-hub/actions/docker-action@396774180000abdb825cbf150b56cc59c6913db8 #2.0.5
+        with:
+          ref: ${{ env.TECH_BRANCH }}
+          component: ${{ toJson(matrix.component) }}
+          download-artifact: false
+          platforms: ${{ needs.update-image-reference.outputs.platforms }}
+          tags: ${{ needs.update-image-reference.outputs.tags }}
+          build-args: |
+            BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
+
+  rabbit-mq-pipeline:
+    needs: [update-image-reference, multiplatform_build]
+    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@main
+    with:
+      service_branch: "${{ needs.update-image-reference.outputs.TARGET_BRANCH }}"
+      versions_file: ".github/versions.yaml"
+      pipeline_branch: "main" #this value must match the value after '@' in 'uses'
+    secrets:
+      AWS_S3_ACCESS_KEY_ID: ${{ secrets.AWS_S3_ACCESS_KEY_ID }}
+      AWS_S3_ACCESS_KEY_SECRET: ${{ secrets.AWS_S3_ACCESS_KEY_SECRET }}
