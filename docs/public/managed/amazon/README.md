@@ -89,7 +89,7 @@ Example of deployment parameters for AmazonMQ is presented below:
 ```yaml
 externalRabbitmq:
   enabled: true
-  url: https://vpc-amazon.mq.us-east-1.amazonaws.com
+  url: https://amazonaws.com
   username: admin
   password: admin
   replicas: 1
@@ -103,8 +103,8 @@ backupDaemon:
     enabled: true
     url: https://s3.amazonaws.com
     bucket: rabbitmq-backup
-    keyId: AKIA8Z7RN3SLODHHKA7Y
-    keySecret: ZaROE3F0SvLT7jnSxbJ8XNh+fG0sZ8ze9aou3t6v
+    keyId: s3keyid
+    keySecret: s3keysecret
 rabbitmqPrometheusMonitoring: false
 ```
 

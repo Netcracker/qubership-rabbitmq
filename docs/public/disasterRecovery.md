@@ -83,7 +83,7 @@ backupDaemon:
   persistentVolume: null
   s3:
     enabled: true
-    url: "http://s3-storage.environment.openshift.sdntest.netcracker.com"
+    url: "https://s3-storage.com"
     bucket: "rabbitmqbucket"
     keyId: "s3keyid"
     keySecret: "s3keysecret"
