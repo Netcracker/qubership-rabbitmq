@@ -1076,8 +1076,8 @@ backupDaemon:
     enabled: true
     url: https://s3.amazonaws.com
     bucket: rabbitmq-backup
-    keyId: AKIA8Z7RN3SLODHHKA7Y
-    keySecret: ZaROE3F0SvLT7jnSxbJ8XNh+fG0sZ8ze9aou3t6v
+    keyId: s3keyid
+    keySecret: s3keysecret
 rabbitmqPrometheusMonitoring: false
 ```
 
@@ -1411,7 +1411,7 @@ For example:
 kubect get rabbitmqservices rabbitmq -o yaml
 ```
 
-## Deployer Job Failed With Unknown Fields in Rabbitmqservices.netcracker.com
+## Deployer Job Failed With Unknown Fields in CRD
 
 It can be an issue with CRD changes. Refer to [CRD Upgrade](#crd-upgrade) for details.
 

@@ -3,19 +3,14 @@ You can deploy RabbitMQ using an operator. For this deployment, only the storage
 To deploy RabbitMQ with an operator in OpenShift/Kubernetes:
 
 1. Download the following operator deploy directory, [https://github.com/Netcracker/qubership-rabbitmq/tree/main/operator/deploy](https://github.com/Netcracker/qubership-rabbitmq/tree/main/operator/deploy).
-1. Replace the `REPLACE_IMAGE` value in the **/deploy/operator.yaml** file with the required operator image. You can replace the image using the following command:
-   
-   ```
-   sed -i 's|REPLACE_IMAGE|artifactorycn.netcracker.com:17008/thirdparty/thirdparty.platform.services_rabbitmq:rabbitmq-operator_latest_operator|g' deploy/operator.yaml
-   ``` 
-   
-   You can also specify the `LOGLEVEL` environment variable in order to set the logging level of the operator in the **/deploy/operator.yaml** file. Another available environment variable is `OPERATOR_DELETE_RESOURCES`, which specifies whether the operator should delete all RabbitMQ resources when the RabbitMQ Custom Resource (CR) is deleted. When not specified, the value is `False`. **Warning:** If `OPERATOR_DELETE_RESOURCES` is set to `True`, the RabbitMQ operator must be up and running when you are deleting the CR. Otherwise, the delete operation may be stuck for an extended period of time, and may stop you from deleting the namespace. 
-1. Set the required RabbitMQ configuration in the **/deploy/cr.yaml** file. For more information, refer to [Configuration](#configuration).
-1. Create a RabbitMQ secret in the project/namespace. You can use the following command:
+
+2. Set the required RabbitMQ configuration in the **/deploy/cr.yaml** file. For more information, refer to [Configuration](#configuration).
+
+3. Create a RabbitMQ secret in the project/namespace. You can use the following command:
 
    ```oc create secret generic rabbitmq-default-secret --from-literal=user="${RABBITMQ_USER}" --from-literal=password="${RABBITMQ_PASSWORD}" --from-literal=rmqcookie="${RABBITMQ_COOKIE}"```
    
-1. Apply the files from the **operator** directory using the following commands:
+4. Apply the files from the **operator** directory using the following commands:
 
    ```
    kubectl apply -f deploy/role.yaml
