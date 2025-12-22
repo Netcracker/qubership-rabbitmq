@@ -121,6 +121,10 @@ spec:
             - name: OPERATOR_DELETE_RESOURCES
               value: "{{ .Values.operatorDeleteResources }}"
             {{- end }}
+            {{- if .Values.operator.enableOperatorShovelMonitoring }}
+            - name: ENABLE_SHOVEL_MONITORING
+              value: "{{ .Values.operator.enableOperatorShovelMonitoring }}"
+            {{- end }}
             - name: API_GROUP
               value: {{ .Values.operator.apiGroup | quote }}
         {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}

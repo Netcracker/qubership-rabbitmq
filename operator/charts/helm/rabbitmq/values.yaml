@@ -41,6 +41,7 @@ operator:
   priorityClassName: ""
   apiGroup: "netcracker.com"
   pullPolicy: "Always"
+  enableOperatorShovelMonitoring: true
   restartScheduler:
     dockerImage: bitnami/kubectl:1.30.6
     enabled: true
