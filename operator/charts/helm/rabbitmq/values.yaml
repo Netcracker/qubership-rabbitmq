@@ -70,7 +70,7 @@ externalRabbitmq:
   enableSsl: false
 
 disasterRecovery:
-  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main
+  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:v0.4.9
   tls:
     enabled: true
     certificates:
@@ -378,7 +378,7 @@ telegraf:
 
 statusProvisioner:
   enabled: true
-  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main
+  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:0.2.4
   lifetimeAfterCompletion: 600
   podReadinessTimeout: 300
   resources:
