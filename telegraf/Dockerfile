@@ -1,4 +1,4 @@
-FROM telegraf:1.35-alpine
+FROM telegraf:1.37-alpine
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
     USER_UID=1000
