@@ -233,7 +233,7 @@ class RabbitMQHelper(object):
 
         for node in nodes:
             node_name = node['name']
-            healthcheck = node['running']
+            healthcheck = True
             fields = {
                 **{x: node.get(x, -1) for x in self._keys_node},
                 **{f'{x}_rate': node.get(f'{x}_details', {}).get('rate', -1) for x in
