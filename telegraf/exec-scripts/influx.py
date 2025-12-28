@@ -352,10 +352,9 @@ def main():
         password=os.getenv('RABBITMQ_PASSWORD', 'guest')
     )
     os_helper = OpenshiftHelper()
-
+    print("AAAAAAAAAAAAAAAAAAAAA")
     tasks = [asyncio.ensure_future(x)
-             for x in [rabbitmq_helper.nodes(),
-                       rabbitmq_helper.overview(),
+             for x in [rabbitmq_helper.overview(),
                        rabbitmq_helper.smoketest(),
                        rabbitmq_helper.queues(),
                        rabbitmq_helper.exchanges(),
