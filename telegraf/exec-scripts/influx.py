@@ -249,7 +249,7 @@ class RabbitMQHelper(object):
                                         tags={'node': node_name})
         metrics['rabbitmq_current_replicas'] = Metric(
             name='rabbitmq_current_replicas',
-            fields={'number': len(list(filter(lambda x: x['running'], nodes)))}
+            fields={'number': len(nodes)}
         )
         return list(metrics.values())
 

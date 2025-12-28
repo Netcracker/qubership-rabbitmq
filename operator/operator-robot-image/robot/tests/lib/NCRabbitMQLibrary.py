@@ -446,11 +446,11 @@ class NCRabbitMQLibrary(object):
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/nodes',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=2
         )
-        nodes = list(map(lambda x: x['running'], r.json()))
-        node_count = nodes.count(True)
-        if node_count == int(wait_for):
+        nodes = r.json()
+        if len(nodes) == int(wait_for):
             return True
 
         raise Exception(f"Number of nodes must be {wait_for}, but {node_count}")
