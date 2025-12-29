@@ -453,7 +453,7 @@ class NCRabbitMQLibrary(object):
         if len(nodes) == int(wait_for):
             return True
 
-        raise Exception(f"Number of nodes must be {wait_for}, but {node_count}")
+        raise Exception(f"Number of nodes must be {wait_for}, but {len(nodes)}")
 
     @utils.timeout()
     def create_test_user_and_vhost(
