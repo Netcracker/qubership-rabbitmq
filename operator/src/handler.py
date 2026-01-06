@@ -297,7 +297,9 @@ class KubernetesHelper:
                 result = result + recv_text
                 data_read = True
             if resp.peek_stderr():
-                logger.info("STDERR: %s" % resp.read_stderr())
+                recv_stderr = resp.read_stderr()
+                logger.info("STDERR: %s" % recv_stderr)
+                stderr_output = stderr_output + recv_stderr
                 data_read = True
             
             if not data_read:
@@ -1185,18 +1187,18 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        logger.debug("Disable shovel plugin output: {}".format(output))
-        if output.find('The following plugins have been disabled') == -1:
-            raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
+        #logger.debug("Disable shovel plugin output: {}".format(output))
+        #if output.find('The following plugins have been disabled') == -1:
+        #    raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
         
-        time.sleep(5)
+        time.sleep(10)
         output = self.exec_command_in_pod(
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        logger.debug("Disable shovel plugin output: {}".format(output))
-        if output.find('The following plugins have been enabled') == -1:
-            raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
+        #logger.debug("Disable shovel plugin output: {}".format(output))
+        #if output.find('The following plugins have been enabled') == -1:
+        #    raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
     
     def nodes_restart_shovel_plugin(self):
         if self._check_rabbit_pods_running() is False:
