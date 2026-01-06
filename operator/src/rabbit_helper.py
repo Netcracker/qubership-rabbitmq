@@ -16,11 +16,13 @@ from urllib.parse import quote
 import requests
 import logging
 from dataclasses import dataclass
-import json
 from dataclasses import dataclass
 import json
+import os
 
+LOGLEVEL = os.environ.get('LOGLEVEL', 'INFO').upper()
 logger = logging.getLogger(__name__)
+logger.setLevel(LOGLEVEL)
 
 
 @dataclass
