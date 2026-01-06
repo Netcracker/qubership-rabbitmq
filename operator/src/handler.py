@@ -287,23 +287,26 @@ class KubernetesHelper:
                       stderr=True, stdin=True,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
-        count1 = 0
-        count2 = -1
+        no_data_count = 0
         while resp.is_open():
             resp.update(timeout=30)
+            data_read = False
             if resp.peek_stdout():
-                count1 = count1 + 1
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
                 result = result + recv_text
+                data_read = True
             if resp.peek_stderr():
-                count1 = count1 + 1
                 logger.info("STDERR: %s" % resp.read_stderr())
-            else:
-                if count2 == count1:
+                data_read = True
+            
+            if not data_read:
+                no_data_count += 1
+                if no_data_count > 2:
                     logger.info("Executed command in pod successfully.")
                     break
-                count2 = count1
+            else:
+                no_data_count = 0
         resp.close()
         return result
 
