@@ -1182,20 +1182,22 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
+        logger.debug("Disable shovel plugin output: {}".format(output))
         if output.find('The following plugins have been disabled') == -1:
-            raise kopf.TemporaryError("Failed to disable shovel plugin in pod {}".format(pod_name))
+            raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
         
         time.sleep(5)
         output = self.exec_command_in_pod(
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
+        logger.debug("Disable shovel plugin output: {}".format(output))
         if output.find('The following plugins have been enabled') == -1:
-            raise kopf.TemporaryError("Failed to enable shovel plugin in pod {}".format(pod_name))
+            raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
     
     def nodes_restart_shovel_plugin(self):
         if self._check_rabbit_pods_running() is False:
-            raise kopf.TemporaryError("Cannot restart shovel plugin because not all RabbitMQ pods are running")
+            raise RuntimeError("Cannot restart shovel plugin because not all RabbitMQ pods are running")
         
         logger.info("Restarting shovel plugin...")
         pods = (self.get_rabbit_pods()).items
@@ -1206,7 +1208,7 @@ class KubernetesHelper:
                     self.restart_shovel_plugin(pod_name)
                     logger.info(f"Successfully restarted shovel plugin in pod {pod_name}")
                     break
-                except kopf.TemporaryError as e:
+                except RuntimeError as e:
                     if attempt < 2:
                         logger.warning(f"Attempt {attempt + 1}/3 failed for pod {pod_name}: {e}. Retrying...")
                         time.sleep(5)

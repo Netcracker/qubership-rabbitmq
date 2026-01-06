@@ -79,6 +79,7 @@ class RabbitHelper:
     def shovel_list(self) -> list[ShovelInfo]:
         try:
             r = requests.get(url=f'{self._rabbitmq_url}/api/shovels', auth=(self._user, self._password), verify=self._ssl)
+            logger.debug("Shovel list response status: {}, body: {}".format(r.status_code, r.text))
             if r.status_code == 200:
                 shovels = []
                 for shovel_data in r.json():
@@ -95,7 +96,11 @@ class RabbitHelper:
         encoded_vhost = quote(shovel.vhost, safe='')
         encoded_name = quote(shovel.name, safe='')
         try:
+            logger.debug(f"Validating shovel {shovel.name} in vhost {shovel.vhost}")
+            logger.debug(f"Encoded vhost: {encoded_vhost}, Encoded name: {encoded_name}")
+            logger.debug(f"Request URL: {self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}")
             r = requests.get(url=f'{self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}', auth=(self._user, self._password), verify=self._ssl)
+            logger.debug("Shovel info response status: {}, body: {}".format(r.status_code, r.text))
             if r.status_code == 200:
                 return True
             logger.warning("rabbit shovel info is not ready yet, status code = :" + str(r.status_code))
@@ -126,6 +131,8 @@ class RabbitHelper:
             alive_ratio = running_shovels / total_shovels
             if alive_ratio >= alive_percentage:
                 return True
+            
+            logger.info("rabbit shovel is not ready yet, alive ratio = :" + str(alive_ratio))
             return False
         except Exception as e:
             logger.warning("rabbit shovel is not ready yet:" + str(e))
