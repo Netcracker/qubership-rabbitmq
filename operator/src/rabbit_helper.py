@@ -101,7 +101,7 @@ class RabbitHelper:
         try:
             logger.debug(f"Validating shovel {shovel.name} in vhost {shovel.vhost}")
             logger.debug(f"Encoded vhost: {encoded_vhost}, Encoded name: {encoded_name}")
-            logger.debug(f"Request URL: {self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}")
+            logger.debug(f"Request URL: {self._rabbitmq_url}/api/shovels/vhost/{encoded_vhost}/{encoded_name}")
             r = requests.get(url=f'{self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}', auth=(self._user, self._password), verify=self._ssl)
             logger.debug("Shovel info response status: {}, body: {}".format(r.status_code, r.text))
             if r.status_code == 200:
