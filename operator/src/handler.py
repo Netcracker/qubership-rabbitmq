@@ -1187,7 +1187,7 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        #logger.debug("Disable shovel plugin output: {}".format(output))
+        logger.debug("Disable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been disabled') == -1:
         #    raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
         
@@ -1196,7 +1196,7 @@ class KubernetesHelper:
             pod_name=pod_name,
             exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
-        #logger.debug("Disable shovel plugin output: {}".format(output))
+        logger.debug("Enable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been enabled') == -1:
         #    raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
     
