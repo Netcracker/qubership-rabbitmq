@@ -286,25 +286,20 @@ class KubernetesHelper:
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=False,
-                      stdout=True, tty=False, _preload_content=True, _request_timeout=30)
+                      stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
-        count1 = 0
-        count2 = -1
         while resp.is_open():
             resp.update(timeout=30)
             if resp.peek_stdout():
-                count1 = count1 + 1
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
                 result = result + recv_text
             if resp.peek_stderr():
-                count1 = count1 + 1
                 logger.info("STDERR: %s" % resp.read_stderr())
-            else:
-                if count2 == count1:
-                    logger.info("Executed command in pod successfully.")
-                    break
-                count2 = count1
+            
+            if resp.returncode is not None:
+                break
+        
         resp.close()
         return result
     
