@@ -285,7 +285,7 @@ class KubernetesHelper:
         v1api = self._v1_apps_api
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
-                      stderr=True, stdin=True,
+                      stderr=True, stdin=False,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
         count1 = 0
