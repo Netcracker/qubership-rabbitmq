@@ -1216,9 +1216,11 @@ class KubernetesHelper:
                 "/bin/sh",
                 "-c",
                 """
-                rabbitmq-plugins list -E | grep -q rabbitmq_shovel && \
-                rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management || \
-                echo "rabbitmq_shovel plugins already disabled"
+                if rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                    rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management 2>&1
+                else
+                    echo "rabbitmq_shovel plugins already disabled"
+                fi
                 """
 ]
         )
