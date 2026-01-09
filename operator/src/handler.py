@@ -1213,7 +1213,15 @@ class KubernetesHelper:
         logger.info(f"Restarting shovel plugin in pod {pod_name}...")
         output = self.exec_command_in_pod(
             pod_name=pod_name,
-            exec_command=['/bin/sh','rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                rabbitmq-plugins list -E | grep -q rabbitmq_shovel && \
+                rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management || \
+                echo "rabbitmq_shovel plugins already disabled"
+                """
+]
         )
         logger.debug("Disable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been disabled') == -1:
