@@ -19,6 +19,7 @@ import pprint
 import re
 import time
 from time import sleep
+from unittest import result
 from distutils import util
 
 import kopf
@@ -287,29 +288,54 @@ class KubernetesHelper:
                       stderr=True, stdin=True,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
-        no_data_count = 0
+        count1 = 0
+        count2 = -1
         while resp.is_open():
             resp.update(timeout=30)
-            data_read = False
             if resp.peek_stdout():
+                count1 = count1 + 1
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
                 result = result + recv_text
-                data_read = True
             if resp.peek_stderr():
-                recv_stderr = resp.read_stderr()
-                logger.info("STDERR: %s" % recv_stderr)
-                stderr_output = stderr_output + recv_stderr
-                data_read = True
-            
-            if not data_read:
-                no_data_count += 1
-                if no_data_count > 2:
+                count1 = count1 + 1
+                logger.info("STDERR: %s" % resp.read_stderr())
+            else:
+                if count2 == count1:
                     logger.info("Executed command in pod successfully.")
                     break
-            else:
-                no_data_count = 0
+                count2 = count1
         resp.close()
+        return result
+    
+    def exec_command_in_pod_interactive(self, pod_name, commands):
+        exec_command = ['/bin/sh']
+        v1api = self._v1_apps_api
+        resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
+                      command=exec_command,
+                      stderr=True, stdin=True,
+                      stdout=True, tty=True, _preload_content=False, _request_timeout=30)
+        result = ''
+        try:
+            while resp.is_open():
+                resp.update(timeout=1)
+                if resp.peek_stdout():
+                    recv_text = resp.read_stdout()
+                    logger.info("STDOUT: %s" % recv_text)
+                    result += recv_text
+                if resp.peek_stderr():
+                    stderr_text = resp.read_stderr()
+                    logger.info("STDERR: %s" % stderr_text)
+                if commands:
+                    command = commands.pop(0)
+                    logger.info(f"Running command... {command}")
+                    resp.write_stdin(command + "\n")
+                    sleep(5)
+                else:
+                    break
+        finally:
+            resp.close()
+        logger.info("Executed commands in pod successfully.")
         return result
 
     def change_password(self):
@@ -1183,6 +1209,7 @@ class KubernetesHelper:
 
     
     def restart_shovel_plugin(self, pod_name):
+        logger.info(f"Restarting shovel plugin in pod {pod_name}...")
         output = self.exec_command_in_pod(
             pod_name=pod_name,
             exec_command=['/bin/sh','rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
@@ -1190,7 +1217,7 @@ class KubernetesHelper:
         logger.debug("Disable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been disabled') == -1:
         #    raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
-        
+       
         time.sleep(10)
         output = self.exec_command_in_pod(
             pod_name=pod_name,
