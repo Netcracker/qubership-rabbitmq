@@ -1185,7 +1185,7 @@ class KubernetesHelper:
     def restart_shovel_plugin(self, pod_name):
         output = self.exec_command_in_pod(
             pod_name=pod_name,
-            exec_command='rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management'
+            exec_command=['/bin/sh','rabbitmq-plugins', 'disable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
         logger.debug("Disable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been disabled') == -1:
@@ -1194,7 +1194,7 @@ class KubernetesHelper:
         time.sleep(10)
         output = self.exec_command_in_pod(
             pod_name=pod_name,
-            exec_command=['rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
+            exec_command=['/bin/sh','rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
         )
         logger.debug("Enable shovel plugin output: {}".format(output))
         #if output.find('The following plugins have been enabled') == -1:
