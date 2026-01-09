@@ -287,7 +287,6 @@ class KubernetesHelper:
                       command=exec_command,
                       stderr=True, stdin=False,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
-        print("Response: " + resp)
         result = ''
         count1 = 0
         count2 = -1
