@@ -1212,25 +1212,40 @@ class KubernetesHelper:
                 "-c",
                 """
                 if rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
-                    rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management 2>&1
+                    if rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                        | grep -q "The following plugins have been disabled:"; then
+                        echo "plugins disabled"
+                    fi
                 else
-                    echo "rabbitmq_shovel plugins already disabled"
+                    echo "plugins already disabled"
                 fi
                 """
 ]
         )
         logger.debug("Disable shovel plugin output: {}".format(output))
-        #if output.find('The following plugins have been disabled') == -1:
-        #    raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
+        if output.find('plugins disabled') == -1:
+            raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
        
         time.sleep(10)
         output = self.exec_command_in_pod(
             pod_name=pod_name,
-            exec_command=['/bin/sh','rabbitmq-plugins', 'enable', 'rabbitmq_shovel', 'rabbitmq_shovel_management']
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                    if ! rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                        if rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                            | grep -q "The following plugins have been enabled:"; then
+                            echo "plugins enabled"
+                        fi
+                    fi
+                """
+            ]
+
         )
         logger.debug("Enable shovel plugin output: {}".format(output))
-        #if output.find('The following plugins have been enabled') == -1:
-        #    raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
+        if output.find('plugins enabled') == -1:
+            raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
     
     def nodes_restart_shovel_plugin(self):
         if self._check_rabbit_pods_running() is False:
