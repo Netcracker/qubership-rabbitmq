@@ -1216,8 +1216,6 @@ class KubernetesHelper:
                         | grep -q "The following plugins have been disabled:"; then
                         echo "plugins disabled"
                     fi
-                else
-                    echo "plugins already disabled"
                 fi
                 """
 ]

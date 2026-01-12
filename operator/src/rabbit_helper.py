@@ -80,7 +80,6 @@ class RabbitHelper:
     def shovel_list(self) -> list[ShovelInfo]:
         try:
             logger.debug("Fetching shovel list from RabbitMQ")
-            logger.debug(f"Request URL: {self._rabbitmq_url}/api/shovels")
             r = requests.get(url=f'{self._rabbitmq_url}/api/shovels', auth=(self._user, self._password), verify=self._ssl)
             logger.debug("Shovel list response status: {}, body: {}".format(r.status_code, r.text))
             if r.status_code == 200:
@@ -89,10 +88,10 @@ class RabbitHelper:
                     shovel_info = ShovelInfo(**shovel_data)
                     shovels.append(shovel_info)
                 return shovels
-            logger.warning("rabbit shovel list is not ready yet, status code = :" + str(r.status_code))
+            logger.warning("Fetching rabbit shovel list is not ready yet, status code = :" + str(r.status_code))
             return []
         except Exception as e:
-            logger.warning("rabbit shovel list is not ready yet:" + str(e))
+            logger.warning("Rabbit shovel list is not ready yet:" + str(e))
             return []
         
     def validate_shovel(self, shovel: ShovelInfo):
@@ -100,23 +99,20 @@ class RabbitHelper:
         encoded_name = quote(shovel.name, safe='')
         try:
             logger.debug(f"Validating shovel {shovel.name} in vhost {shovel.vhost}")
-            logger.debug(f"Encoded vhost: {encoded_vhost}, Encoded name: {encoded_name}")
-            logger.debug(f"Request URL: {self._rabbitmq_url}/api/shovels/vhost/{encoded_vhost}/{encoded_name}")
-            r = requests.get(url=f'{self._rabbitmq_url}/api/shovels/{encoded_vhost}/{encoded_name}', auth=(self._user, self._password), verify=self._ssl)
-            logger.debug("Shovel info response status: {}, body: {}".format(r.status_code, r.text))
+            r = requests.get(url=f'{self._rabbitmq_url}/api/shovels/vhost/{encoded_vhost}/{encoded_name}', auth=(self._user, self._password), verify=self._ssl)
+            logger.debug("Shovel response status: {}, body: {}".format(r.status_code, r.text))
             if r.status_code == 200:
                 return True
-            logger.warning("rabbit shovel info is not ready yet, status code = :" + str(r.status_code))
+            logger.warning(f"Fetching rabbit shovel details - {shovel.name} in vhost {shovel.vhost} is failed, status code = :" + str(r.status_code))
             return False
         except Exception as e:
-            logger.warning("rabbit shovel info is not ready yet:" + str(e))
+            logger.warning(f"Rabbit shovel - {shovel.name} in vhost {shovel.vhost} is not ready yet:" + str(e))
             return False
     
     def is_shovel_alive(self, alive_percentage):
         try:
             shovels = self.shovel_list()
             total_shovels = len(shovels)
-            # todo: handle zero shovels case probably no shovel created yet
             if total_shovels == 0:
                 logger.info("No shovels found. Skipping shovel health check.")
                 return True
