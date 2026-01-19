@@ -1268,6 +1268,35 @@ class KubernetesHelper:
 
         logger.info("Shovel plugin restarted successfully")
 
+    def enable_feature_flags(self, pod_name):
+        logger.info(f"Enable RabbitMQ feature flags in pod {pod_name}...")
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                """
+                rabbitmqctl await_startup
+                rabbitmqctl enable_feature_flag all
+                echo "feature flags enabled"
+                """
+            ]
+        )
+        logger.debug(
+            "Enable feature flags output in pod %s: %s",
+            pod_name,
+            output
+        )
+        if "feature flags enabled" not in output:
+            raise RuntimeError(
+                f"Failed to enable feature flags in pod {pod_name}"
+            )
+        logger.info(
+            "Feature flags successfully enabled in pod %s",
+            pod_name
+        )
+
+
     def enable_feature_flags(self):
         if self.is_hostpath():
             self.exec_command_in_pod(pod_name='rmqlocal-0-0',
