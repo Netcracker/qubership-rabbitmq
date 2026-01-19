@@ -11,6 +11,9 @@ data:
     ## clustering
     {{- include "rabbitmq.clusterConfiguration" . | nindent 4}}
 
+    ## feature flags (auto-enable during upgrade)
+    feature_flags.enable = all
+
     ## queue master locator
     queue_master_locator = min-masters
 
