@@ -1282,17 +1282,9 @@ class KubernetesHelper:
                 exec_command=[
                     "/bin/sh",
                     "-c",
-                    """
-                    rabbitmqctl await_startup
-                    rabbitmqctl enable_feature_flag all
-                    echo "feature flags enabled"
-                    """
+                    "rabbitmqctl await_startup && rabbitmqctl enable_feature_flag all"
                 ]
             )
-            if "feature flags enabled" not in output:
-                raise RuntimeError(
-                    f"Failed to enable feature flags in pod {pod_name}"
-                )
 
         logger.info("Feature flags are enabled successfully in all pods")
 
