@@ -1276,7 +1276,7 @@ class KubernetesHelper:
             else:
                 pod_name = f"rmqlocal-{idx}"
             
-            logger.info(f"Enable RabbitMQ feature flags in pod %s", pod_name")
+            logger.info("Enable RabbitMQ feature flags in pod %s", pod_name")
             output = self.exec_command_in_pod(
                 pod_name=pod_name,
                 exec_command=[
