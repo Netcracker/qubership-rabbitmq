@@ -1536,7 +1536,7 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.posting.enabled = False
 
 
-@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=90)
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
 def shovel_monitoring(spec,retry,  **kwargs):
     kub_helper = KubernetesHelper(spec)
     enabled = False
