@@ -1268,43 +1268,42 @@ class KubernetesHelper:
 
         logger.info("Shovel plugin restarted successfully")
 
-    def enable_feature_flags(self, pod_name):
-        logger.info(f"Enable RabbitMQ feature flags in pod {pod_name}...")
-        output = self.exec_command_in_pod(
-            pod_name=pod_name,
-            exec_command=[
-                "/bin/sh",
-                "-c",
-                """
-                rabbitmqctl await_startup
-                rabbitmqctl enable_feature_flag all
-                echo "feature flags enabled"
-                """
-            ]
-        )
-        logger.debug(
-            "Enable feature flags output in pod %s: %s",
-            pod_name,
-            output
-        )
-        if "feature flags enabled" not in output:
-            raise RuntimeError(
-                f"Failed to enable feature flags in pod {pod_name}"
-            )
-        logger.info(
-            "Feature flags successfully enabled in pod %s",
-            pod_name
-        )
-
-
     def enable_feature_flags(self):
-        if self.is_hostpath():
-            self.exec_command_in_pod(pod_name='rmqlocal-0-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-        else:
-            self.exec_command_in_pod(pod_name='rmqlocal-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-        logger.info("Feature flags are enabled successfully")
+        replicas = self._spec['rabbitmq']['replicas']
+        for idx in range(replicas):
+            if self.is_hostpath():
+                pod_name = f"rmqlocal-{idx}-0"
+            else:
+                pod_name = f"rmqlocal-{idx}"
+            
+            logger.info(f"Enable RabbitMQ feature flags in pod %s", pod_name")
+            output = self.exec_command_in_pod(
+                pod_name=pod_name,
+                exec_command=[
+                    "/bin/sh",
+                    "-c",
+                    """
+                    rabbitmqctl await_startup
+                    rabbitmqctl enable_feature_flag all
+                    echo "feature flags enabled"
+                    """
+                ]
+            )
+            if "feature flags enabled" not in output:
+                raise RuntimeError(
+                    f"Failed to enable feature flags in pod {pod_name}"
+                )
+
+        logger.info("Feature flags are enabled successfully in all pods")
+
+    # def enable_feature_flags(self):
+    #     if self.is_hostpath():
+    #         self.exec_command_in_pod(pod_name='rmqlocal-0-0',
+    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+    #     else:
+    #         self.exec_command_in_pod(pod_name='rmqlocal-0',
+    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+    #     logger.info("Feature flags are enabled successfully")
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
