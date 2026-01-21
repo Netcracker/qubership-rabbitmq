@@ -19,6 +19,7 @@ import pprint
 import re
 import time
 from time import sleep
+from unittest import result
 from distutils import util
 
 import kopf
@@ -284,27 +285,52 @@ class KubernetesHelper:
         v1api = self._v1_apps_api
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
-                      stderr=True, stdin=True,
+                      stderr=True, stdin=False,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
-        count1 = 0
-        count2 = -1
         while resp.is_open():
             resp.update(timeout=30)
             if resp.peek_stdout():
-                count1 = count1 + 1
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
                 result = result + recv_text
             if resp.peek_stderr():
-                count1 = count1 + 1
                 logger.info("STDERR: %s" % resp.read_stderr())
-            else:
-                if count2 == count1:
-                    logger.info("Executed command in pod successfully.")
-                    break
-                count2 = count1
+            
+            if resp.returncode is not None:
+                break
+        
         resp.close()
+        return result
+    
+    def exec_command_in_pod_interactive(self, pod_name, commands):
+        exec_command = ['/bin/sh']
+        v1api = self._v1_apps_api
+        resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
+                      command=exec_command,
+                      stderr=True, stdin=True,
+                      stdout=True, tty=True, _preload_content=False, _request_timeout=30)
+        result = ''
+        try:
+            while resp.is_open():
+                resp.update(timeout=1)
+                if resp.peek_stdout():
+                    recv_text = resp.read_stdout()
+                    logger.info("STDOUT: %s" % recv_text)
+                    result += recv_text
+                if resp.peek_stderr():
+                    stderr_text = resp.read_stderr()
+                    logger.info("STDERR: %s" % stderr_text)
+                if commands:
+                    command = commands.pop(0)
+                    logger.info(f"Running command... {command}")
+                    resp.write_stdin(command + "\n")
+                    sleep(5)
+                else:
+                    break
+        finally:
+            resp.close()
+        logger.info("Executed commands in pod successfully.")
         return result
 
     def change_password(self):
@@ -1165,6 +1191,82 @@ class KubernetesHelper:
         )
         time.sleep(5)
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
+    
+    def check_shovel_state(self, alive_percentage=0.8):
+        if self.is_ssl_enabled():
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
+        else:
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'http://rabbitmq.' + self._workspace + '.svc:15672')
+    
+        return rabbit_helper.is_shovel_alive(alive_percentage)
+
+    
+    def restart_shovel_plugin(self, pod_name):
+        logger.info(f"Restarting shovel plugin in pod {pod_name}...")
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                if rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                    if rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                        | grep -q "The following plugins have been disabled:"; then
+                        echo "plugins disabled"
+                    fi
+                fi
+                """
+]
+        )
+        logger.debug("Disable shovel plugin output: {}".format(output))
+        if output.find('plugins disabled') == -1:
+            raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
+       
+        time.sleep(10)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                    if ! rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                        if rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                            | grep -q "The following plugins have been enabled:"; then
+                            echo "plugins enabled"
+                        fi
+                    fi
+                """
+            ]
+
+        )
+        logger.debug("Enable shovel plugin output: {}".format(output))
+        if output.find('plugins enabled') == -1:
+            raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
+    
+    def nodes_restart_shovel_plugin(self):
+        if self._check_rabbit_pods_running() is False:
+            raise RuntimeError("Cannot restart shovel plugin because not all RabbitMQ pods are running")
+        
+        logger.info("Restarting shovel plugin...")
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            for attempt in range(3):
+                try:
+                    self.restart_shovel_plugin(pod_name)
+                    logger.info(f"Successfully restarted shovel plugin in pod {pod_name}")
+                    break
+                except RuntimeError as e:
+                    if attempt < 2:
+                        logger.warning(f"Attempt {attempt + 1}/3 failed for pod {pod_name}: {e}. Retrying...")
+                        time.sleep(5)
+                    else:
+                        logger.error(f"Failed to restart shovel plugin in pod {pod_name} after 3 attempts")
+                        raise
+
+        logger.info("Shovel plugin restarted successfully")
 
     def enable_feature_flags(self):
         if self.is_hostpath():
@@ -1416,7 +1518,6 @@ def restore_last_backup(namespace: str, region: str, no_wait: bool, backup_daemo
         raise DisasterRecoveryException(message='backup was restored but restore task was not succeeded')
     logger.info(f"Backup was restored successfully")
 
-
 @with_attempts(attempts=3, timeout=10, not_found_reason='not found')
 def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) -> str:
     backup_id = backup_helper.get_latest_backup_id_from_another_cluster(region)
@@ -1432,6 +1533,26 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
+    settings.posting.enabled = False
+
+
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
+def shovel_monitoring(spec,retry,  **kwargs):
+    kub_helper = KubernetesHelper(spec)
+    enabled = False
+    try:
+        enabled = bool(util.strtobool(os.getenv("ENABLE_SHOVEL_MONITORING", "false")))
+    except Exception:
+        enabled = False
+
+    if enabled:
+        if not kub_helper.check_shovel_state():
+            logger.warning("Shovel monitoring detected that some shovels are not running properly. Restarting shovel plugin...")
+            kub_helper.nodes_restart_shovel_plugin()
+            if not kub_helper.check_shovel_state():
+                logger.warning("Some shovels are not running properly after restart.")
+            else:
+                logger.info("All shovels are running properly after restart.")
 
 
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
