@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=library/rabbitmq:4.2.2-management-alpine
+ARG BASE_IMAGE=library/rabbitmq:4.1.5-management-alpine
 
 FROM ${BASE_IMAGE}
 
@@ -8,6 +8,9 @@ COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
 ENV USER_UID=1000
+
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN set -x && apk upgrade --no-cache --available
 
