@@ -1180,7 +1180,7 @@ class KubernetesHelper:
                 exec_command=[
                     "/bin/sh",
                     "-c",
-                    "rabbitmqctl await_startup && rabbitmqctl enable_feature_flag all"
+                    "rabbitmqctl enable_feature_flag all"
                 ]
             )
 
