@@ -1269,22 +1269,20 @@ class KubernetesHelper:
         logger.info("Shovel plugin restarted successfully")
 
     def enable_feature_flags(self):
-        replicas = self._spec['rabbitmq']['replicas']
-        for idx in range(replicas):
-            if self.is_hostpath():
-                pod_name = f"rmqlocal-{idx}-0"
-            else:
-                pod_name = f"rmqlocal-{idx}"
-            
-            logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
-            output = self.exec_command_in_pod(
-                pod_name=pod_name,
-                exec_command=[
-                    "/bin/sh",
-                    "-c",
-                    "rabbitmqctl enable_feature_flag all"
-                ]
-            )
+        if self.is_hostpath():
+            pod_name = "rmqlocal-0-0"
+        else:
+            pod_name = "rmqlocal-0"
+        
+        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                "rabbitmqctl enable_feature_flag all"
+            ]
+        )
 
         logger.info("Feature flags are enabled successfully in all pods")
 
@@ -1863,6 +1861,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
     kub_helper.update_config()
     kub_helper.update_services()
+    kub_helper.enable_feature_flags()
     if kub_helper.is_nodeport_required():
         kub_helper.configure_nodeport_service()
     # kub_helper.check_cluster_state()
@@ -1877,7 +1876,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         kub_helper.reboot_pods(old_pods_count)
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
-    kub_helper.enable_feature_flags()
+    #kub_helper.enable_feature_flags()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
