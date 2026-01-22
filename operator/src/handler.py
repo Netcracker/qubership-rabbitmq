@@ -1859,9 +1859,9 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         )
         time.sleep(5)
         raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
+    kub_helper.enable_feature_flags()
     kub_helper.update_config()
     kub_helper.update_services()
-    kub_helper.enable_feature_flags()
     if kub_helper.is_nodeport_required():
         kub_helper.configure_nodeport_service()
     # kub_helper.check_cluster_state()
