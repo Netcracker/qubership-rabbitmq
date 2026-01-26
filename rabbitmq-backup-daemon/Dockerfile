@@ -8,6 +8,9 @@ COPY scripts/ ${RABBITMQ_HOME}/scripts/
 COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
 RUN chmod +x ${RABBITMQ_HOME}/scripts/*.py
 
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
+
 RUN set -x \
     && apk add --update --no-cache curl apk-tools \
     && pip3 install setuptools==80.9.0 \

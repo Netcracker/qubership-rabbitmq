@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.1.18
+FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.1.19
 
 ENV ROBOT_OUTPUT=${ROBOT_HOME}/output\
     SERVICE_CHECKER_SCRIPT=${ROBOT_HOME}/rabbitmq_pod_checker.py \
@@ -8,6 +8,9 @@ ENV STATUS_CUSTOM_RESOURCE_GROUP=apps
 ENV STATUS_CUSTOM_RESOURCE_VERSION=v1
 ENV STATUS_CUSTOM_RESOURCE_PLURAL=deployments
 ENV STATUS_CUSTOM_RESOURCE_NAME=rabbitmq-integration-tests
+
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN mkdir -p ${ROBOT_HOME} \
     && mkdir -p ${ROBOT_OUTPUT}
