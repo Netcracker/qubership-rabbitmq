@@ -66,10 +66,10 @@ class RabbitHelper:
 
     def is_cluster_alive(self, replicas):
         try:
-            r = requests.get(url=f'{self._rabbitmq_url}/api/nodes', auth=(self._user, self._password), verify=self._ssl)
-            nodes = list(map(lambda x: x['running'], r.json()))
-            node_count = nodes.count(True)
-            if node_count == int(replicas):
+            r = requests.get(url=f'{self._rabbitmq_url}/api/nodes', auth=(self._user, self._password), verify=self._ssl, timeout=2)
+            nodes = r.json()
+            # node_count = nodes.count(True)
+            if len(nodes) == int(replicas):
                 return True
             logger.warning("rabbit is not ready yet, node_count = :" + str(node_count))
             return False

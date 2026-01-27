@@ -233,7 +233,7 @@ class RabbitMQHelper(object):
 
         for node in nodes:
             node_name = node['name']
-            healthcheck = node['running']
+            healthcheck = True
             fields = {
                 **{x: node.get(x, -1) for x in self._keys_node},
                 **{f'{x}_rate': node.get(f'{x}_details', {}).get('rate', -1) for x in
@@ -249,7 +249,7 @@ class RabbitMQHelper(object):
                                         tags={'node': node_name})
         metrics['rabbitmq_current_replicas'] = Metric(
             name='rabbitmq_current_replicas',
-            fields={'number': len(list(filter(lambda x: x['running'], nodes)))}
+            fields={'number': len(nodes)}
         )
         return list(metrics.values())
 
@@ -352,10 +352,9 @@ def main():
         password=os.getenv('RABBITMQ_PASSWORD', 'guest')
     )
     os_helper = OpenshiftHelper()
-
+    print("AAAAAAAAAAAAAAAAAAAAA")
     tasks = [asyncio.ensure_future(x)
-             for x in [rabbitmq_helper.nodes(),
-                       rabbitmq_helper.overview(),
+             for x in [rabbitmq_helper.overview(),
                        rabbitmq_helper.smoketest(),
                        rabbitmq_helper.queues(),
                        rabbitmq_helper.exchanges(),

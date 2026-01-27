@@ -123,11 +123,7 @@ def parse_nodes(nodes, cluster_name):
     desired_node_count = int(os.getenv('DESIRED_NODE_COUNT', 0))
 
     for node in nodes:
-        if not node["name"] in rabbitmq_channels_opened:
-            rabbitmq_channels_closed[node["name"]] = 0
-            rabbitmq_channels_opened[node["name"]] = 0
-        if node["running"]:
-            node_count += 1
+        rabbitmq_channels_opened[node["name"]] += 1
 
     if node_count == desired_node_count:
         status = 0
