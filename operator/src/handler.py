@@ -1687,7 +1687,14 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
+    if rabbit_exist_before:
+        logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+        try:
+            kub_helper.enable_feature_flags()
+        except Exception as e:
+            logger.warning("Feature flag enablement failed: %s",e)
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
@@ -1738,7 +1745,6 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         )
         time.sleep(5)
         raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
-    kub_helper.enable_feature_flags()
     kub_helper.update_config()
     kub_helper.update_services()
     if kub_helper.is_nodeport_required():
