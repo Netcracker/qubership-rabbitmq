@@ -1270,12 +1270,30 @@ class KubernetesHelper:
 
     def enable_feature_flags(self):
         if self.is_hostpath():
-            self.exec_command_in_pod(pod_name='rmqlocal-0-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+            pod_name = "rmqlocal-0-0"
         else:
-            self.exec_command_in_pod(pod_name='rmqlocal-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-        logger.info("Feature flags are enabled successfully")
+            pod_name = "rmqlocal-0"
+        
+        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                "rabbitmqctl enable_feature_flag all"
+            ]
+        )
+
+        logger.info("Feature flags are enabled successfully in all pods")
+
+    # def enable_feature_flags(self):
+    #     if self.is_hostpath():
+    #         self.exec_command_in_pod(pod_name='rmqlocal-0-0',
+    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+    #     else:
+    #         self.exec_command_in_pod(pod_name='rmqlocal-0',
+    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+    #     logger.info("Feature flags are enabled successfully")
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
@@ -1790,7 +1808,14 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
+    if rabbit_exist_before:
+        logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+        try:
+            kub_helper.enable_feature_flags()
+        except Exception as e:
+            logger.warning("Feature flag enablement failed: %s",e)
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
@@ -1857,7 +1882,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         kub_helper.reboot_pods(old_pods_count)
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
-    kub_helper.enable_feature_flags()
+    #kub_helper.enable_feature_flags()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
