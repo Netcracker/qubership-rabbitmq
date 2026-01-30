@@ -18,6 +18,8 @@ RUN mkdir -p ${ROBOT_HOME} \
 RUN apk add --update file gcc musl-dev libc6-compat zip jq gettext grep findutils wget sed \
     && pip3 install setuptools==80.9.0
 
+RUN set -x && apk upgrade --no-cache --available
+
 COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
 COPY requirements.txt requirements.txt
 
