@@ -12,13 +12,13 @@ ENV STATUS_CUSTOM_RESOURCE_NAME=rabbitmq-integration-tests
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
+RUN set -x && apk upgrade --no-cache --available
+
 RUN mkdir -p ${ROBOT_HOME} \
     && mkdir -p ${ROBOT_OUTPUT}
 
 RUN apk add --update file gcc musl-dev libc6-compat zip jq gettext grep findutils wget sed \
     && pip3 install setuptools==80.9.0
-
-RUN set -x && apk upgrade --no-cache --available
 
 COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
 COPY requirements.txt requirements.txt
