@@ -1294,10 +1294,9 @@ class KubernetesHelper:
                 "/bin/sh",
                 "-c",
                 """
-                    if rabbitmqctl enable_feature_flag all 2>&1 \
-                        | grep -q "Enabling all feature flags ..."; then
-                        echo "feature flags enabled"
-                    fi
+                    rabbitmqctl enable_feature_flag all >/dev/null 2>&1;
+                    sleep 0.1;
+                    echo "feature flags enabled"
                 """
             ]
         )
