@@ -1301,7 +1301,7 @@ class KubernetesHelper:
                 """
             ]
         )
-        if "feature flags enabled" not in output:
+        if output.find("feature flags enabled") == -1:
             raise RuntimeError(
                 f"Failed to enable feature flags in pod {pod_name}"
             )
