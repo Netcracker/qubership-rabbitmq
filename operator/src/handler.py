@@ -1288,19 +1288,26 @@ class KubernetesHelper:
 
     def enable_feature_flags_for_pod(self, pod_name):
         logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
-        try:
-            self.exec_command_in_pod(
-                pod_name=pod_name,
-                exec_command=[
-                    "/bin/sh",
-                    "-c",
-                    "rabbitmqctl enable_feature_flag all || exit 1"
-                ]
-            )
-        
-        except Exception as e:
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                """
+                    if rabbitmqctl enable_feature_flag all 2>&1 \
+                        | grep -q "Enabling all feature flags"; then
+                        echo "feature flags enabled"
+                    else
+                        echo "FEATURE_FLAGS_FAILED"
+                        exit 1
+                    fi
+                """
+            ]
+        )
+        logger.info("Enable feature flags output: {}".format(output))
+        if "FEATURE_FLAGS_FAILED" in output:
             raise RuntimeError(
-                f"Failed to enable feature flags in pod {pod_name}: {e}"
+                f"Failed to enable feature flags in pod {pod_name}"
             )
 
     def nodes_enable_feature_flags(self):
