@@ -1294,14 +1294,12 @@ class KubernetesHelper:
                 "/bin/sh",
                 "-c",
                 """
-                    if rabbitmqctl enable_feature_flag all 2>&1 \
-                        | grep -q "Enabling all feature flags"; then
-                        echo "feature flags enabled"
-                    fi
+                rabbitmqctl enable_feature_flag all || exit 1
+                echo "feature flags enabled"
                 """
             ]
         )
-        logger.debug("Enable feature flags output: {}".format(output))
+        logger.info("Enable feature flags output: {}".format(output))
         if output.find("feature flags enabled") == -1:
             raise RuntimeError(
                 f"Failed to enable feature flags in pod {pod_name}"
