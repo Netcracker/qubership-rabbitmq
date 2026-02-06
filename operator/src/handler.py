@@ -1298,14 +1298,14 @@ class KubernetesHelper:
                         | grep -q "Enabling all feature flags"; then
                         echo "feature flags enabled"
                     else
-                        echo "FEATURE_FLAGS_FAILED"
+                        echo "feature flags failed to enabled"
                         exit 1
                     fi
                 """
             ]
         )
         logger.info("Enable feature flags output: {}".format(output))
-        if "FEATURE_FLAGS_FAILED" in output:
+        if "feature flags failed to enabled" in output:
             raise RuntimeError(
                 f"Failed to enable feature flags in pod {pod_name}"
             )
