@@ -1268,6 +1268,47 @@ class KubernetesHelper:
 
         logger.info("Shovel plugin restarted successfully")
 
+    def enable_feature_flags_for_pod(self, pod_name):
+        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                """
+                    if rabbitmqctl enable_feature_flag all 2>&1 \
+                        | grep -q "Enabling all feature flags"; then
+                        echo "feature flags enabled"
+                    else
+                        echo "feature flags failed to enabled"
+                        exit 1
+                    fi
+                """
+            ]
+        )
+        logger.debug("Enable feature flags output: {}".format(output))
+        if "feature flags failed to enabled" in output:
+            raise RuntimeError(
+                f"Failed to enable feature flags in pod {pod_name}"
+            )
+
+    def nodes_enable_feature_flags(self):
+        if self._check_rabbit_pods_running() is False:
+            raise RuntimeError("Not all RabbitMQ pods are running")
+        
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            try:
+                self.enable_feature_flags_for_pod(pod_name)
+                logger.info(f"Successfully enable RabbitMQ feature flags in pod {pod_name}")
+                break
+            except RuntimeError as e:
+                logger.error(f"Failed to enable RabbitMQ feature flags in pod {pod_name}")
+                raise
+
+        logger.info("Feature flags are enabled successfully")
+
     def enable_feature_flags(self):
         if self.is_hostpath():
             self.exec_command_in_pod(pod_name='rmqlocal-0-0',
@@ -1790,7 +1831,11 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
+    if rabbit_exist_before:
+        logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+        kub_helper.nodes_enable_feature_flags()
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
