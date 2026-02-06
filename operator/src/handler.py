@@ -1268,24 +1268,6 @@ class KubernetesHelper:
 
         logger.info("Shovel plugin restarted successfully")
 
-    def enable_feature_flags(self):
-        if self.is_hostpath():
-            pod_name = "rmqlocal-0-0"
-        else:
-            pod_name = "rmqlocal-0"
-        
-        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
-        output = self.exec_command_in_pod(
-            pod_name=pod_name,
-            exec_command=[
-                "/bin/sh",
-                "-c",
-                "rabbitmqctl enable_feature_flag all"
-            ]
-        )
-
-        logger.info("Feature flags are enabled successfully in all pods")
-
     def enable_feature_flags_for_pod(self, pod_name):
         logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
         output = self.exec_command_in_pod(
@@ -1304,7 +1286,7 @@ class KubernetesHelper:
                 """
             ]
         )
-        logger.info("Enable feature flags output: {}".format(output))
+        logger.debug("Enable feature flags output: {}".format(output))
         if "feature flags failed to enabled" in output:
             raise RuntimeError(
                 f"Failed to enable feature flags in pod {pod_name}"
@@ -1317,29 +1299,24 @@ class KubernetesHelper:
         pods = (self.get_rabbit_pods()).items
         for pod in pods:
             pod_name = pod.metadata.name
-            for attempt in range(3):
-                try:
-                    self.enable_feature_flags_for_pod(pod_name)
-                    logger.info(f"Successfully enable RabbitMQ feature flags in pod {pod_name}")
-                    break
-                except RuntimeError as e:
-                    if attempt < 2:
-                        logger.warning(f"Attempt {attempt + 1}/3 failed for pod {pod_name}: {e}. Retrying...")
-                        time.sleep(5)
-                    else:
-                        logger.error(f"Failed to enable RabbitMQ feature flags in pod {pod_name} after 3 attempts")
-                        raise
+            try:
+                self.enable_feature_flags_for_pod(pod_name)
+                logger.info(f"Successfully enable RabbitMQ feature flags in pod {pod_name}")
+                break
+            except RuntimeError as e:
+                logger.error(f"Failed to enable RabbitMQ feature flags in pod {pod_name}")
+                raise
 
         logger.info("Feature flags are enabled successfully")
 
-    # def enable_feature_flags(self):
-    #     if self.is_hostpath():
-    #         self.exec_command_in_pod(pod_name='rmqlocal-0-0',
-    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-    #     else:
-    #         self.exec_command_in_pod(pod_name='rmqlocal-0',
-    #                                  exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-    #     logger.info("Feature flags are enabled successfully")
+    def enable_feature_flags(self):
+        if self.is_hostpath():
+            self.exec_command_in_pod(pod_name='rmqlocal-0-0',
+                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+        else:
+            self.exec_command_in_pod(pod_name='rmqlocal-0',
+                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+        logger.info("Feature flags are enabled successfully")
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
