@@ -115,14 +115,6 @@ jobs:
         run: |
           echo "Tags: ${{ needs.update-image-reference.outputs.tags }}"
           echo "Component: ${{ toJson(matrix.component) }}"
-      - name: Set build-args RabbitMQ 3
-        if: ${{ matrix.component.name == 'qubership-rabbitmq-image-3' && startsWith(env.EVENT_RABBITMQ_TAG, 'v3') }}
-        run: |
-          echo "build_args=BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}" >> $GITHUB_ENV
-      - name: Set build-args RabbitMQ 4
-        if: ${{ matrix.component.name == 'qubership-rabbitmq-image' && startsWith(env.EVENT_RABBITMQ_TAG, 'v4') }}
-        run: |
-          echo "build_args=BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}" >> $GITHUB_ENV
       - name: Docker
         uses: netcracker/qubership-workflow-hub/actions/docker-action@8d542a426ce561c7dce745f6b9cee068d1d7e101 #v2.0.10
         with:
@@ -132,7 +124,7 @@ jobs:
           platforms: ${{ needs.update-image-reference.outputs.platforms }}
           tags: ${{ needs.update-image-reference.outputs.tags }}
           build-args: |
-            ${{ env.build_args }}
+            BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 

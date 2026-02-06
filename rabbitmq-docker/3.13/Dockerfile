@@ -1,6 +1,4 @@
-ARG BASE_IMAGE=library/rabbitmq:3.13.7-management-alpine
-
-FROM ${BASE_IMAGE}
+FROM library/rabbitmq:3.13.7-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY scripts/get_user /bin/
@@ -24,7 +22,7 @@ chmod +x /bin/get_password && \
 chmod +x /usr/local/bin/docker-entrypoint.sh && \
 chmod -R  a+r /opt/rabbitmq/plugins
 
-RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED || true
+RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED
 
 RUN set -x \
     && python3 -m ensurepip \
