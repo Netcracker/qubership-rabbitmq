@@ -124,7 +124,7 @@ jobs:
           platforms: ${{ needs.update-image-reference.outputs.platforms }}
           tags: ${{ needs.update-image-reference.outputs.tags }}
           build-args: |
-            BASE_IMAGE=${{ env.EVENT_BASE_IMAGE }}
+            BASE_IMAGE=${{ env.EVENT_MANAGMENT_IMAGE }}
         env:
           GITHUB_TOKEN: ${{ secrets.GH_ACCESS_TOKEN }}
 
