@@ -24,7 +24,7 @@ RUN ln -sf usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh && \
     chmod -R  a+r /opt/rabbitmq/plugins
 
-RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED
+RUN rm /usr/lib/python3.12/EXTERNALLY-MANAGED || true
 
 RUN set -x \
     && python3 -m ensurepip \
