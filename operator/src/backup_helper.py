@@ -46,7 +46,7 @@ class BackupHelper:
                 spent = spent + 10
                 result = self._read_backup_daemon_health()
                 if result is None:
-                    logger.info(f'read_backup_daemon_health result: {result}')
+                    logger.debug(f'read_backup_daemon_health result: {result}')
                     raise ValueError('Backup daemon health is None')
                 return result
             except requests.RequestException as e:
@@ -63,11 +63,11 @@ class BackupHelper:
 
     def check_backup_daemon_readiness(self, timeout) -> bool:
         health = self.read_backup_daemon_health(timeout)
-        logger.info(f'Backup daemon health: {health}')
+        logger.debug(f'Backup daemon health: {health}')
         if health is None:
             return False
         status: str = health['status']
-        logger.info(f'Backup daemon status: {status}')
+        logger.debug(f'Backup daemon status: {status}')
         if status == 'UP':
             return True
         elif status == 'Warning':
