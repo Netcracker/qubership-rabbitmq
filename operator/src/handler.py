@@ -1278,16 +1278,16 @@ class KubernetesHelper:
                 """
                     if rabbitmqctl enable_feature_flag all 2>&1 \
                         | grep -q "Enabling all feature flags"; then
-                        echo "feature flags enabled"
+                        echo "success"
                     else
-                        echo "feature flags failed to enabled"
+                        echo "failed"
                         exit 1
                     fi
                 """
             ]
         )
         logger.debug("Enable feature flags output: {}".format(output))
-        if "feature flags failed to enabled" in output:
+        if "failed" in output:
             raise RuntimeError(
                 f"Failed to enable feature flags in pod {pod_name}"
             )
@@ -1834,8 +1834,16 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
     if rabbit_exist_before:
-        logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
-        kub_helper.nodes_enable_feature_flags()
+        try:
+            logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+            kub_helper.nodes_enable_feature_flags()
+        except RuntimeError:
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "RabbitMQ upgrade failed: failed to enable all feature flags"
+            )
+            raise kopf.PermanentError("RabbitMQ upgrade failed.")
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
