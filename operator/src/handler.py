@@ -1304,7 +1304,7 @@ class KubernetesHelper:
                 logger.info("Successfully enable RabbitMQ feature flags in pod %s",pod_name)
             except RuntimeError as e:
                 logger.error("Failed to enable RabbitMQ feature flags in pod %s: %s", pod_name, e)
-                raise
+                raise RuntimeError(f"Failed to enable RabbitMQ feature flags in pod {pod_name}: {e}")
 
         logger.info("Feature flags are enabled successfully")
 
