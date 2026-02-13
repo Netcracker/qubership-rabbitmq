@@ -14,6 +14,7 @@
 
 import base64
 import logging
+import math
 import os
 import pprint
 import re
@@ -165,6 +166,29 @@ class KubernetesHelper:
             return deserializedsecuritycontext
         else:
             return None
+
+    @staticmethod
+    def _is_deployment_ready(deploy) -> bool:
+        desired = deploy.spec.replicas or 1
+        st = deploy.status or None
+        ready = (st.ready_replicas or 0) if st else 0
+        updated = (st.updated_replicas or 0) if st else 0
+        available = min(ready, updated)
+        return desired == available
+
+    def _wait_backup_daemon_deployment_ready(self, deployment) -> bool:
+        timeout = self._spec.get('global', {}).get('podReadinessTimeout', 180)
+        interval = 10
+        attempts = math.ceil(timeout / interval)
+        for _ in range(attempts):
+            try:
+                if self._is_deployment_ready(deployment):
+                    return True
+                logger.info("Backup daemon deployment is not ready yet.")
+            except Exception as e:
+                logger.debug("Cannot read backup daemon deployment yet (%s). Wait 30 seconds.", e)
+            time.sleep(10)
+        return False
 
     def get_liveness_probe(self, name):
         if self.is_hostpath():
@@ -1494,12 +1518,10 @@ class KubernetesHelper:
             mode = self._spec.get('disasterRecovery').get('mode', None)
         else:
             mode = 'None'
-        timeout = self._spec.get('global').get('podReadinessTimeout', 180)
         if (backup_daemon_enabled in positive_values) and mode != 'standby':
             deployment = self._apps_v1_api.read_namespaced_deployment(name=name, namespace=self._workspace)
             if deployment is not None:
-                backup_helper = BackupHelper(namespace=self._workspace, custom_url=backup_daemon_url, verify=self.get_backup_daemon_auth())
-                result = backup_helper.check_backup_daemon_readiness(timeout)
+                result = self._wait_backup_daemon_deployment_ready(deployment)
                 logger.debug(f'Backup daemon is ready: {result}')
                 return result
         return True
