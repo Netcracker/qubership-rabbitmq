@@ -44,30 +44,19 @@ class BackupHelper:
         while spent <= timeout:
             try:
                 spent = spent + 10
-                result = self._read_backup_daemon_health()
-                if result is None:
-                    logger.debug(f'read_backup_daemon_health result: {result}')
-                    raise ValueError('Backup daemon health is None')
-                return result
+                return self._read_backup_daemon_health()
             except requests.RequestException as e:
                 logger.warning(f'Error occurred during reading backup daemon health, retrying in 10 seconds: {e}')
                 time.sleep(10)
                 continue
-            except ValueError as e:
-                logger.warning(f'Error occurred during reading backup daemon health: {e}')
-                time.sleep(20)
-                continue
-            
         logger.warning(f'Backup daemon status was not received')
         return None
 
     def check_backup_daemon_readiness(self, timeout) -> bool:
         health = self.read_backup_daemon_health(timeout)
-        logger.debug(f'Backup daemon health: {health}')
         if health is None:
             return False
         status: str = health['status']
-        logger.debug(f'Backup daemon status: {status}')
         if status == 'UP':
             return True
         elif status == 'Warning':
