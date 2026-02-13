@@ -45,8 +45,7 @@ class BackupHelper:
             try:
                 spent = spent + 10
                 return self._read_backup_daemon_health()
-            except requests.RequestException as e:
-                logger.warning(f'Error occurred during reading backup daemon health, retrying in 10 seconds: {e}')
+            except requests.RequestException:
                 time.sleep(10)
                 continue
         logger.warning(f'Backup daemon status was not received')
@@ -57,6 +56,7 @@ class BackupHelper:
         if health is None:
             return False
         status: str = health['status']
+        logger.debug(f'Backup daemon status: {status}')
         if status == 'UP':
             return True
         elif status == 'Warning':
