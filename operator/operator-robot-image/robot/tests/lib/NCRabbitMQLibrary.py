@@ -413,11 +413,12 @@ class NCRabbitMQLibrary(object):
 
     @utils.timeout()
     def is_rabbit_alive(self):
-
+        # Use explicit timeout so connection attempts fail fast and decorator can retry
         r = requests.get(
             url=f'{self._rabbitmq_url}/api',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         r.raise_for_status()
 
@@ -428,11 +429,11 @@ class NCRabbitMQLibrary(object):
 
     @utils.timeout()
     def is_rabbit_alive_with_password(self, password: str):
-
         r = requests.get(
             url=f'{self._rabbitmq_url}/api',
             auth=(self._user, password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         r.raise_for_status()
 
@@ -442,11 +443,11 @@ class NCRabbitMQLibrary(object):
 
     @utils.timeout()
     def is_cluster_alive(self, wait_for):
-
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/nodes',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         nodes = list(map(lambda x: x['running'], r.json()))
         node_count = nodes.count(True)
@@ -503,7 +504,8 @@ class NCRabbitMQLibrary(object):
         res = requests.delete(
             f'{self._rabbitmq_url}/api/users/{test_user}',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         res.raise_for_status()
         return res
@@ -523,7 +525,7 @@ class NCRabbitMQLibrary(object):
         return res
 
     @utils.timeout()
-    def create_queue(self, vhost, queue, node_number):
+    def create_queue(self, vhost, queue, node_number, queue_type: Optional[str] = None):
 
         url = f'{self._rabbitmq_url}/api/queues/{vhost}/{queue}'
         if EXTERNAL_ENABLED:
@@ -542,6 +544,9 @@ class NCRabbitMQLibrary(object):
                 'node': matched_nodes[0]
             }
 
+        if queue_type == 'quorum':
+            data['arguments'] = {'x-queue-type': 'quorum'}
+
         headers = {'Accept': 'application/json'}
 
         res = requests.put(
@@ -549,7 +554,8 @@ class NCRabbitMQLibrary(object):
             headers=headers,
             auth=(self._user, self._password),
             json=data,
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         res.raise_for_status()
 
@@ -559,35 +565,35 @@ class NCRabbitMQLibrary(object):
         res = requests.delete(
             url=f'{self._rabbitmq_url}/api/queues/{vhost}/{queue}',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
         res.raise_for_status()
 
     def _get_list_nodes(self):
-
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/nodes',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
-
         return list(map(lambda x: x['name'], r.json()))
 
     def _get_nodes(self):
-
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/nodes',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
-
         return r.json()
 
     def get_users(self):
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/definitions',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
 
         return list(map(lambda x: x.get('name'), r.json().get('users')))
@@ -598,9 +604,9 @@ class NCRabbitMQLibrary(object):
         r = requests.get(
             url=f'{self._rabbitmq_url}/api/definitions',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
-
         return list(map(lambda x: x['name'], r.json().get('vhosts')))
 
     @utils.timeout()
@@ -612,7 +618,8 @@ class NCRabbitMQLibrary(object):
             f'{self._rabbitmq_url}/api/exchanges/{vhost}/amq.default/publish',
             data=json.dumps(payload),
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         ).status_code
         logger.console('message have published')
 
@@ -627,7 +634,8 @@ class NCRabbitMQLibrary(object):
             f'{self._rabbitmq_url}/api/queues/{vhost}/{queue}/get',
             data=json.dumps(payload),
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
 
         if r.status_code == requests.codes.ok:
@@ -646,9 +654,9 @@ class NCRabbitMQLibrary(object):
         r = requests.get(
             f'{self._rabbitmq_url}/api/queues/{vhost}/{queue}',
             auth=(self._user, self._password),
-            verify=self.verify
+            verify=self.verify,
+            timeout=30
         )
-
         return r.status_code == requests.codes.ok
 
     # noinspection PyUnreachableCode
