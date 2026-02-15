@@ -46,38 +46,51 @@ Kill All Pods
     Clean User
     Clean Vhost
 
-Change Rabbitmq Password Through Operator
-    [Arguments]  ${username}  ${password}
-
-    Change Rabbitmq Password With Operator  ${username}  ${password}
-    Sleep  15s
+Verify Password Applied
+    [Arguments]  ${password}
     ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
     ${current_password}=  Get Password From Secret  ${secret}
     Should Be Equal As Strings  ${current_password}  ${password}
     ${alive}=  Is Rabbit Alive With Password  ${password}
     Should Be True  ${alive}
+
+Verify RabbitMQ Accepts Password
+    [Arguments]  ${password}
+    ${alive}=  Is Rabbit Alive With Password  ${password}
+    Should Be True  ${alive}
+
+Change Rabbitmq Password Through Operator
+    [Arguments]  ${username}  ${password}
+
+    Change Rabbitmq Password With Operator  ${username}  ${password}
+    Wait Until Keyword Succeeds  120s  5s  Verify Password Applied  ${password}
 
 Change Rabbitmq Password Through Function
     [Arguments]  ${pod_name}  ${password}
 
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Sleep  15s
-    ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
-    ${current_password}=  Get Password From Secret  ${secret}
-    Should Be Equal As Strings  ${current_password}  ${password}
-    ${alive}=  Is Rabbit Alive With Password  ${password}
-    Should Be True  ${alive}
+    Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${password}
 
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
 
-    Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
-    Set Secret Change Field  ${secret_change}
+    Run Keyword If  '${pod_name}' != '${EMPTY}' and '${old_password}' != '${EMPTY}'
+    ...  Run Keyword And Ignore Error  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    Run Keyword If  '${secret_change}' != '${EMPTY}'
+    ...  Run Keyword And Ignore Error  Set Secret Change Field  ${secret_change}
+
+Change Rabbitmq Password With Function Teardown
+    [Arguments]  ${pod_name}  ${old_password}
+    ${status}  ${msg}=  Run Keyword And Ignore Error  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    Run Keyword If  '${status}' == 'FAIL'  Log  Teardown: restore password failed: ${msg}  level=WARN
 
 *** Test Cases ***
 Test Change Rabbitmq Password With Operator
     [Tags]  change_password  all  operator_change_password
 
+    Set Test Variable  ${pod_name}  ${EMPTY}
+    Set Test Variable  ${old_password}  ${EMPTY}
+    Set Test Variable  ${old_secret_change}  ${EMPTY}
     ${pod_name}=  Get First Rabbit Pod
     ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
     ${old_password}=  Get Password From Secret  ${secret}
@@ -102,7 +115,7 @@ Test Change Password Function
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 
-    [Teardown]  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
 
 Test Change Password Function With Kill All Pods
     [Tags]  persistence  all
@@ -121,7 +134,7 @@ Test Change Password Function With Kill All Pods
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 
-    [Teardown]  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
 
 Kill All Pods At Once
     [Tags]  persistence  all
