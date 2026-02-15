@@ -75,9 +75,14 @@ Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
 
     Run Keyword If  '${pod_name}' != '${EMPTY}' and '${old_password}' != '${EMPTY}'
-    ...  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    ...  Run Keyword And Ignore Error  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
     Run Keyword If  '${secret_change}' != '${EMPTY}'
-    ...  Set Secret Change Field  ${secret_change}
+    ...  Run Keyword And Ignore Error  Set Secret Change Field  ${secret_change}
+
+Change Rabbitmq Password With Function Teardown
+    [Arguments]  ${pod_name}  ${old_password}
+    ${status}  ${msg}=  Run Keyword And Ignore Error  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    Run Keyword If  '${status}' == 'FAIL'  Log  Teardown: restore password failed: ${msg}  level=WARN
 
 *** Test Cases ***
 Test Change Rabbitmq Password With Operator
@@ -110,7 +115,7 @@ Test Change Password Function
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 
-    [Teardown]  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
 
 Test Change Password Function With Kill All Pods
     [Tags]  persistence  all
@@ -129,7 +134,7 @@ Test Change Password Function With Kill All Pods
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 
-    [Teardown]  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
 
 Kill All Pods At Once
     [Tags]  persistence  all
