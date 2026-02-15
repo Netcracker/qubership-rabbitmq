@@ -54,6 +54,11 @@ Verify Password Applied
     ${alive}=  Is Rabbit Alive With Password  ${password}
     Should Be True  ${alive}
 
+Verify RabbitMQ Accepts Password
+    [Arguments]  ${password}
+    ${alive}=  Is Rabbit Alive With Password  ${password}
+    Should Be True  ${alive}
+
 Change Rabbitmq Password Through Operator
     [Arguments]  ${username}  ${password}
 
@@ -64,7 +69,7 @@ Change Rabbitmq Password Through Function
     [Arguments]  ${pod_name}  ${password}
 
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Keyword Succeeds  120s  5s  Verify Password Applied  ${password}
+    Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${password}
 
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
