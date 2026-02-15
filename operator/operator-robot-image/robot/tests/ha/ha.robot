@@ -58,7 +58,7 @@ Kill Part Of Pods w/o Data
     Kill All Pods w/o Data  ${pod_names}  part
 
 HA Queue Test
-    [Tags]  ha  all
+    [Tags]  ha ha_queue  all
 
     ${first_pod}=  Get First Rabbit Pod
     Set Suite Variable  ${first_pod}
