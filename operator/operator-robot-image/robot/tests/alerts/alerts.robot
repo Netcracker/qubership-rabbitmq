@@ -27,20 +27,25 @@ RabbitMQ Prometheus Plugin Switch
         Execute Command In Pod  ${item}  ${NAMESPACE}  ${switch_position}
     END
 
+Restart RabbitMQ App If Pod Exists
+    ${pod_exists}=  Run Keyword And Return Status  Variable Should Exist  ${pod_name}
+    Run Keyword If  ${pod_exists}  Execute Command In Pod  ${pod_name}  ${NAMESPACE}  rabbitmqctl start_app
+
 *** Test Cases ***
 RabbitMQ Some Pods Are Not Working Alert
     [Tags]  all  alerts  some_pods_are_not_working_alert
     # We need to wait because SomePodsAreNotWorking alert is firing during RabbitMQ StatefulSet upgrade
-    Wait Until Keyword Succeeds    2 min    ${ALERT_RETRY_INTERVAL}
+    Wait Until Keyword Succeeds    5 min    ${ALERT_RETRY_INTERVAL}
     ...  Check That Prometheus Alert Is Inactive  ${SOME_PODS_ARE_NOT_WORKING_ALERT}
     ${pod_name}=  Get First Rabbit Pod
+    Set Test Variable  ${pod_name}
     Execute Command In Pod  ${pod_name}  ${NAMESPACE}  rabbitmqctl stop
     Wait Until Keyword Succeeds    ${ALERT_RETRY_TIME}    ${ALERT_RETRY_INTERVAL}
     ...  Check That Prometheus Alert Is Active  ${SOME_PODS_ARE_NOT_WORKING_ALERT}
     Execute Command In Pod  ${pod_name}  ${NAMESPACE}  rabbitmqctl start_app
     Wait Until Keyword Succeeds    ${ALERT_RETRY_TIME}    ${ALERT_RETRY_INTERVAL}
     ...  Check That Prometheus Alert Is Inactive  ${SOME_PODS_ARE_NOT_WORKING_ALERT}
-    [Teardown]  Execute Command In Pod  ${pod_name}  ${NAMESPACE}  rabbitmqctl start_app
+    [Teardown]  Run Keyword If Test Failed  Restart RabbitMQ App If Pod Exists
 
 RabbitMQ No Metrics Alert
     [Tags]  all  alerts  no_metrics_alert
