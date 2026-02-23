@@ -1,0 +1,58 @@
+{{- if and .Values.rabbitmq.gateway.enabled (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") }}
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  {{- if .Values.rabbitmq.gateway.parentRefs }}
+  parentRefs:
+  {{- toYaml .Values.rabbitmq.gateway.parentRefs | nindent 4 }}
+  {{- end }}
+
+  hostnames:
+    {{- range .Values.rabbitmq.gateway.hostnames }}
+    - {{ . | quote }}
+    {{- end }}
+
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rabbitmq
+          port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
+
+{{- end }}
+
+#################################################
+## Qubership custom template. BackendTLSPolicy for TLS communication between the gateway and the RabbitMQ.
+#################################################
+
+{{- if and .Values.rabbitmq.gateway.backendTLSPolicy.enabled (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") }}
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: rabbitmq
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: rabbitmq
+  validation:
+    hostname: {{ .Values.rabbitmq.gateway.backendTLSPolicy.hostname | quote }}
+    {{- if .Values.rabbitmq.gateway.backendTLSPolicy.caCertificateRefs }}
+    caCertificateRefs:
+    {{- toYaml .Values.rabbitmq.gateway.backendTLSPolicy.caCertificateRefs | nindent 6 }}
+    {{- end }}
+
+{{- end }}

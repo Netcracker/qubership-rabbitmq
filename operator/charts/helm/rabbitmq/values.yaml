@@ -152,6 +152,47 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+
+  gateway:
+  # gateway.enabled -- Set to true to create HTTPRoute resources for [Kubernetes Gateway API](https://gateway-api.sigs.k8s.io/).
+  # The Gateway API is the successor to the Ingress API and provides more advanced routing capabilities.
+  # @raw
+  # > [!NOTE]
+  # > - Requires Gateway API CRDs to be installed in the cluster
+  # > - Not recommended to use together with `ingress.enabled` (choose one or the other)
+  # > - Requires a Gateway resource to be configured separately
+    enabled: false
+    # gateway.parentRefs -- References to the Gateway resources that this HTTPRoute should attach to.
+    # @raw
+    # Example:
+    # ```yaml
+    #  - name: trino-gateway
+    #    namespace: gateway-system
+    #    sectionName: https
+    # ```
+    parentRefs: []
+    # gateway.hostnames -- Hostnames to match for routing traffic.
+    # @raw
+    # Example:
+    # ```yaml
+    #  - trino.example.com
+    #  - trino-prod.example.com
+    # ```
+    hostnames: []
+    backendTLSPolicy:
+      # backendTLSPolicy.enabled -- Enable TLS communication between Gateway and RabbitMQ.
+      enabled: false
+      hostname: ''
+      # backendTLSPolicy.caCertificateRefs -- References to resources containing "ca.crt".
+      # Example:
+      # caCertificateRefs:
+      #   - kind: Secret
+      #     name: rabbitmq-tls-secret
+      #   - kind: ConfigMap
+      #     name: rabbitmq-ca
+      caCertificateRefs: []
+
+  
   # The list of enabled plugins. For example,
   # enabledPlugins:
   #   - rabbitmq_shovel
