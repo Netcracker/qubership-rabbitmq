@@ -9,6 +9,9 @@ metadata:
     "helm.sh/resource-policy": keep
   labels:
     {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    {{- if .Values.backupDaemon.cloudBackuper.excludeFromPhysicalBackup }}
+    cloud-backuper.netcracker.com/exclude-from-physical-backup: "true"
+    {{- end}}
 spec:
   accessModes:
     - ReadWriteOnce
