@@ -16,6 +16,7 @@ metadata:
     nginx.ingress.kubernetes.io/backend-protocol: HTTPS
     nginx.ingress.kubernetes.io/proxy-ssl-verify: 'on'
     nginx.ingress.kubernetes.io/proxy-ssl-name: '{{ .Release.Name }}.{{ .Release.Namespace }}'
+    nginx.ingress.kubernetes.io/proxy-ssl-secret: '{{ .Release.Namespace }}/{{ template "rabbitmq.tlsSecretName" . }}'
     {{- end }}
     gateway-api-converter.netcracker.com/ignore: "true"
   name: rabbitmq
