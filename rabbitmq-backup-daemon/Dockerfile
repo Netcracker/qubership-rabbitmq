@@ -5,16 +5,20 @@ ENV RABBITMQ_HOME=/opt/rabbitmq \
 
 COPY backup-daemon.conf /etc/backup-daemon.conf
 COPY scripts/ ${RABBITMQ_HOME}/scripts/
-COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
+#COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
 RUN chmod +x ${RABBITMQ_HOME}/scripts/*.py
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN set -x \
-    && apk add --update --no-cache curl apk-tools python3 py3-pip \
-    && pip3 install setuptools==80.9.0 \
-    && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
+    && apk add --update --no-cache \
+    curl \
+    apk-tools \
+    python3 \
+    py3-requests \
+    # && pip3 install setuptools==80.9.0 \
+    # && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
 
 # Upgrade all tools to avoid vulnerabilities
