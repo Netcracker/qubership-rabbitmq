@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon:main_alpine
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
     USER_UID=1000
