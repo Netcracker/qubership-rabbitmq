@@ -116,8 +116,13 @@ class BackupHelper:
         time.sleep(timeout)
         self._check_backup_unlocked(id, attemps)
 
-    def perform_full_backup(self) -> str:
-        resp = requests.post(f'{self.url}/backup', auth=self.auth, verify=self.verify)
+    def perform_full_backup(self, allow_eviction: str = "false") -> str:
+        payload = {
+            "allow_eviction": allow_eviction
+        }
+        headers = {'Content-Type': 'application/json'}
+
+        resp = requests.post(f'{self.url}/backup', json=payload, headers=headers, auth=self.auth, verify=self.verify)
         resp.raise_for_status()
         return resp.text
 
