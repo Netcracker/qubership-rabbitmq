@@ -166,7 +166,7 @@ rabbitmq:
     # @raw
     # Example:
     # ```yaml
-    #  - name: trino-gateway
+    #  - name: rabbitmq-gateway
     #    namespace: gateway-system
     #    sectionName: https
     # ```
@@ -175,8 +175,8 @@ rabbitmq:
     # @raw
     # Example:
     # ```yaml
-    #  - trino.example.com
-    #  - trino-prod.example.com
+    #  - rabbitmq.example.com
+    #  - rabbitmq-prod.example.com
     # ```
     hostnames: []
     backendTLSPolicy:
