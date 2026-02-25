@@ -118,14 +118,9 @@ class BackupHelper:
 
     def perform_full_backup(self, allow_eviction: bool = False) -> str:
         payload = {
-            "allow_eviction": str(allow_eviction).lower()
+            "allow_eviction": allow_eviction
         }
-
         resp = requests.post(f'{self.url}/backup', json=payload, auth=self.auth, verify=self.verify)
-
-        print("BODY SENT:", resp.request.body)
-        print("HEADERS:", resp.request.headers)
-
         resp.raise_for_status()
         return resp.text
 
