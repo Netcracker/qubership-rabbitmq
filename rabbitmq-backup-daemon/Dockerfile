@@ -23,7 +23,7 @@ RUN set -x \
 # Upgrade all tools to avoid vulnerabilities
 RUN set -x && apk upgrade --no-cache --available
 
-WORKDIR ${RABBITMQ_HOME}
+#WORKDIR ${RABBITMQ_HOME}
 
 VOLUME ["${RABBITMQ_BACKUP}"]
 
