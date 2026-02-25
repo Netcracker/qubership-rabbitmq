@@ -25,13 +25,12 @@ spec:
       backendRefs:
         - name: rabbitmq
           port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
-{{- end }}
 
 #################################################
 ## Qubership custom template. BackendTLSPolicy for TLS communication between the gateway and the RabbitMQ.
 #################################################
 
-{{- if and .Values.rabbitmq.gateway.backendTLSPolicy.enabled (eq (include "rabbitmq.enableTls" .) "true") (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") }}
+{{- if and .Values.rabbitmq.gateway.backendTLSPolicy.enabled (eq (include "rabbitmq.enableTls" .) "true") }}
 ---
 apiVersion: gateway.networking.k8s.io/v1
 kind: BackendTLSPolicy
@@ -51,4 +50,5 @@ spec:
     caCertificateRefs:
     {{- toYaml .Values.rabbitmq.gateway.backendTLSPolicy.caCertificateRefs | nindent 6 }}
     {{- end }}
+{{- end }}
 {{- end }}
