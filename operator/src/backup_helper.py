@@ -120,7 +120,9 @@ class BackupHelper:
         payload = {
             "allow_eviction": "true" if allow_eviction else "false"
         }
-        resp = requests.post(f'{self.url}/backup', json=payload, auth=self.auth, verify=self.verify)
+
+        resp = requests.post(f"{self.url}/backup", data=json.dumps(payload), headers={"Content-Type": "application/json"}, auth=self.auth, verify=self.verify)
+        #resp = requests.post(f'{self.url}/backup', json=payload, auth=self.auth, verify=self.verify)
         resp.raise_for_status()
         return resp.text
 
