@@ -13,7 +13,6 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositor
 
 RUN set -x \
     && apk add --update --no-cache \
-    curl \
     apk-tools \
     python3 \
     py3-requests \
