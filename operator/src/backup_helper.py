@@ -117,7 +117,15 @@ class BackupHelper:
         self._check_backup_unlocked(id, attemps)
 
     def perform_full_backup(self, allow_eviction: bool = False) -> str:
-        resp = requests.post(f'{self.url}/backup', params={"allow_eviction": str(allow_eviction).lower()}, auth=self.auth, verify=self.verify)
+        payload = {
+            "allow_eviction": str(allow_eviction).lower()
+        }
+
+        resp = requests.post(f'{self.url}/backup', json=payload, auth=self.auth, verify=self.verify)
+
+        print("BODY SENT:", resp.request.body)
+        print("HEADERS:", resp.request.headers)
+
         resp.raise_for_status()
         return resp.text
 
