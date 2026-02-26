@@ -117,7 +117,7 @@ class BackupHelper:
         self._check_backup_unlocked(id, attemps)
 
     def perform_full_backup(self) -> str:
-        resp = requests.post(f'{self.url}/backup', headers={"Content-Type": "application/json"}, data='{"allow_eviction":"false"}', auth=self.auth, verify=self.verify)
+        resp = requests.post(f'{self.url}/backup', auth=self.auth, verify=self.verify)
         resp.raise_for_status()
         return resp.text
 
