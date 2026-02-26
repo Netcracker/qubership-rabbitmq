@@ -31,7 +31,7 @@ class BackupHelper:
         else:
             self.verify = None
             port = "8080"
-        self.url = f'{schema}://{service}.{namespace}:{port}' if not custom_url else custom_url
+        self.url = f'{schema}://{service}:{port}' if not custom_url else custom_url
         self.auth = auth
 
     def _read_backup_daemon_health(self) -> dict:
