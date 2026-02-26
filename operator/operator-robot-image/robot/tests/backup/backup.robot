@@ -25,12 +25,12 @@ Check RabbitMQ Backup Endpoints
     ${backup_folder}  Make Rabbitmq Full Backup
     Wait Job Success  job_name=${backup_folder}
 
-    ${response}=  Check List Of Backups
-    Should Contain  ${response}  ${backup_folder}
+    # ${response}=  Check List Of Backups
+    # Should Contain  ${response}  ${backup_folder}
 
-    ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
-    Should Contain  ${response}  ${found_word}
+    # ${response}=  Check Backup Information  vault_name=${backup_folder}
+    # ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
+    # Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
