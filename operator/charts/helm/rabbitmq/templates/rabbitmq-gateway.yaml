@@ -1,0 +1,72 @@
+{{- if and (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") (eq .Values.PAAS_PLATFORM "KUBERNETES") -}}
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-httproute
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  parentRefs:
+    - name: {{ .Values.rabbitmq.ingress.gatewayName | default "default-external-gateway" }}
+      namespace: {{ .Values.rabbitmq.ingress.envoyNamespace | default "envoy-gateway" }}
+      port: 443
+  hostnames:
+    - {{ .Values.rabbitmq.ingress.host | quote }}
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rabbitmq
+          port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
+
+#################################################
+## Qubership custom template. BackendTLSPolicy for TLS communication between the gateway and the RabbitMQ.
+#################################################
+
+{{- if (eq (include "rabbitmq.enableTls" .) "true") }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: rabbitmq-backend-tls
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: rabbitmq
+  validation:
+    hostname: {{ .Values.rabbitmq.ingress.host  | quote }}
+    caCertificateRefs:
+      - group: ""
+        kind: Secret
+        name: {{ include "rabbitmq.tlsSecretName" . }}
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-redirect
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  parentRefs:
+    - name: {{ .Values.rabbitmq.ingress.gatewayName | default "default-external-gateway" }}
+      namespace: {{ .Values.rabbitmq.ingress.envoyNamespace | default "envoy-gateway" }}
+      port: 80
+  hostnames:
+  - {{ .Values.rabbitmq.ingress.host | quote }}
+  rules:
+  - filters:
+    - type: RequestRedirect
+      requestRedirect:
+        scheme: https
+        statusCode: 301
+{{- end }}
+{{- end }}

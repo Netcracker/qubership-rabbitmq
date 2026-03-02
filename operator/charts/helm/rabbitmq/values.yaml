@@ -152,6 +152,7 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+ 
   # The list of enabled plugins. For example,
   # enabledPlugins:
   #   - rabbitmq_shovel
