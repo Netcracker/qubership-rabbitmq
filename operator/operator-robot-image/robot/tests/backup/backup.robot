@@ -24,8 +24,11 @@ Check RabbitMQ Backup Endpoints
     Create and check queue
     ${backup_folder}  Make Rabbitmq Full Backup
     Wait Job Success  job_name=${backup_folder}
+    Log To Console    Expected folder 1: ${backup_folder}
 
     ${response}=  Check List Of Backups
+    Log To Console    Response: ${response}
+    Log To Console    Expected folder 2: ${backup_folder}
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
