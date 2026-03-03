@@ -672,7 +672,7 @@ class NCRabbitMQLibrary(object):
     @utils.timeout()
     def make_rabbitmq_full_backup(self):
         headers = {'Content-Type': 'application/json'}
-        data = '{"allow_eviction":"False"}'
+        data = '{"allow_eviction":"True"}'
         res = requests.post(self._backuper_url + "/backup", headers=headers, data=data, verify=self.verify)
         return res.text
 
@@ -722,16 +722,12 @@ class NCRabbitMQLibrary(object):
 
     @utils.timeout()
     def check_list_of_backups(self):
-        headers = {'Content-Type': 'application/json'}
-        data = '{"allow_eviction":"False"}'
-        res = requests.get(self._backuper_url + "/listbackups", headers=headers, data=data, verify=self.verify)
+        res = requests.get(self._backuper_url + "/listbackups", verify=self.verify)
         return res.text
 
     @utils.timeout()
     def check_backup_information(self, vault_name):
-        headers = {'Content-Type': 'application/json'}
-        data = '{"allow_eviction":"False"}'
-        res = requests.get(self._backuper_url + "/listbackups/" + vault_name, headers=headers, data=data, verify=self.verify)
+        res = requests.get(self._backuper_url + "/listbackups/" + vault_name, verify=self.verify)
         return res.text
 
     def bulk_make_rabbitmq_queues(self, count, vhost, queue, node_number):
