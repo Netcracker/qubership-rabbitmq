@@ -53,7 +53,7 @@ Full Backup And Restore
     Create and check queue
     ${backup_folder}  Make Rabbitmq Full Backup
     Wait Job Success  job_name=${backup_folder}
-    Delete and check queue
+    #Delete and check queue
     Clean User
     Clean Vhost
 
@@ -102,11 +102,14 @@ Not Evictable Backup
     # Creation of a vhost takes some time
     sleep  ${TIMEOUT}
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
-    Create Queue    vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
+    #Create Queue    vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
+    Create and check queue
     ${backup_folder}  Make Rabbitmq Not Evictable Backup
+    Log  ${backup_folder}
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
+    Log  ${response}
     ${json}=        Evaluate    json.loads('''${response}''')    json
     Should Be Equal    ${json["evictable"]}    ${false}
     # ${found_word}=  Set Variable  "evictable": false
