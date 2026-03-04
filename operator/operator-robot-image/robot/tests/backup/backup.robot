@@ -53,7 +53,7 @@ Full Backup And Restore
     Create and check queue
     ${backup_folder}  Make Rabbitmq Full Backup
     Wait Job Success  job_name=${backup_folder}
-    #Delete and check queue
+    Delete and check queue
     Clean User
     Clean Vhost
 
