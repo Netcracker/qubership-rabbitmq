@@ -16,8 +16,6 @@ RUN set -x \
     apk-tools \
     python3 \
     py3-requests \
-    # && pip3 install setuptools==80.9.0 \
-    # && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
 
 # Upgrade all tools to avoid vulnerabilities
