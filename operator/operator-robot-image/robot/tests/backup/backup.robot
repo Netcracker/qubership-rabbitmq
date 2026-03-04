@@ -32,7 +32,7 @@ Check RabbitMQ Backup Endpoints
     ${json}=        Evaluate    json.loads('''${response}''')    json
     Should Be Equal    ${json["id"]}        ${backup_folder}
     Should Be Equal    ${json["failed"]}    ${false}
-    Should Be Equal    ${json["valid"]}     ${true}
+    Should Be Equal    ${json["valid"]}     ${rue}
     #${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
     #Should Contain  ${response}  ${found_word}
 
@@ -60,6 +60,8 @@ Full Backup And Restore
     ${restore_name}  Make Rabbitmq Full Restore  vault_name=${backup_folder}
     Wait Job Success  job_name=${restore_name}
     Evict Vault  vault_name=${backup_folder}
+    Create Test User And Vhost  ${TEST_USER}  ${TEST_PASSWORD}  ${TEST_VHOST}
+    sleep  ${TIMEOUT}
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
     ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
     Should Be True  ${exist}
@@ -105,8 +107,10 @@ Not Evictable Backup
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "evictable": false
-    Should Contain  ${response}  ${found_word}
+    ${json}=        Evaluate    json.loads('''${response}''')    json
+    Should Be Equal    ${json["evictable"]}    ${false}
+    # ${found_word}=  Set Variable  "evictable": false
+    # Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
