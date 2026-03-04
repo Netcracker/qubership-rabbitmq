@@ -29,8 +29,12 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
-    Should Contain  ${response}  ${found_word}
+    ${json}=        Evaluate    json.loads('''${response}''')    json
+    Should Be Equal    ${json["id"]}        ${backup_folder}
+    Should Be Equal    ${json["failed"]}    ${false}
+    Should Be Equal    ${json["valid"]}     ${true}
+    #${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
+    #Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
