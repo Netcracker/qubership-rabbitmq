@@ -32,7 +32,7 @@ Check RabbitMQ Backup Endpoints
     ${json}=        Evaluate    json.loads('''${response}''')    json
     Should Be Equal    ${json["id"]}        ${backup_folder}
     Should Be Equal    ${json["failed"]}    ${false}
-    Should Be Equal    ${json["valid"]}     ${rue}
+    Should Be Equal    ${json["valid"]}     ${true}
     #${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
     #Should Contain  ${response}  ${found_word}
 
