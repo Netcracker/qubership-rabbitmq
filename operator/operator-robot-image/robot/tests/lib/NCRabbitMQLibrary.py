@@ -672,23 +672,28 @@ class NCRabbitMQLibrary(object):
     @utils.timeout()
     def make_rabbitmq_full_backup(self):
         payload = {
-            "allow_eviction": "False"
+            "allow_eviction": "true"
         }
         res = requests.post(self._backuper_url + "/backup", json=payload, verify=self.verify)
         return res.text
 
     @utils.timeout()
     def make_rabbitmq_granular_backup(self, vhost):
-        headers = {'Content-Type': 'application/json'}
-        data = '{"dbs":["' + vhost + '"]}'
-        res = requests.post(self._backuper_url + "/backup", headers=headers, data=data, verify=self.verify)
+        payload = {
+            "allow_eviction": "false",
+            "dbs": [vhost]
+        }
+        #data = '{"dbs":["' + vhost + '"]}'
+        res = requests.post(self._backuper_url + "/backup", json=payload, verify=self.verify)
+        res.raise_for_status()
         return res.text
 
     @utils.timeout()
     def make_rabbitmq_not_evictable_backup(self):
-        headers = {'Content-Type': 'application/json'}
-        data = '{"allow_eviction":"False"}'
-        res = requests.post(self._backuper_url + "/backup", headers=headers, data=data, verify=self.verify)
+        payload = {
+            "allow_eviction": "false"
+        }
+        res = requests.post(self._backuper_url + "/backup", json=payload, verify=self.verify)
         return res.text
 
     @utils.timeout()
