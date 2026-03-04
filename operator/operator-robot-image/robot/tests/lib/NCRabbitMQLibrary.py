@@ -672,7 +672,7 @@ class NCRabbitMQLibrary(object):
     @utils.timeout()
     def make_rabbitmq_full_backup(self):
         headers = {'Content-Type': 'application/json'}
-        data = '{"allow_eviction":"True"}'
+        data = '{"allow_eviction":"False"}'
         res = requests.post(self._backuper_url + "/backup", headers=headers, data=data, verify=self.verify)
         return res.text
 
