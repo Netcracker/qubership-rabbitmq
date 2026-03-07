@@ -102,7 +102,6 @@ cluster_formation.k8s.address_type = hostname
 {{- $clusterPartitionHandling := default $defaultClusterPartition .Values.rabbitmq.cluster_partition_handling -}}
 cluster_partition_handling = {{ $clusterPartitionHandling }}
 {{- end }}
-{{- end }}
 
 {{/*
 Create the RabbitMQ SSL configuration
