@@ -95,7 +95,13 @@ cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
 cluster_formation.k8s.address_type = hostname
 {{- end }}
-cluster_partition_handling = autoheal
+{{- $defaultClusterPartition := "pause_minority" -}}
+{{- if lt (int .Values.rabbitmq.replicas) 3 -}}
+  {{- $defaultClusterPartition = "autoheal" -}}
+{{- end -}}
+{{- $clusterPartitionHandling := default $defaultClusterPartition .Values.rabbitmq.cluster_partition_handling -}}
+cluster_partition_handling = {{ $clusterPartitionHandling }}
+{{- end }}
 {{- end }}
 
 {{/*
