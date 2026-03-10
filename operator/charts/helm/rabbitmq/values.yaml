@@ -152,6 +152,13 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: gateway-system
  
   # The list of enabled plugins. For example,
   # enabledPlugins:
@@ -400,5 +407,10 @@ SERVICE_NAME: "rabbitmq"
 PART_OF: "rabbitmq"
 # Delimiter for labels
 DELIMITER: "-"
+
+GATEWAY_SYSTEM_NAME: "default-external-gateway"
+
+GATEWAY_SYSTEM_NAMESPACE: "gateway-system"
+
 # Artifact descriptor version which is installed.
 ARTIFACT_DESCRIPTOR_VERSION: ""  # TO_BE_REPLACED
