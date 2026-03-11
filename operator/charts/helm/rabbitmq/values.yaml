@@ -119,6 +119,8 @@ rabbitmq:
   eventLogging: true
   auto_reboot: false
   hostpath_configuration: false
+  # Leave empty to keep the helper-driven default: autoheal when replicas < 3, otherwise pause_minority.
+  cluster_partition_handling: ""
   ipv6_enabled: false
   ldap:
     enabled: false
