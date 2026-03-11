@@ -1,4 +1,7 @@
-{{- if and (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") (eq .Values.PAAS_PLATFORM "KUBERNETES") -}}
+{{- if .Values.rabbitmq.envoyGateway.enabled }}
+{{- if and (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") (eq .Values.PAAS_PLATFORM "KUBERNETES") }}
+{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
+
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
@@ -8,11 +11,19 @@ metadata:
     app: rabbitmq
 spec:
   parentRefs:
-    - name: {{ .Values.rabbitmq.ingress.gatewayName | default "default-external-gateway" }}
-      namespace: {{ .Values.rabbitmq.ingress.envoyNamespace | default "envoy-gateway" }}
+  {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
       port: 443
+  {{- end }}
+
   hostnames:
+  {{- if .Values.rabbitmq.envoyGateway.host }}
+    - {{ .Values.rabbitmq.envoyGateway.host | quote }}
+  {{- else if .Values.rabbitmq.ingress.host }}
     - {{ .Values.rabbitmq.ingress.host | quote }}
+  {{- end }}
+
   rules:
     - matches:
         - path:
@@ -23,7 +34,7 @@ spec:
           port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
 
 #################################################
-## Qubership custom template. BackendTLSPolicy for TLS communication between the gateway and the RabbitMQ.
+## BackendTLSPolicy for TLS communication between Gateway and RabbitMQ
 #################################################
 
 {{- if (eq (include "rabbitmq.enableTls" .) "true") }}
@@ -40,8 +51,14 @@ spec:
     - group: ""
       kind: Service
       name: rabbitmq
+
   validation:
-    hostname: {{ .Values.rabbitmq.ingress.host  | quote }}
+    {{- if .Values.rabbitmq.envoyGateway.host }}
+    hostname: {{ .Values.rabbitmq.envoyGateway.host | quote }}
+    {{- else if .Values.rabbitmq.ingress.host }}
+    hostname: {{ .Values.rabbitmq.ingress.host | quote }}
+    {{- end }}
+
     caCertificateRefs:
       - group: ""
         kind: Secret
@@ -57,16 +74,26 @@ metadata:
     app: rabbitmq
 spec:
   parentRefs:
-    - name: {{ .Values.rabbitmq.ingress.gatewayName | default "default-external-gateway" }}
-      namespace: {{ .Values.rabbitmq.ingress.envoyNamespace | default "envoy-gateway" }}
+  {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
       port: 80
+  {{- end }}
+
   hostnames:
-  - {{ .Values.rabbitmq.ingress.host | quote }}
+  {{- if .Values.rabbitmq.envoyGateway.host }}
+    - {{ .Values.rabbitmq.envoyGateway.host | quote }}
+  {{- else if .Values.rabbitmq.ingress.host }}
+    - {{ .Values.rabbitmq.ingress.host | quote }}
+  {{- end }}
+
   rules:
-  - filters:
-    - type: RequestRedirect
-      requestRedirect:
-        scheme: https
-        statusCode: 301
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+{{- end }}
+{{- end }}
 {{- end }}
 {{- end }}

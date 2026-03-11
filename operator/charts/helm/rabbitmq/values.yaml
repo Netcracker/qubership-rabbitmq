@@ -152,6 +152,13 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: envoy-gateway
  
   # The list of enabled plugins. For example,
   # enabledPlugins:
