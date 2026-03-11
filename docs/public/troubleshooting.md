@@ -1,6 +1,30 @@
 The following topics are covered in this chapter:
 
-[[_TOC_]]
+<!-- TOC -->
+* [Prometheus Alerts](#prometheus-alerts)
+  * [NoMetrics](#nometrics)
+  * [ClusterError](#clustererror)
+  * [SomePodsAreNotWorking](#somepodsarenotworking)
+  * [MemoryAlarm](#memoryalarm)
+  * [DiskAlarm](#diskalarm)
+* [Troubleshooting Scenarios](#troubleshooting-scenarios)
+  * [Dispositions](#dispositions)
+  * [Cluster Formation](#cluster-formation)
+  * [Network Partition Recovery](#network-partition-recovery)
+  * [RabbitMQ Does Not Have Enough Permissions to Form a Cluster](#rabbitmq-does-not-have-enough-permissions-to-form-a-cluster)
+  * [Queue Data Corruption](#queue-data-corruption)
+    * [Queue Index Corruption](#queue-index-corruption)
+    * [Queue Message Corruption](#queue-message-corruption)
+  * [Vhost is Down due to a Corrupted Recovery File](#vhost-is-down-due-to-a-corrupted-recovery-file)
+  * [RabbitMQ Pod Outage](#rabbitmq-pod-outage)
+  * [RabbitMQ Process Failure](#rabbitmq-process-failure)
+  * [Memory Limit Alarm](#memory-limit-alarm)
+  * [Disk Limit Alarm](#disk-limit-alarm)
+  * [Disk Failure on One Node](#disk-failure-on-one-node)
+  * [Problems with .erlang.cookie](#problems-with-erlangcookie)
+  * [badmatch,{error,einval} error on NFS Storage](#badmatcherror-einval-error-on-nfs-storage)
+  * [Operator Contains "Object is being deleted: statefulsets.apps already exists..." Error](#operator-contains-object-is-being-deleted-statefulsetsapps-already-exists-error)
+<!-- TOC -->
 
 This section provides detailed troubleshooting procedures for the RabbitMQ cluster.
 
