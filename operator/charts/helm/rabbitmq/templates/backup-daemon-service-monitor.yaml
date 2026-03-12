@@ -11,7 +11,7 @@ metadata:
 spec:
   endpoints:
     - interval: 30s
-      path: /health/prometheus
+      path: /health
       {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
       scheme: https
       tlsConfig:

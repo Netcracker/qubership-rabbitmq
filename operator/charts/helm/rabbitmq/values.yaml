@@ -256,6 +256,10 @@ tests:
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
 backupDaemon:
+  cloudBackuper:
+    useBackupDaemon: true
+    backupDaemonCredentials: true
+    excludeFromPhysicalBackup: true
   tls:
     enabled: true
     certificates:
