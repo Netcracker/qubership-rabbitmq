@@ -121,13 +121,17 @@ spec:
       storage: {{ default "1024Mi" .Values.rabbitmq.resources.storage }}
       storageclass: {{ default "" (include "rabbitmq.storageclass" .) }}
     livenessProbe:
-      {{- with .Values.rabbitmq.livenessProbe }}
-      {{- toYaml . | nindent 6 -}}
-      {{- end }}
+      initialDelaySeconds: {{ default "10" .Values.rabbitmq.livenessProbe.initialDelaySeconds }}
+      timeoutSeconds: {{ default "15" .Values.rabbitmq.livenessProbe.timeoutSeconds }}
+      periodSeconds: {{ default "30" .Values.rabbitmq.livenessProbe.periodSeconds }}
+      successThreshold: {{ default "1" .Values.rabbitmq.livenessProbe.successThreshold }}
+      failureThreshold: {{ default "30" .Values.rabbitmq.livenessProbe.failureThreshold }}
     readinessProbe:
-      {{- with .Values.rabbitmq.readinessProbe }}
-      {{- toYaml . | nindent 6 -}}
-      {{- end }}
+      initialDelaySeconds: {{ default "10" .Values.rabbitmq.readinessProbe.initialDelaySeconds }}
+      timeoutSeconds: {{ default "15" .Values.rabbitmq.readinessProbe.timeoutSeconds }}
+      periodSeconds: {{ default "10" .Values.rabbitmq.readinessProbe.periodSeconds }}
+      successThreshold: {{ default "1" .Values.rabbitmq.readinessProbe.successThreshold }}
+      failureThreshold: {{ default "90" .Values.rabbitmq.readinessProbe.failureThreshold }}
     environmentVariables:
       - "ERL_MAX_PORTS=65536"
     {{- range .Values.rabbitmq.environmentVariables }}
