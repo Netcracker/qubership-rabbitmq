@@ -11,16 +11,16 @@ metadata:
     app: rabbitmq
 spec:
   parentRefs:
-  {{- if .Values.rabbitmq.envoyGateway.parentRefs }}
+  {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
+    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
+      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
+      port: 443
+  {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - name: {{ .name }}
       namespace: {{ .namespace }}
       port: 443
   {{- end }}
-  {{- else }}
-    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
-      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
-      port: 443
   {{- end }}
 
   hostnames:
@@ -80,16 +80,16 @@ metadata:
     app: rabbitmq
 spec:
   parentRefs:
-  {{- if .Values.rabbitmq.envoyGateway.parentRefs }}
+  {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
+    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
+      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
+      port: 80
+  {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - name: {{ .name }}
       namespace: {{ .namespace }}
       port: 80
   {{- end }}
-  {{- else }}
-    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
-      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
-      port: 80
   {{- end }}
 
   hostnames:
