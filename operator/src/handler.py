@@ -1651,7 +1651,7 @@ def cleanup(logger, **_):
     logger.info("Cleanup hook triggered. Operator is shutting down.")
 
 
-@kopf.on.delete(api_group,'v1', 'namespaces')
+@kopf.on.delete('v1', 'namespaces')
 def release_finalizers_on_namespace_delete(meta, logger, **_):
     namespace_name = (meta.get('name') if meta else None) or ""
     namespace_name = namespace_name.strip()
