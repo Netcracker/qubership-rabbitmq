@@ -1,6 +1,5 @@
 {{- if .Values.rabbitmq.envoyGateway.enabled }}
 {{- if and (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") (eq .Values.PAAS_PLATFORM "KUBERNETES") }}
-{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
 
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
@@ -105,7 +104,6 @@ spec:
           requestRedirect:
             scheme: https
             statusCode: 301
-{{- end }}
 {{- end }}
 {{- end }}
 {{- end }}
