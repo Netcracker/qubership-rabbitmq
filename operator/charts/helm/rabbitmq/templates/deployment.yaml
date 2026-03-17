@@ -39,6 +39,7 @@ spec:
       {{- if .Values.operator.priorityClassName }}
       priorityClassName: {{ .Values.operator.priorityClassName | quote }}
       {{- end }}
+      terminationGracePeriodSeconds: 60
       {{- if or (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) (eq (include "disasterRecovery.enableTls" .) "true") (eq (include "backupDaemon.enableTls" .) "true") }}
       volumes:
       {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}

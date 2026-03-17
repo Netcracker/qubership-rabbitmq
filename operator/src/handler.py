@@ -107,6 +107,8 @@ if operator_need_to_delete_resources in positive_values:
     optional_delete = False
 handle_forbidden_update = os.getenv("HANDLE_FORBIDDEN_UPDATE", "True") in positive_values
 
+KOPF_FINALIZER = "kopf.zalando.org/KopfFinalizerMarker"
+
 k8s_client = None
 
 try:
@@ -1590,12 +1592,75 @@ def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) ->
     return task_id
 
 
+def _remove_kopf_finalizers_from_namespace(namespace_name: str, logger) -> None:
+    namespace_name = (namespace_name or "").strip()
+    if not namespace_name:
+        logger.warning("Skip removing finalizers: namespace name is empty")
+        return
+
+    custom_objects_api = client.CustomObjectsApi()
+    try:
+        cr_list = custom_objects_api.list_namespaced_custom_object(
+            group=api_group,
+            version=cr_version,
+            namespace=namespace_name,
+            plural='rabbitmqservices'
+        )
+    except ApiException as exc:
+        if exc.status == 404:
+            logger.info(f"Namespace {namespace_name} already removed or no RabbitMQ CRDs found")
+            return
+        logger.error(f"Failed to list RabbitMQ CRDs in namespace {namespace_name}: {exc}")
+        return
+
+    for cr in cr_list.get('items', []):
+        metadata = cr.get('metadata') or {}
+        cr_name = metadata.get('name')
+        finalizers = metadata.get('finalizers') or []
+        filtered_finalizers = [finalizer for finalizer in finalizers if finalizer != KOPF_FINALIZER]
+        if len(filtered_finalizers) == len(finalizers):
+            continue
+        if not cr_name:
+            logger.warning("Skip removing finalizer from CR without name")
+            continue
+        body = {'metadata': {'finalizers': filtered_finalizers}}
+        try:
+            custom_objects_api.patch_namespaced_custom_object(
+                group=api_group,
+                version=cr_version,
+                namespace=namespace_name,
+                plural='rabbitmqservices',
+                name=cr_name,
+                body=body
+            )
+            logger.info(f"Removed kopf finalizer from CR {cr_name} due to namespace deletion")
+        except ApiException as exc:
+            logger.error(f"Failed to remove kopf finalizer from CR {cr_name}: {exc}")
+
+
 @kopf.on.startup()
 def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
     settings.posting.enabled = False
+
+
+@kopf.on.cleanup()
+def cleanup(logger, **_):
+    logger.info("Cleanup hook triggered. Operator is shutting down.")
+
+
+@kopf.on.delete(api_group,'v1', 'namespaces')
+def release_finalizers_on_namespace_delete(meta, logger, **_):
+    namespace_name = (meta.get('name') if meta else None) or ""
+    namespace_name = namespace_name.strip()
+    operator_namespace = (KubernetesHelper.get_namespace() or "").strip()
+    if namespace_name != operator_namespace:
+        logger.debug(f"Skip namespace deletion event for {namespace_name}")
+        return
+    logger.info(f"Namespace {namespace_name} deletion detected. Removing kopf finalizers from RabbitMQ CRs")
+    _remove_kopf_finalizers_from_namespace(namespace_name, logger)
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
