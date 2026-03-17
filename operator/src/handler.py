@@ -14,6 +14,7 @@
 
 import base64
 import logging
+import math
 import os
 import pprint
 import re
@@ -165,6 +166,29 @@ class KubernetesHelper:
             return deserializedsecuritycontext
         else:
             return None
+
+    @staticmethod
+    def _is_deployment_ready(deploy) -> bool:
+        desired = deploy.spec.replicas or 1
+        st = deploy.status or None
+        ready = (st.ready_replicas or 0) if st else 0
+        updated = (st.updated_replicas or 0) if st else 0
+        available = min(ready, updated)
+        return desired == available
+
+    def _wait_backup_daemon_deployment_ready(self, deployment) -> bool:
+        timeout = self._spec.get('global', {}).get('podReadinessTimeout', 180)
+        interval = 10
+        attempts = math.ceil(timeout / interval)
+        for _ in range(attempts):
+            try:
+                if self._is_deployment_ready(deployment):
+                    return True
+                logger.info("Backup daemon deployment is not ready yet.")
+            except Exception as e:
+                logger.debug("Cannot read backup daemon deployment yet (%s). Wait 30 seconds.", e)
+            time.sleep(10)
+        return False
 
     def get_liveness_probe(self, name):
         if self.is_hostpath():
@@ -1268,6 +1292,46 @@ class KubernetesHelper:
 
         logger.info("Shovel plugin restarted successfully")
 
+    def enable_feature_flags_for_pod(self, pod_name):
+        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                """
+                    if rabbitmqctl enable_feature_flag all 2>&1 \
+                        | grep -q "Enabling all feature flags"; then
+                        echo "success"
+                    else
+                        echo "failed"
+                        exit 1
+                    fi
+                """
+            ]
+        )
+        logger.debug("Enable feature flags output: {}".format(output))
+        if "failed" in output:
+            raise RuntimeError(
+                f"Failed to enable feature flags in pod {pod_name}"
+            )
+
+    def nodes_enable_feature_flags(self):
+        if self._check_rabbit_pods_running() is False:
+            raise RuntimeError("Not all RabbitMQ pods are running")
+        
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            try:
+                self.enable_feature_flags_for_pod(pod_name)
+                logger.info("Successfully enable RabbitMQ feature flags in pod %s",pod_name)
+            except RuntimeError as e:
+                logger.error("Failed to enable RabbitMQ feature flags in pod %s: %s", pod_name, e)
+                raise RuntimeError(f"Failed to enable RabbitMQ feature flags in pod {pod_name}: {e}")
+
+        logger.info("Feature flags are enabled successfully")
+
     def enable_feature_flags(self):
         if self.is_hostpath():
             self.exec_command_in_pod(pod_name='rmqlocal-0-0',
@@ -1454,12 +1518,10 @@ class KubernetesHelper:
             mode = self._spec.get('disasterRecovery').get('mode', None)
         else:
             mode = 'None'
-        timeout = self._spec.get('global').get('podReadinessTimeout', 180)
         if (backup_daemon_enabled in positive_values) and mode != 'standby':
             deployment = self._apps_v1_api.read_namespaced_deployment(name=name, namespace=self._workspace)
             if deployment is not None:
-                backup_helper = BackupHelper(namespace=self._workspace, custom_url=backup_daemon_url, verify=self.get_backup_daemon_auth())
-                result = backup_helper.check_backup_daemon_readiness(timeout)
+                result = self._wait_backup_daemon_deployment_ready(deployment)
                 logger.debug(f'Backup daemon is ready: {result}')
                 return result
         return True
@@ -1790,7 +1852,19 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
+    if rabbit_exist_before:
+        try:
+            logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+            kub_helper.nodes_enable_feature_flags()
+        except RuntimeError:
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "RabbitMQ upgrade failed: failed to enable all feature flags"
+            )
+            raise kopf.PermanentError("RabbitMQ upgrade failed.")
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():

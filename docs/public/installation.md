@@ -4,7 +4,46 @@ It can be deployed manually through helm in OpenShift or Kubernetes.
 For this deployment, only the storage class and local PV configurations are supported.
 Overall, the RabbitMQ configuration is similar to the RabbitMQ deployed with an OpenShift deployer, except that the OpenShift route is not created when deploying with the operator.
 <!-- #GFCFilterMarkerStart# -->
-[[_TOC_]]
+The following topics are covered in this chapter:
+
+<!-- TOC -->
+* [Prerequisites](#prerequisites)
+  * [Common](#common)
+    * [Custom Resource Definitions](#custom-resource-definitions)
+    * [Deployment Permissions](#deployment-permissions)
+    * [Kubernetes](#kubernetes)
+    * [OpenShift](#openshift)
+    * [Google Cloud](#google-cloud)
+    * [AWS](#aws)
+* [Best Practices and Recommendations](#best-practices-and-recommendations)
+  * [HWE](#hwe)
+    * [Small](#small)
+    * [Medium](#medium)
+    * [Large](#large)
+* [Parameters](#parameters)
+  * [Cloud Integration Parameters](#cloud-integration-parameters)
+  * [Global](#global)
+  * [Operator](#operator)
+  * [External RabbitMQ](#external-rabbitmq)
+  * [Disaster Recovery](#disaster-recovery)
+  * [RabbitMQ](#rabbitmq)
+    * [Partition handling](#partition-handling)
+  * [Backup Daemon](#backup-daemon)
+  * [Tests](#tests)
+  * [Monitoring](#monitoring)
+  * [Status Provisioner](#status-provisioner)
+* [Installation](#installation)
+  * [Before You Begin](#before-you-begin)
+    * [Helm](#helm)
+* [Upgrade](#upgrade)
+  * [Common](#common-1)
+  * [Scale-In Cluster](#scale-in-cluster)
+  * [Rolling Upgrade](#rolling-upgrade)
+  * [CRD Upgrade](#crd-upgrade)
+  * [Migration](#migration)
+* [Additional Features](#additional-features)
+  * [Multiple Availability Zone Deployment](#multiple-availability-zone-deployment)
+<!-- TOC -->
 <!-- #GFCFilterMarkerEnd# -->
 # Prerequisites
 
@@ -640,6 +679,7 @@ It can be done manually or automatically through jobs.
 | rabbitmq.clean_rabbitmq_pvs                               | boolean | no        | `false`                                                                                                                 | When set to "true", RabbitMQ tries to clean the PVs specified in the `PV_NAME` parameter. **Warning**: When upgrading RabbitMQ, setting this parameter to "true" deletes all the RabbitMQ user data from the previous installation, including messages, queues, users, vhosts, and so on.                                                                                                                                                                                                                                                                                      |
 | rabbitmq.auto_reboot                                      | boolean | no        | `false`                                                                                                                 | This parameter specifies the RabbitMQ upgrade. If set to "false", the new configuration is applied, but the RabbitMQ pods are not rebooted. This means that the new configuration is not applied until the pods are rebooted for any reason (with the exception of the default password - the new password is applied even without the reboot). If set to "true", the RabbitMQ pods are rebooted one after the other during the update, and it checks the cluster formation.                                                                                                   |
 | rabbitmq.hostpath_configuration                           | boolean | no        | `false`                                                                                                                 | This parameter specifies whether local PVs can be used. If set to "true", RabbitMQ tries to deploy on local PVs using the PV and node values/labels provided in other parameters. If set to "false", RabbitMQ is deployed using the storage class. <br> **Note**: The `hostpath` configuration is obsolete, consider using the storage class.                                                                                                                                                                                                                                  |
+| rabbitmq.cluster_partition_handling                       | string  | no        | `""`                                                                                                                  | Controls RabbitMQ's `cluster_partition_handling` setting. Leave it empty to use the helper-driven default: clusters with fewer than three replicas are rendered with `autoheal`, while clusters with three or more replicas use `pause_minority`. Provide a value (for example, `ignore`, `autoheal`, `pause_minority`) only when you must override this logic. See [Partition handling](#partition-handling) for detailed mode descriptions. |
 | rabbitmq.validate_state                                   | boolean | no        | `false`                                                                                                                 | This parameter specifies the validation of cluster formation during the RabbitMQ installation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | rabbitmq.custom_params.rabbitmq_cluster_name              | string  | no        | `rabbitmq`                                                                                                              | This parameter specifies the RabbitMQ cluster_name. It is used to identify a cluster, and by the federation and Shovel plugins to record the origin or path of transferred messages. For example, `rabbitmq`.                                                                                                                                                                                                                                                                                                                                                                  |
 | rabbitmq.custom_params.rabbitmq_vm_memory_high_watermark  | string  | no        | `80%`                                                                                                                   | This parameter specifies the RabbitMQ vm_memory_high_watermark. It sets RabbitMQ memory as a percentage of the maximum available memory in a pod. For example, `80%`. For more information about the `vm_memory_high_watermark` parameter, refer to the official RabbitMQ documentation at [https://www.rabbitmq.com/memory.html](https://www.rabbitmq.com/memory.html).                                                                                                                                                                                                       |
@@ -721,6 +761,16 @@ Where:
        successThreshold: 1
        failureThreshold: 90
    ```
+### Partition handling
+
+Clusters with one or two replicas automatically render `cluster_partition_handling = autoheal`, which is better suited for small footprints where maintaining availability is more important than strict quorum guarantees. Deployments with three or more replicas render `cluster_partition_handling = pause_minority` to minimize the chances of split-brain situations. Override `rabbitmq.cluster_partition_handling` only when your topology requires different behavior.
+
+**Partition handling options.** RabbitMQ exposes several strategies you can opt into when overriding the default:
+- **`ignore`** keeps all nodes running regardless of partitions and favors availability over consistency. Use it only on highly reliable networks where split-brain risk is negligible.
+- **`pause_minority`** automatically pauses nodes that detect themselves in the minority (half or fewer of the total nodes). This prevents diverging writes and is recommended for clusters stretched across racks or zones where maintaining data integrity matters more than keeping every node online.
+- **`autoheal`** elects a winning partition when connectivity is restored, then restarts nodes that were on the losing side to sync them to the winner. Choose it when service continuity is more critical than preserving every in-flight message.
+
+For deeper guidance on when to pick each mode, see the [RabbitMQ partition handling documentation](https://www.rabbitmq.com/docs/partitions#options).
 
 ## Backup Daemon
 

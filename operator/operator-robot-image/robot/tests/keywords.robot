@@ -76,7 +76,10 @@ Check Vhost
     Should Contain  ${vhosts}   ${TEST_VHOST}
 
 Create And Check Queue
-    NCRabbitMQLibrary.Create Queue    vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
+    [Arguments]  ${queue_type}=${EMPTY}
+    Run Keyword If  '${queue_type}'=='quorum'
+    ...  NCRabbitMQLibrary.Create Queue  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}  queue_type=quorum
+    ...  ELSE  NCRabbitMQLibrary.Create Queue  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
     ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
     Should Be True  ${exist}
 
@@ -87,6 +90,15 @@ Check Cluster
 
     ${alive}=  Is Cluster Alive  ${replicas}
     Should Be True  ${alive}
+
+Wait For RabbitMQ Pods Ready
+    ${expected}=  Get Rabbitmq Replicas
+    Wait Until Keyword Succeeds  5 min  15 s  Check Rabbitmq Ready Replicas  ${expected}
+
+Check Rabbitmq Ready Replicas
+    [Arguments]  ${expected}
+    ${ready}=  Get Rabbitmq Ready Replicas
+    Should Be Equal As Integers  ${expected}  ${ready}
 
 Delete And Check Queue
     NCRabbitMQLibrary.Delete Queue  ${TEST_VHOST}  ${TEST_QUEUE}

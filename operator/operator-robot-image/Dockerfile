@@ -12,6 +12,8 @@ ENV STATUS_CUSTOM_RESOURCE_NAME=rabbitmq-integration-tests
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
+RUN set -x && apk upgrade --no-cache --available
+
 RUN mkdir -p ${ROBOT_HOME} \
     && mkdir -p ${ROBOT_OUTPUT}
 

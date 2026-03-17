@@ -43,7 +43,7 @@ operator:
   pullPolicy: "Always"
   enableOperatorShovelMonitoring: true
   restartScheduler:
-    dockerImage: bitnami/kubectl:1.30.6
+    dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main
     enabled: true
     schedule: "0 0 * * *"
     affinity: {}
@@ -119,6 +119,8 @@ rabbitmq:
   eventLogging: true
   auto_reboot: false
   hostpath_configuration: false
+  # Leave empty to keep the helper-driven default: autoheal when replicas < 3, otherwise pause_minority.
+  cluster_partition_handling: ""
   ipv6_enabled: false
   ldap:
     enabled: false
@@ -152,6 +154,7 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+ 
   # The list of enabled plugins. For example,
   # enabledPlugins:
   #   - rabbitmq_shovel
