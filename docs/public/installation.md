@@ -169,6 +169,7 @@ To avoid using `cluster-wide` rights during the deployment, the following condit
         - list
         - patch
         - update
+        - watch
     - apiGroups:
         - networking.k8s.io
       resources:
