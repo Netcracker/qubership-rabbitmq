@@ -132,3 +132,4 @@ Granular Backup With A Lot Of Queues
     Bulk Delete Queue  count=${ITERATIONS}  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}
     Clean User
     Clean Vhost
+    
