@@ -464,18 +464,21 @@ Ingress host for RabbitMQ
 DNS names used to generate SSL certificate with "Subject Alternative Name" field
 */}}
 {{- define "rabbitmq.certDnsNames" -}}
-  {{- $rabbitmqName := "rabbitmq" -}}
-  {{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
-  {{- $nodes := .Values.rabbitmq.replicas -}}
-  {{- $rabbitmqNamespace := .Release.Namespace -}}
-  {{- range $i, $e := until ($nodes | int) -}}
-    {{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
-  {{- end -}}
-  {{ if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
-  {{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
-  {{- end -}}
-  {{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
-  {{- $dnsNames | toYaml -}}
+{{- $rabbitmqName := "rabbitmq" -}}
+{{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
+{{- $nodes := .Values.rabbitmq.replicas -}}
+{{- $rabbitmqNamespace := .Release.Namespace -}}
+{{- range $i, $e := until ($nodes | int) -}}
+{{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
+{{- end -}}
+{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
+{{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
+{{- end -}}
+{{- if .Values.rabbitmq.envoyGateway.host }}
+{{- $dnsNames = append $dnsNames .Values.rabbitmq.envoyGateway.host }}
+{{- end }}
+{{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
+{{- $dnsNames | toYaml -}}
 {{- end -}}
 
 {{/*
