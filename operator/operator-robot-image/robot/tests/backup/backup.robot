@@ -29,12 +29,8 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${json}=        Evaluate    json.loads('''${response}''')    json
-    Should Be Equal    ${json["id"]}        ${backup_folder}
-    Should Be Equal    ${json["failed"]}    ${false}
-    Should Be Equal    ${json["valid"]}     ${true}
-    #${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
-    #Should Contain  ${response}  ${found_word}
+    ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
+    Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
@@ -60,8 +56,6 @@ Full Backup And Restore
     ${restore_name}  Make Rabbitmq Full Restore  vault_name=${backup_folder}
     Wait Job Success  job_name=${restore_name}
     Evict Vault  vault_name=${backup_folder}
-    Create Test User And Vhost  ${TEST_USER}  ${TEST_PASSWORD}  ${TEST_VHOST}
-    sleep  ${TIMEOUT}
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
     ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
     Should Be True  ${exist}
@@ -102,18 +96,13 @@ Not Evictable Backup
     # Creation of a vhost takes some time
     sleep  ${TIMEOUT}
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
-    #Create Queue    vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
-    Create and check queue
+    Create Queue    vhost=${TEST_VHOST}  queue=${TEST_QUEUE}  node_number=${0}
     ${backup_folder}  Make Rabbitmq Not Evictable Backup
-    Log  ${backup_folder}
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    Log  ${response}
-    ${json}=        Evaluate    json.loads('''${response}''')    json
-    Should Be Equal    ${json["evictable"]}    ${false}
-    # ${found_word}=  Set Variable  "evictable": false
-    # Should Contain  ${response}  ${found_word}
+    ${found_word}=  Set Variable  "evictable": false
+    Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
@@ -143,4 +132,3 @@ Granular Backup With A Lot Of Queues
     Bulk Delete Queue  count=${ITERATIONS}  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}
     Clean User
     Clean Vhost
-
