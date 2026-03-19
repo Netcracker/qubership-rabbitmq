@@ -853,6 +853,42 @@ spec:
                       items:
                         type: string
                       type: array
+                    livenessProbe:
+                      properties:
+                        initialDelaySeconds:
+                          format: int64
+                          type: integer
+                        timeoutSeconds:
+                          format: int64
+                          type: integer
+                        periodSeconds:
+                          format: int64
+                          type: integer
+                        successThreshold:
+                          format: int64
+                          type: integer
+                        failureThreshold:
+                          format: int64
+                          type: integer
+                      type: object
+                    readinessProbe:
+                      properties:
+                        initialDelaySeconds:
+                          format: int64
+                          type: integer
+                        timeoutSeconds:
+                          format: int64
+                          type: integer
+                        periodSeconds:
+                          format: int64
+                          type: integer
+                        successThreshold:
+                          format: int64
+                          type: integer
+                        failureThreshold:
+                          format: int64
+                          type: integer
+                      type: object
                   type: object
               type: object
           type: object
@@ -937,6 +973,42 @@ spec:
                       items:
                         type: string
                       type: array
+                    livenessProbe:
+                      properties:
+                        initialDelaySeconds:
+                          format: int64
+                          type: integer
+                        timeoutSeconds:
+                          format: int64
+                          type: integer
+                        periodSeconds:
+                          format: int64
+                          type: integer
+                        successThreshold:
+                          format: int64
+                          type: integer
+                        failureThreshold:
+                          format: int64
+                          type: integer
+                      type: object
+                    readinessProbe:
+                      properties:
+                        initialDelaySeconds:
+                          format: int64
+                          type: integer
+                        timeoutSeconds:
+                          format: int64
+                          type: integer
+                        periodSeconds:
+                          format: int64
+                          type: integer
+                        successThreshold:
+                          format: int64
+                          type: integer
+                        failureThreshold:
+                          format: int64
+                          type: integer
+                      type: object
                   type: object
                 tests:
                   properties:
