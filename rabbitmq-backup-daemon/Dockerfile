@@ -1,11 +1,10 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:feat_api_backward_compatibility
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
     USER_UID=1000
 
 COPY backup-daemon.conf /etc/backup-daemon.conf
 COPY scripts/ ${RABBITMQ_HOME}/scripts/
-#COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
 RUN chmod +x ${RABBITMQ_HOME}/scripts/*.py
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
@@ -20,8 +19,6 @@ RUN set -x \
 
 # Upgrade all tools to avoid vulnerabilities
 RUN set -x && apk upgrade --no-cache --available
-
-#WORKDIR ${RABBITMQ_HOME}
 
 VOLUME ["${RABBITMQ_BACKUP}"]
 
