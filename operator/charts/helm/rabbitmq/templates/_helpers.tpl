@@ -607,6 +607,17 @@ Backup Daemon Port
 {{- end -}}
 
 {{/*
+Backup Daemon Protocol
+*/}}
+{{- define "backupDaemon.Protocol" -}}
+  {{- if (eq (include "backupDaemon.enableTls" .) "true") -}}
+    {{- "https" -}}
+  {{- else -}}
+    {{- "http" -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Whether Backup Daemon certificates are Specified
 */}}
 {{- define "backupDaemon.certificatesSpecified" -}}
