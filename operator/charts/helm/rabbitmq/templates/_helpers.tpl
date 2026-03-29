@@ -611,9 +611,9 @@ Backup Daemon Protocol
 */}}
 {{- define "backupDaemon.Protocol" -}}
   {{- if (eq (include "backupDaemon.enableTls" .) "true") -}}
-    {{- "https" -}}
+    {{- "HTTPS" -}}
   {{- else -}}
-    {{- "http" -}}
+    {{- "HTTP" -}}
   {{- end -}}
 {{- end -}}
 
