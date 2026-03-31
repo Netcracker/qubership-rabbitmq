@@ -29,7 +29,7 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
+    ${found_word}=  Set Variable  "id":"${backup_folder}","failed":false
     Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
@@ -80,6 +80,7 @@ Granular Backup And Restore
      ${restore_name}  Make Rabbitmq Granular Restore  vault_name=${backup_folder}  vhost=${TEST_VHOST}
      Wait Job Success  job_name=${restore_name}
      Evict Vault  vault_name=${backup_folder}
+     Sleep    30s
      Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
      ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
      Should Be True  ${exist}
@@ -101,7 +102,7 @@ Not Evictable Backup
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "evictable": false
+    ${found_word}=  Set Variable  "evictable":false
     Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
@@ -126,6 +127,7 @@ Granular Backup With A Lot Of Queues
     ${restore_name}  Make Rabbitmq Granular Restore  vault_name=${backup_folder}  vhost=${TEST_VHOST}
     Wait Job Success  job_name=${restore_name}
     Evict Vault  vault_name=${backup_folder}
+    Sleep    30s
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
     ${exist}=  Bulk Queue Exist  count=${ITERATIONS}  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}
     Should Be True  ${exist}
