@@ -1,4 +1,28 @@
-[[_TOC_]]
+<!-- #GFCFilterMarkerStart# -->
+The following topics are covered in this chapter:
+
+<!-- TOC -->
+* [RabbitMQ Monitoring](#rabbitmq-monitoring)
+  * [RabbitMQ Overview Dashboard](#rabbitmq-overview-dashboard)
+    * [Kubernetes Metrics Overview](#kubernetes-metrics-overview)
+    * [Rabbit Overview](#rabbit-overview)
+    * [Nodes](#nodes)
+    * [Queued Messages](#queued-messages)
+    * [Incoming Messages](#incoming-messages)
+    * [Outgoing Messages](#outgoing-messages)
+    * [Queues](#queues)
+    * [Channels](#channels)
+    * [Connections](#connections)
+  * [Erlang Distribution Dashboard](#erlang-distribution-dashboard)
+  * [RabbitMQ Queues Dashboard](#rabbitmq-queues-dashboard)
+    * [List of all queues](#list-of-all-queues)
+    * [Queue Messages Numbers](#queue-messages-numbers)
+    * [Queue Messages Memory](#queue-messages-memory)
+    * [Other Queue Metrics](#other-queue-metrics)
+  * [Table of Metrics](#table-of-metrics)
+  * [RabbitMQ Prometheus Alerts](#rabbitmq-prometheus-alerts)
+<!-- TOC -->
+<!-- #GFCFilterMarkerEnd# -->
 
 # RabbitMQ Monitoring
 
