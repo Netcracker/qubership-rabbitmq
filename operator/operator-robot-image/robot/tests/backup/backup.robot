@@ -29,7 +29,7 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id":"${backup_folder}","failed":false
+    ${found_word}=  Set Variable  "id":"${backup_folder}","failed":false,
     Should Contain  ${response}  ${found_word}
 
     Evict Vault  vault_name=${backup_folder}
