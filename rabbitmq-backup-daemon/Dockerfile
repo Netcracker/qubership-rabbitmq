@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:fix_tests_and_remove_redundant_code
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
     USER_UID=1000
