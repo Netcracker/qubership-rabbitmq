@@ -12,7 +12,7 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositor
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN set -x \
-    && apk add --update --no-cache curl apk-tools \
+    && apk add --update --no-cache curl apk-tools python3 py3-pip \
     && pip3 install setuptools==80.9.0 \
     && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
