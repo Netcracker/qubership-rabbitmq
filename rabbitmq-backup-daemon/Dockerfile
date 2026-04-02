@@ -13,7 +13,8 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositor
 
 RUN set -x \
     && apk add --update --no-cache curl apk-tools python3 py3-pip \
-    && pip3 install setuptools==80.9.0 \
+    && if pip3 install --help | grep -q -- '--break-system-packages'; then PIP_BREAK_FLAG='--break-system-packages'; else PIP_BREAK_FLAG=''; fi \
+    && pip3 install --no-cache-dir ${PIP_BREAK_FLAG} setuptools==80.9.0 \
     && pip3 install -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
 
