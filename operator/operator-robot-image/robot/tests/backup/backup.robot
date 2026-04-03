@@ -29,8 +29,9 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id":"${backup_folder}","failed":false,
-    Should Contain  ${response}  ${found_word}
+    ${json}=  Evaluate  json.loads('''${response}''')  json
+    Should Be Equal As Strings  ${json['id']}  ${backup_folder}
+    Should Not Be True  ${json['failed']}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
@@ -102,8 +103,8 @@ Not Evictable Backup
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "evictable":false
-    Should Contain  ${response}  ${found_word}
+    ${json}=  Evaluate  json.loads('''${response}''')  json
+    Should Not Be True  ${json['evictable']}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
