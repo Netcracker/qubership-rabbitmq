@@ -1,4 +1,5 @@
 FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
+
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
     USER_UID=1000:0
@@ -24,6 +25,8 @@ RUN set -x \
 # Upgrade all tools to avoid vulnerabilities
 RUN set -x && apk upgrade --no-cache --available
 
-VOLUME ["${RABBITMQ_BACKUP}"]
 
 USER ${USER_UID}
+
+VOLUME ["${RABBITMQ_BACKUP}"]
+
