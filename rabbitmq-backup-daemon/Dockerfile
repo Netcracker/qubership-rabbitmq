@@ -4,6 +4,8 @@ ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
     USER_UID=1000:0
 
+    #test 
+    
 COPY backup-daemon.conf /etc/backup-daemon.conf
 COPY scripts/ ${RABBITMQ_HOME}/scripts/
 COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
