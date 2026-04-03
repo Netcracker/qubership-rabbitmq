@@ -71,8 +71,8 @@ the [Deployment Permissions](#deployment-permissions) section before the install
 **Note**: If you deploy RabbitMQ Service to Kubernetes version less than 1.16, you have to manually install [CRD](/docs/sources/crds/oc311crd.yaml) and disable automatic CRD creation by Helm in the following
 way:
 
-* Specify `--skip-crds` in the `ADDITIONAL_OPTIONS` parameter of the DP Deployer job.
-* Specify `DISABLE_CRD=true;` in the `CUSTOM_PARAMS` parameter of the Groovy Deployer job.
+* Specify `--skip-crds` in the `ADDITIONAL_OPTIONS`.
+* Specify `DISABLE_CRD=true;` in the `CUSTOM_PARAMS`.
 
 ### Deployment Permissions
 
@@ -271,7 +271,7 @@ The following rules require `cluster-wide` permissions. If it is not possible to
   ```
   <!-- #GFCFilterMarkerEnd# -->
 
-* For integration with NC Monitoring, ensure that NC Monitoring is installed in the cluster and the cluster has monitoring entities defined CRDs for
+* For integration with Monitoring, ensure that Monitoring is installed in the cluster and the cluster has monitoring entities defined CRDs for
   ServiceMonitor, PrometheusRule, and GrafanaDashboard.
   In this case, the rules mentioned earlier grant permissions for the monitoring entities. However, permissions for monitoring entities can be added separately later if required.
   For example:
