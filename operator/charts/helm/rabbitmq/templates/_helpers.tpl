@@ -95,7 +95,8 @@ cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
 cluster_formation.k8s.address_type = hostname
 {{- end }}
-cluster_partition_handling = autoheal
+{{ $defaultClusterPartition := lt (int .Values.rabbitmq.replicas) 3 | ternary "autoheal" "pause_minority" }}
+cluster_partition_handling = {{ default $defaultClusterPartition .Values.rabbitmq.cluster_partition_handling }}
 {{- end }}
 
 {{/*
@@ -463,18 +464,21 @@ Ingress host for RabbitMQ
 DNS names used to generate SSL certificate with "Subject Alternative Name" field
 */}}
 {{- define "rabbitmq.certDnsNames" -}}
-  {{- $rabbitmqName := "rabbitmq" -}}
-  {{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
-  {{- $nodes := .Values.rabbitmq.replicas -}}
-  {{- $rabbitmqNamespace := .Release.Namespace -}}
-  {{- range $i, $e := until ($nodes | int) -}}
-    {{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
-  {{- end -}}
-  {{ if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
-  {{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
-  {{- end -}}
-  {{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
-  {{- $dnsNames | toYaml -}}
+{{- $rabbitmqName := "rabbitmq" -}}
+{{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
+{{- $nodes := .Values.rabbitmq.replicas -}}
+{{- $rabbitmqNamespace := .Release.Namespace -}}
+{{- range $i, $e := until ($nodes | int) -}}
+{{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
+{{- end -}}
+{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
+{{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
+{{- end -}}
+{{- if .Values.rabbitmq.envoyGateway.host }}
+{{- $dnsNames = append $dnsNames .Values.rabbitmq.envoyGateway.host }}
+{{- end }}
+{{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
+{{- $dnsNames | toYaml -}}
 {{- end -}}
 
 {{/*

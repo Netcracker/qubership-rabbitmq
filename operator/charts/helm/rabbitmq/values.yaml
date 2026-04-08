@@ -119,6 +119,8 @@ rabbitmq:
   eventLogging: true
   auto_reboot: false
   hostpath_configuration: false
+  # Leave empty to keep the helper-driven default: autoheal when replicas < 3, otherwise pause_minority.
+  cluster_partition_handling: ""
   ipv6_enabled: false
   ldap:
     enabled: false
@@ -152,6 +154,14 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: gateway-system
+ 
   # The list of enabled plugins. For example,
   # enabledPlugins:
   #   - rabbitmq_shovel
