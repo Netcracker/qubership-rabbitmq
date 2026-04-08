@@ -16,16 +16,6 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositor
 # Prefer v3.23 for most packages; pull curl/libcurl from edge (v3.23 stops at 8.17.x; CVE fixes need 8.19+).
 # Install the curl stack after `apk upgrade` so it is not downgraded back to 8.17.x.
 
-#RUN set -x \
-#    && apk add --update --no-cache \
-#    python3 \
-#    py3-requests \
-#    py3-pip \
-#    && if pip3 install --help | grep -q -- '--break-system-packages'; then PIP_BREAK_FLAG='--break-system-packages'; else PIP_BREAK_FLAG=''; fi \
-#    && pip3 install --no-cache-dir ${PIP_BREAK_FLAG} setuptools \
-#    && pip3 install --no-cache-dir ${PIP_BREAK_FLAG} -r ${KAFKA_HOME}/requirements.txt \
-#    && rm -rf /var/cache/apk/*
-
 RUN apk add --no-cache wget python3 python3-dev py3-pip \
     && apk update \
     && apk upgrade
@@ -43,7 +33,7 @@ RUN set -x \
     && python3 -m pip install --no-cache-dir ${PIP_BREAK_FLAG} -r ${RABBITMQ_HOME}/requirements.txt \
     && rm -rf /var/cache/apk/*
 
-WORKDIR ${RABBITMQ_HOME}
+
 
 VOLUME ["${RABBITMQ_BACKUP}"]
 
