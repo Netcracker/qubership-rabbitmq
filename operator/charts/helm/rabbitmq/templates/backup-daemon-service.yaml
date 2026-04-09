@@ -8,7 +8,7 @@ metadata:
     app.kubernetes.io/name: rabbitmq-backup-daemon
     name: rabbitmq-backup-daemon
     app: rabbitmq-backup-daemon
-    {{- if .Values.backupDaemon.cloudBackuper.useBackupDaemon }}
+    {{- if .Values.backupDaemon.cloudBackuper.enableAnnotations }}
     cloud-backuper.netcracker.com/use-backup-daemon: "true"
     {{- end }}
 spec:
