@@ -199,11 +199,11 @@ class KubernetesHelper:
             oldprobe = rabbitconstants.storageclass_liveness_probe
         livenessprobeparameters = self._spec[name].get('livenessProbe')
         if livenessprobeparameters:
-            livenessprobe = V1Probe(failure_threshold=livenessprobeparameters.get('failure_threshold', 30),
-                                    initial_delay_seconds=livenessprobeparameters.get('initial_delay_seconds', 10),
-                                    period_seconds=livenessprobeparameters.get('period_seconds', 30),
-                                    success_threshold=livenessprobeparameters.get('success_threshold', 1),
-                                    timeout_seconds=livenessprobeparameters.get('timeout_seconds', 15),
+            livenessprobe = V1Probe(failure_threshold=livenessprobeparameters.get('failureThreshold', 30),
+                                    initial_delay_seconds=livenessprobeparameters.get('initialDelaySeconds', 10),
+                                    period_seconds=livenessprobeparameters.get('periodSeconds', 30),
+                                    success_threshold=livenessprobeparameters.get('successThreshold', 1),
+                                    timeout_seconds=livenessprobeparameters.get('timeoutSeconds', 15),
                                     _exec=V1ExecAction(command=command))
             return livenessprobe
         else:
@@ -218,11 +218,11 @@ class KubernetesHelper:
             oldprobe = rabbitconstants.storageclass_readiness_probe
         readinessprobeparameters = self._spec[name].get('readinessProbe')
         if readinessprobeparameters:
-            readinessprobe = V1Probe(failure_threshold=readinessprobeparameters.get('failure_threshold', 90),
-                                     initial_delay_seconds=readinessprobeparameters.get('initial_delay_seconds', 10),
-                                     period_seconds=readinessprobeparameters.get('period_seconds', 10),
-                                     success_threshold=readinessprobeparameters.get('success_threshold', 1),
-                                     timeout_seconds=readinessprobeparameters.get('timeout_seconds', 15),
+            readinessprobe = V1Probe(failure_threshold=readinessprobeparameters.get('failureThreshold', 90),
+                                     initial_delay_seconds=readinessprobeparameters.get('initialDelaySeconds', 10),
+                                     period_seconds=readinessprobeparameters.get('periodSeconds', 10),
+                                     success_threshold=readinessprobeparameters.get('successThreshold', 1),
+                                     timeout_seconds=readinessprobeparameters.get('timeoutSeconds', 15),
                                      _exec=V1ExecAction(command=command))
             return readinessprobe
         else:
@@ -494,6 +494,7 @@ class KubernetesHelper:
         pvc_labels = self.get_default_labels()
         pvc_labels["app"] = "rmqlocal"
         pvc_labels["rabbitmq-app"] = "rmqlocal"
+        pvc_labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
         pvc = V1PersistentVolumeClaim(api_version='v1', kind='PersistentVolumeClaim',
                                       metadata=V1ObjectMeta(name=f'{pvc_prefix}-rmq-pvc',
                                                             labels=pvc_labels),

@@ -1,7 +1,28 @@
 This chapter describes the overview and architectural features of RabbitMQ.
 
 <!-- #GFCFilterMarkerStart# -->
-[[_TOC_]]
+The following topics are covered in this chapter:
+
+<!-- TOC -->
+* [Overview](#overview)
+* [RabbitMQ Delivery and Features](#rabbitmq-delivery-and-features)
+* [RabbitMQ Components](#rabbitmq-components)
+  * [RabbitMQ Operator](#rabbitmq-operator)
+  * [RabbitMQ](#rabbitmq)
+  * [RabbitMQ Backup Daemon](#rabbitmq-backup-daemon)
+  * [Telegraf Agent (External RabbitMQ Only)](#telegraf-agent-external-rabbitmq-only)
+* [Supported Deployment Schemes](#supported-deployment-schemes)
+  * [On-Prem](#on-prem)
+    * [HA Deployment Scheme](#ha-deployment-scheme)
+      * [Single StatefulSet Deployment](#single-statefulset-deployment)
+      * [Multi-StatefulSet Deployment](#multi-statefulset-deployment)
+    * [Non-HA Deployment Scheme](#non-ha-deployment-scheme)
+    * [DR Deployment Scheme](#dr-deployment-scheme)
+  * [Integration With Managed Services](#integration-with-managed-services)
+    * [Google Cloud](#google-cloud)
+    * [AWS AmazonMQ](#aws-amazonmq)
+    * [Azure](#azure)
+<!-- TOC -->
 <!-- #GFCFilterMarkerEnd# -->
 
 # Overview

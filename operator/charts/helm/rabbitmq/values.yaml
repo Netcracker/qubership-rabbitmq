@@ -154,6 +154,13 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: gateway-system
  
   # The list of enabled plugins. For example,
   # enabledPlugins:
@@ -256,6 +263,8 @@ tests:
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
 backupDaemon:
+  cloudBackuper:
+    enableAnnotations: true
   tls:
     enabled: true
     certificates:
@@ -298,10 +307,10 @@ backupDaemon:
   # formatted as a YAML string.
   resources:
     requests:
-      memory: "64Mi"
-      cpu: "25m"
-    limits:
       memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
       cpu: "200m"
 
   # Affinity Settings for Backup Daemon pod, formatted as a JSON string.
