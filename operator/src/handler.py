@@ -494,7 +494,6 @@ class KubernetesHelper:
         pvc_labels = self.get_default_labels()
         pvc_labels["app"] = "rmqlocal"
         pvc_labels["rabbitmq-app"] = "rmqlocal"
-        pvc_labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
         pvc = V1PersistentVolumeClaim(api_version='v1', kind='PersistentVolumeClaim',
                                       metadata=V1ObjectMeta(name=f'{pvc_prefix}-rmq-pvc',
                                                             labels=pvc_labels),

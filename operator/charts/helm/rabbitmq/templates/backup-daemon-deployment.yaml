@@ -176,20 +176,16 @@ spec:
             {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
           imagePullPolicy: Always
           livenessProbe:
-            httpGet:
-              path: /health/prometheus
+            tcpSocket:
               port: {{ template "backupDaemon.port" . }}
-              scheme: {{ template "backupDaemon.Protocol" . }}
             failureThreshold: 3
             initialDelaySeconds: 30
             periodSeconds: 5
             successThreshold: 1
             timeoutSeconds: 5
           readinessProbe:
-            httpGet:
-              path: /health/prometheus
+            tcpSocket:
               port: {{ template "backupDaemon.port" . }}
-              scheme: {{ template "backupDaemon.Protocol" . }}
             failureThreshold: 5
             initialDelaySeconds: 10
             periodSeconds: 5
