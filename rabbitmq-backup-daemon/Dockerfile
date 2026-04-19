@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:fix_bug_with_symlinks
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:fix_eviction_parser
 
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
