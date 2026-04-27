@@ -10,8 +10,11 @@ COPY scripts/ ${RABBITMQ_HOME}/scripts/
 COPY requirements.txt ${RABBITMQ_HOME}/requirements.txt
 RUN chmod +x ${RABBITMQ_HOME}/scripts/*.py
 
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
+# Upgrade tools from edge to avoid vulnerabilities
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+    && apk add --update --upgrade --no-cache \
+        libssl3 libcrypto3
 
 # Prefer v3.23 for most packages; pull curl/libcurl from edge (v3.23 stops at 8.17.x; CVE fixes need 8.19+).
 # Install the curl stack after `apk upgrade` so it is not downgraded back to 8.17.x.
