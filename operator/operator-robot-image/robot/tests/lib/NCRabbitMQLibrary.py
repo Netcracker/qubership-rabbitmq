@@ -36,7 +36,9 @@ from socket import gaierror, error
 from PlatformLibrary import PlatformLibrary
 
 py_logger = logging.getLogger(__name__)
-logging.getLogger("pika").setLevel(logging.ERROR)
+logging.getLogger("pika").setLevel(logging.CRITICAL)
+logging.getLogger("pika.adapters.utils.io_services_utils").setLevel(logging.CRITICAL)
+
 RabbitMqMessage = Union[Tuple[Dict[str, Any], Dict[str, Any], str], Tuple[None, None, None]]  # noqa: 993
 
 CA_CERT_PATH = '/tls/ca.crt'
