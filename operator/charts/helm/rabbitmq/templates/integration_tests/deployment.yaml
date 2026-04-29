@@ -137,6 +137,40 @@ spec:
                   key: password
             - name: PROMETHEUS_URL
               value: {{ .Values.tests.prometheusUrl }}
+            {{- if .Values.tests.atpReport.enabled }}
+            - name: ATP_REPORT_ENABLED
+              value: {{ .Values.tests.atpReport.enabled | quote }}
+            - name: ATP_STORAGE_PROVIDER
+              value: {{ .Values.tests.atpReport.atpStorage.provider | quote }}
+            - name: ATP_STORAGE_SERVER_URL
+              value: {{ .Values.tests.atpReport.atpStorage.serverUrl | quote }}
+            - name: ATP_STORAGE_SERVER_UI_URL
+              value: {{ .Values.tests.atpReport.atpStorage.serverUiUrl | quote }}
+            - name: ATP_STORAGE_BUCKET
+              value: {{ .Values.tests.atpReport.atpStorage.bucket | quote }}
+            - name: ATP_STORAGE_REGION
+              value: {{ .Values.tests.atpReport.atpStorage.region | quote }}
+            - name: ATP_STORAGE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-integration-tests-atp-storage-secret
+                  key: atp-storage-username
+            - name: ATP_STORAGE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: rabbitmq-integration-tests-atp-storage-secret
+                  key: atp-storage-password
+            - name: ATP_REPORT_VIEW_UI_URL
+              value: {{ .Values.tests.atpReportViewUiUrl | quote }}
+            {{- end }}
+            {{- if .Values.tests.environmentName }}
+            - name: ENVIRONMENT_NAME
+              value: {{ .Values.tests.environmentName | quote }}
+            {{- end }}
+            {{- if .Values.tests.monitoredImages }}
+            - name: MONITORED_IMAGES
+              value: {{ .Values.tests.monitoredImages | quote }}
+            {{- end }}
           resources:
             requests:
               memory: {{ default "256Mi" .Values.tests.resources.requests.memory }}
