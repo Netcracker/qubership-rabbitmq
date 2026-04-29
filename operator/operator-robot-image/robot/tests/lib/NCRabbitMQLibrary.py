@@ -36,6 +36,7 @@ from socket import gaierror, error
 from PlatformLibrary import PlatformLibrary
 
 py_logger = logging.getLogger(__name__)
+logging.getLogger("pika").setLevel(logging.ERROR)
 RabbitMqMessage = Union[Tuple[Dict[str, Any], Dict[str, Any], str], Tuple[None, None, None]]  # noqa: 993
 
 CA_CERT_PATH = '/tls/ca.crt'
@@ -289,7 +290,7 @@ class NCRabbitMQLibrary(object):
                                                     heartbeat=heartbeat_timeout)
         try:
             self._amqp_connection = BlockedConnection(parameters=conn_params)
-        except (gaierror, error, IOError, IncompatibleProtocolError) as e:
+        except (gaierror, error, IOError, IncompatibleProtocolError, ConnectionResetError) as e:
             py_logger.debug(f"Connection failed to {host}:{port}. Full traceback:", exc_info=True)
             logger.warn(f"RabbitMq connection attempt failed: {e}. It might be retried.")
             BuiltIn().fail(msg=f"RabbitMq: Could not connect with following parameters: {parameters_for_connect}")
