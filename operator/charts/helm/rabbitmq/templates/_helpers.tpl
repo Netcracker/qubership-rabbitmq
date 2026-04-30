@@ -746,6 +746,25 @@ BackupDaemon S3 accessSecret
 {{- end -}}
 
 {{/*
+Integration tests ATP storage credentials (S3-compatible), same pattern as backupDaemon.s3AccessKey / s3AccessSecret.
+*/}}
+{{- define "tests.atpStorageUsername" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_USERNAME | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_USERNAME }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.username -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "tests.atpStoragePassword" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_PASSWORD | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_PASSWORD }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.password -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Whether Disaster Recovery TLS enabled
 */}}
 {{- define "disasterRecovery.enableTls" -}}
