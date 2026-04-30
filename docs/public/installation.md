@@ -71,8 +71,8 @@ the [Deployment Permissions](#deployment-permissions) section before the install
 **Note**: If you deploy RabbitMQ Service to Kubernetes version less than 1.16, you have to manually install [CRD](/docs/sources/crds/oc311crd.yaml) and disable automatic CRD creation by Helm in the following
 way:
 
-* Specify `--skip-crds` in the `ADDITIONAL_OPTIONS` parameter of the DP Deployer job.
-* Specify `DISABLE_CRD=true;` in the `CUSTOM_PARAMS` parameter of the Groovy Deployer job.
+* Specify `--skip-crds` in the `ADDITIONAL_OPTIONS`.
+* Specify `DISABLE_CRD=true;` in the `CUSTOM_PARAMS`.
 
 ### Deployment Permissions
 
@@ -271,7 +271,7 @@ The following rules require `cluster-wide` permissions. If it is not possible to
   ```
   <!-- #GFCFilterMarkerEnd# -->
 
-* For integration with NC Monitoring, ensure that NC Monitoring is installed in the cluster and the cluster has monitoring entities defined CRDs for
+* For integration with Monitoring, ensure that Monitoring is installed in the cluster and the cluster has monitoring entities defined CRDs for
   ServiceMonitor, PrometheusRule, and GrafanaDashboard.
   In this case, the rules mentioned earlier grant permissions for the monitoring entities. However, permissions for monitoring entities can be added separately later if required.
   For example:
@@ -780,8 +780,9 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 | Parameter                                                     | Type    | Mandatory | Default value                         | Description                                                                                                                                                                                                                                         |
 |---------------------------------------------------------------|---------|-----------|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | backupDaemon.image                                            | string  | no        | calculated automatically              | This parameter specifies the Docker image for RabbitMQ backup daemon. The image is included in the manifest.                                                                                                                                        |
-| backupDaemon.enabled                                          | boolean | no        | `false`                               | This parameter enables the RabbitMQ backup daemon deployment.                                                                                                                                                                                       |
-| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                        |
+| backupDaemon.enabled                                          | boolean | no        | `false`                               | This parameter enables the RabbitMQ backup daemon deployment.                                                                                                                                                                                                                                           |
+| backupDaemon.cloudBackuper.enableAnnotations                  | boolean | no        | `true`                                | This parameter enables adding the `cloud-backuper.netcracker.com/use-backup-daemon: "true"` label to the `rabbitmq-backup-daemon` Service.                                                      |
+| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                          |
 | backupDaemon.tls.certificates.crt                             | string  | no        | `""`                                  | The certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.key                             | string  | no        | `""`                                  | The private key in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.ca                              | string  | no        | `""`                                  | The root CA certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`. |

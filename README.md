@@ -1,4 +1,19 @@
-[[_TOC_]]
+<!-- #GFCFilterMarkerStart# -->
+The following topics are covered in this chapter:
+
+<!-- TOC -->
+* [RabbitMQ Service](#rabbitmq-service)
+* [Documentation](#documentation)
+* [Repository structure](#repository-structure)
+* [How to start](#how-to-start)
+  * [Deploy to k8s](#deploy-to-k8s)
+    * [Pure helm](#pure-helm)
+* [Smoke tests](#smoke-tests)
+* [How to debug](#how-to-debug)
+* [How to troubleshoot](#how-to-troubleshoot)
+* [Evergreen strategy](#evergreen-strategy)
+<!-- TOC -->
+<!-- #GFCFilterMarkerEnd# -->
 
 # RabbitMQ Service
 
@@ -11,14 +26,12 @@
 ## Repository structure
 
 * `./docs` - directory with actual documentation for the component.
-* `./grafana` - directory with Grafana Dashboard for RabbitMQ.
-* `./openshift` - directory with scripts for deploying to Openshift environment.
 * `./operator` - directory with operator code & HELM chart for RabbitMQ.
 * `./operator/operator-robot-image` - directory with **actual** Robot Framework tests for RabbitMQ.
 * `./performance-tests-image` - directory with sources for RabbitMQ performance test component.
 * `./rabbitmq-backup-daemon` - directory with sources for RabbitMQ Backup Daemon component.
+* `./rabbitmq-docker` - docker setup for RabbitMQ.
 * `./telegraf` - directory with sources for monitoring component for RabbitMQ.
-* `./zabbix` - directory with sources for Zabbix component.
 
 ## How to start
 

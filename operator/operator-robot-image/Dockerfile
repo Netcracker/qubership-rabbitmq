@@ -12,9 +12,14 @@ ENV STATUS_CUSTOM_RESOURCE_VERSION=v1
 ENV STATUS_CUSTOM_RESOURCE_PLURAL=deployments
 ENV STATUS_CUSTOM_RESOURCE_NAME=rabbitmq-integration-tests
 
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
-   
+# Upgrade tools from edge to avoid vulnerabilities
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
+    && apk add --update --upgrade --no-cache \
+        libssl3 libcrypto3
+
+RUN set -x && apk upgrade --no-cache --available
+
 RUN mkdir -p ${ROBOT_HOME} \
     && mkdir -p ${ROBOT_OUTPUT}
 

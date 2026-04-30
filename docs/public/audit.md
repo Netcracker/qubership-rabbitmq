@@ -3,7 +3,18 @@ This chapter describes the security audit logging for RabbitMQ.
 <!-- #GFCFilterMarkerStart# -->
 The following topics are covered in this chapter:
 
-[[_TOC_]]
+<!-- TOC -->
+* [Common Information](#common-information)
+* [Configuration](#configuration)
+  * [Example of Events](#example-of-events)
+    * [Crease Session](#crease-session)
+    * [Unauthenticated event](#unauthenticated-event)
+    * [Close session](#close-session)
+    * [Unauthorized](#unauthorized)
+    * [Change Password](#change-password)
+    * [CRUD users](#crud-users)
+    * [Modify Grants](#modify-grants)
+<!-- TOC -->
 <!-- #GFCFilterMarkerEnd# -->
 
 # Common Information

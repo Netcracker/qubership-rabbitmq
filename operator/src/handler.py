@@ -494,6 +494,7 @@ class KubernetesHelper:
         pvc_labels = self.get_default_labels()
         pvc_labels["app"] = "rmqlocal"
         pvc_labels["rabbitmq-app"] = "rmqlocal"
+        pvc_labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
         pvc = V1PersistentVolumeClaim(api_version='v1', kind='PersistentVolumeClaim',
                                       metadata=V1ObjectMeta(name=f'{pvc_prefix}-rmq-pvc',
                                                             labels=pvc_labels),
@@ -609,12 +610,14 @@ class KubernetesHelper:
         if self.is_hostpath():
             return None
         else:
+            labels = self.get_default_labels()
+            labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
             return [V1PersistentVolumeClaim(api_version='v1',
                                             metadata=V1ObjectMeta(annotations={
                                                 'volume.beta.kubernetes.io/storage-class': self._res[
                                                     'storageclass']},
                                                 name=vct_name,
-                                                labels=self.get_default_labels()),
+                                                labels=labels),
                                             spec=V1PersistentVolumeClaimSpec(
                                                 access_modes=['ReadWriteOnce'],
                                                 storage_class_name=self._res['storageclass'],
