@@ -17,6 +17,7 @@ import ssl
 import time
 import pika
 import requests
+import logging
 from pika import BaseConnection
 from pika.adapters.blocking_connection import BlockingChannel
 from pika.connection import Parameters
@@ -33,6 +34,10 @@ from robot.utils import ConnectionCache
 from robot.libraries.BuiltIn import BuiltIn
 from socket import gaierror, error
 from PlatformLibrary import PlatformLibrary
+
+py_logger = logging.getLogger(__name__)
+logging.getLogger("pika").setLevel(logging.CRITICAL)
+logging.getLogger("pika.adapters.utils.io_services_utils").setLevel(logging.CRITICAL)
 
 RabbitMqMessage = Union[Tuple[Dict[str, Any], Dict[str, Any], str], Tuple[None, None, None]]  # noqa: 993
 
@@ -287,7 +292,9 @@ class NCRabbitMQLibrary(object):
                                                     heartbeat=heartbeat_timeout)
         try:
             self._amqp_connection = BlockedConnection(parameters=conn_params)
-        except (gaierror, error, IOError, IncompatibleProtocolError):
+        except (gaierror, error, IOError, IncompatibleProtocolError, ConnectionResetError) as e:
+            py_logger.debug(f"Connection failed to {host}:{port}. Full traceback:", exc_info=True)
+            logger.warn(f"RabbitMq connection attempt failed: {e}. It might be retried.")
             BuiltIn().fail(msg=f"RabbitMq: Could not connect with following parameters: {parameters_for_connect}")
         self._channel = None
         return self._amqp_cache.register(self._amqp_connection, alias)
