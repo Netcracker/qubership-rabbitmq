@@ -311,7 +311,7 @@ backupDaemon:
       cpu: "100m"
     limits:
       memory: "256Mi"
-      cpu: "400m"
+      cpu: "300m"
 
   # Affinity Settings for Backup Daemon pod, formatted as a JSON string.
   # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
