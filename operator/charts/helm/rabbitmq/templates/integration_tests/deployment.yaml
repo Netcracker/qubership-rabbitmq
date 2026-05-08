@@ -102,7 +102,7 @@ spec:
               value: "rabbitmq-backup-daemon"
             {{- if .Values.backupDaemon.s3.enabled }}
             - name: S3_ENABLED
-              value: "true"
+              value: {{ .Values.backupDaemon.s3.enabled | quote }}
             - name: S3_URL
               value: {{ (include "backupDaemon.s3Endpoint" .) | quote }}
             - name: S3_BUCKET
