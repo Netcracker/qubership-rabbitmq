@@ -1,4 +1,11 @@
 {{- if .Values.tests.runTests }}
+{{- $s3AliasesData := fromYaml (include "backupDaemon.s3Aliases" .) }}
+{{- $defaultS3AliasName := "" }}
+{{- range $s3AliasesData.items }}
+  {{- if and .name .spec .spec.default }}
+    {{- $defaultS3AliasName = .name }}
+  {{- end }}
+{{- end }}
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -93,26 +100,28 @@ spec:
             {{- if .Values.backupDaemon.enabled }}
             - name: RABBITMQ_BACKUP_DAEMON
               value: "rabbitmq-backup-daemon"
+            {{- if .Values.backupDaemon.s3.enabled }}
             - name: S3_ENABLED
-              value: {{ .Values.backupDaemon.s3.enabled | quote }}
+              value: "true"
             - name: S3_URL
               value: {{ (include "backupDaemon.s3Endpoint" .) | quote }}
             - name: S3_BUCKET
               value: {{ .Values.backupDaemon.s3.bucket | quote }}
             - name: S3_KEY_ID
-              {{- if .Values.backupDaemon.s3.enabled }}
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-backup-s3-secret
                   key: s3-key-id
-              {{- end }}
             - name: S3_KEY_SECRET
-              {{- if .Values.backupDaemon.s3.enabled }}
               valueFrom:
                 secretKeyRef:
                   name: rabbitmq-backup-s3-secret
                   key: s3-key-secret
-              {{- end }}
+            - name: S3_ALIASES_SECRET_NAME
+              value: rabbitmq-backup-daemon-s3-aliases
+            - name: S3_DEFAULT_ALIAS_NAME
+              value: {{ default "default" $defaultS3AliasName | quote }}
+            {{- end }}
             {{- end }}
             - name: AMQP_PORT
               value: {{ .Values.tests.amqp_port | quote }}
