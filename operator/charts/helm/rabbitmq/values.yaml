@@ -366,6 +366,18 @@ backupDaemon:
     bucket: ""
     keyId: ""
     keySecret: ""
+  s3Aliases: []
+  # - name: default
+  #   spec:
+  #     default: true
+  #     storageBucket: backup-restore-bucket
+  #     storageProvider: aws
+  #     storageRegion: us-east-1
+  #     storageServerUrl: "https://s3.example.com"
+  #     storageUsername: name
+  #     storageSecret: storage-location-default
+  #   secretContent:
+  #     storagePassword: pass
 
   customLabels: {}
 

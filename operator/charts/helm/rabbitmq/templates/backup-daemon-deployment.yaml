@@ -2,6 +2,8 @@
 {{ if .Values.backupDaemon.enabled }}
 {{ $persistentVolume := eq (include "backupDaemon.persistentVolumeDefined" .) "true" }}
 {{ $storageClass := eq (include "backupDaemon.storageClassDefined" .) "true" }}
+{{- $s3AliasesData := fromYaml (include "backupDaemon.s3Aliases" .) }}
+{{- $hasS3Aliases := not (empty $s3AliasesData.items) }}
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -76,6 +78,11 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if $hasS3Aliases }}
+        - name: rabbitmq-backup-daemon-s3-aliases
+          secret:
+            secretName: rabbitmq-backup-daemon-s3-aliases
+        {{- end }}
         {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
         - name: ssl-certs
           secret:
@@ -95,6 +102,8 @@ spec:
               value: "{{ default "0 0 * * *" .Values.backupDaemon.backupSchedule }}"
             - name: EVICTION_POLICY
               value: "{{ default "0/1d,7d/delete" .Values.backupDaemon.evictionPolicy }}"
+            - name: S3_ALIASES_USED
+              value: {{ $hasS3Aliases | quote }}
             {{- if .Values.externalRabbitmq.enabled }}
             - name: RABBITMQ_PASSWORD
               valueFrom:
@@ -158,6 +167,11 @@ spec:
         {{- if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
           - name: s3-ssl-certs
             mountPath: /s3Certs
+        {{- end }}
+        {{- if $hasS3Aliases }}
+          - name: rabbitmq-backup-daemon-s3-aliases
+            mountPath: /aliases/
+            readOnly: true
         {{- end }}
           - name: backup-storage
             mountPath: /opt/rabbitmq/backup-storage
