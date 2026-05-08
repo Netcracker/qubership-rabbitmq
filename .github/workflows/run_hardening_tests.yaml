@@ -1,0 +1,51 @@
+name: Run Hardening Tests
+
+on:
+  push:
+    branches:
+      - "**"
+    paths-ignore:
+      - "docs/**"
+      - "CODE-OF-CONDUCT.md"
+      - "CONTRIBUTING.md"
+      - "LICENSE"
+      - "README.md"
+      - "SECURITY.md"
+  pull_request:
+    branches:
+      - "**"
+    paths-ignore:
+      - "docs/**"
+      - "CODE-OF-CONDUCT.md"
+      - "CONTRIBUTING.md"
+      - "LICENSE"
+      - "README.md"
+      - "SECURITY.md"
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  Wait-for-images:
+    runs-on: ubuntu-latest
+    outputs:
+      conclusion: ${{ steps.wait.outputs.conclusion }}
+    steps:
+      - name: Wait for dev_build.yml to complete
+        uses: netcracker/qubership-workflow-hub/actions/wait-for-workflow@396774180000abdb825cbf150b56cc59c6913db8  #v2.0.5
+        id: wait
+        with:
+          workflow: dev_build.yml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          poll-interval: 20
+  Rabbitmq-Pipeline:
+    needs: Wait-for-images
+    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@feature/apps-hardening-scan
+    with:
+      service_branch: '${{ github.head_ref || github.ref_name }}'
+      pipeline_branch: 'feature/apps-hardening-scan' #this value must match the value after '@' in 'uses'
+      scope: hardening
+    secrets:
+      AWS_S3_ACCESS_KEY_ID: ${{secrets.AWS_S3_ACCESS_KEY_ID}}
+      AWS_S3_ACCESS_KEY_SECRET: ${{secrets.AWS_S3_ACCESS_KEY_SECRET}}
