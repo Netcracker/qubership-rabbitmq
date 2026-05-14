@@ -18,7 +18,8 @@ rabbitmq_hostpath_liveness_probe_command = ['bin/bash', '-c',
                                             # TODO $(get_user):$(get_password) was changed to guest:guest
                                             """
 
-rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms || exit 1
+rabbitmq-diagnostics -q check_running && \
+rabbitmq-diagnostics -q check_local_alarms || exit 1
 
 if [[ "$HOSTNAME" != "rmqlocal-0-0" ]] && [[ ! -f /var/lib/rabbitmq/started_at_least_once ]] ; then
     FD_OUTPUT="/proc/1/fd/1"
@@ -45,7 +46,13 @@ fi
 """
                                             ]
 
-rabbitmq_hostpath_readiness_probe_command = ['rabbitmq-diagnostics', 'ping', '-q']
+rabbitmq_hostpath_readiness_probe_command = ['bin/bash', '-c',
+                                             """
+rabbitmq-diagnostics -q check_running && \
+rabbitmq-diagnostics -q check_local_alarms && \
+rabbitmq-diagnostics -q check_virtual_hosts
+"""
+                                             ]
 
 rabbitmq_storageclass_liveness_probe_command = ['bin/bash', '-c', """
 if [ -f /var/lib/rabbitmq/started_at_least_once ]; then
@@ -56,7 +63,7 @@ if [ -f /var/lib/rabbitmq/started_at_least_once ]; then
         echo "http-liveness probe failed"
         exit 1
     fi
-elif rabbitmqctl await_online_nodes $(( ( $(echo -n ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 1 ; then
+elif rabbitmqctl await_online_nodes $(( ( $(echo -n ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 30 ; then
     echo "awaiting nodes succeeded"
 else echo "awaiting nodes liveness probe failed"
     exit 1
@@ -67,8 +74,10 @@ fi
 rabbitmq_storageclass_readiness_probe_command = ['bin/bash', '-c', """
 if [ -f /var/lib/rabbitmq/started_at_least_once ]; then
     echo "executing rabbitmq-diagnostics ping -q"
-    rabbitmq-diagnostics ping -q;
-elif rabbitmqctl await_online_nodes $(( ( $(echo -n ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 1 ; then
+    rabbitmq-diagnostics -q check_running && \
+    rabbitmq-diagnostics -q check_local_alarms && \
+    rabbitmq-diagnostics -q check_virtual_hosts
+elif rabbitmqctl await_online_nodes $(( ( $(echo -n ${MY_POD_NAME##*-}) + 1 ) / 2 + 1 )) -t 30 ; then
     echo "awaiting nodes succeeded"
     touch /var/lib/rabbitmq/started_at_least_once
 else
@@ -94,7 +103,7 @@ storageclass_readiness_probe = V1Probe(failure_threshold=90,
 storageclass_liveness_probe = V1Probe(failure_threshold=30,
                                       initial_delay_seconds=10,
                                       period_seconds=30, success_threshold=1,
-                                      timeout_seconds=15,
+                                      timeout_seconds=20,
                                       _exec=V1ExecAction(
                                           command=rabbitmq_storageclass_liveness_probe_command))
 
@@ -108,6 +117,6 @@ hostpath_readiness_probe = V1Probe(failure_threshold=90,
 hostpath_liveness_probe = V1Probe(failure_threshold=30,
                                   initial_delay_seconds=10,
                                   period_seconds=30, success_threshold=1,
-                                  timeout_seconds=15,
+                                  timeout_seconds=20,
                                   _exec=V1ExecAction(
                                       command=rabbitmq_hostpath_liveness_probe_command))
