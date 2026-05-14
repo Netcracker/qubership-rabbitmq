@@ -125,6 +125,14 @@ spec:
             - name: ENABLE_SHOVEL_MONITORING
               value: "{{ .Values.operator.enableOperatorShovelMonitoring }}"
             {{- end }}
+            {{- if .Values.operator.enableClusterRestart }}
+            - name: ENABLE_CLUSTER_RESTART
+              value: "{{ .Values.operator.enableClusterRestart }}"
+            {{- end }}
+            {{- if .Values.operator.clusterRestartThreshold }}
+            - name: CLUSTER_RESTART_THRESHOLD
+              value: "{{ .Values.operator.clusterRestartThreshold }}"
+            {{- end }}
             - name: API_GROUP
               value: {{ .Values.operator.apiGroup | quote }}
         {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}
