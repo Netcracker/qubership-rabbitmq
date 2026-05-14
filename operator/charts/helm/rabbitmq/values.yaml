@@ -42,6 +42,8 @@ operator:
   apiGroup: "netcracker.com"
   pullPolicy: "Always"
   enableOperatorShovelMonitoring: true
+  enableClusterRestart: false
+  clusterRestartThreshold: 10800
   restartScheduler:
     dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main
     enabled: true
