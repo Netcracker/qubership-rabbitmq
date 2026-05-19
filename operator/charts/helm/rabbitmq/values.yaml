@@ -154,6 +154,13 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: gateway-system
  
   # The list of enabled plugins. For example,
   # enabledPlugins:
@@ -256,6 +263,8 @@ tests:
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
 backupDaemon:
+  cloudBackuper:
+    enableAnnotations: true
   tls:
     enabled: true
     certificates:
@@ -298,11 +307,11 @@ backupDaemon:
   # formatted as a YAML string.
   resources:
     requests:
-      memory: "64Mi"
-      cpu: "25m"
-    limits:
       memory: "256Mi"
-      cpu: "200m"
+      cpu: "100m"
+    limits:
+      memory: "768Mi"
+      cpu: "400m"
 
   # Affinity Settings for Backup Daemon pod, formatted as a JSON string.
   # ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
@@ -357,6 +366,18 @@ backupDaemon:
     bucket: ""
     keyId: ""
     keySecret: ""
+  s3Aliases: []
+  # - name: default
+  #   spec:
+  #     default: true
+  #     storageBucket: backup-restore-bucket
+  #     storageProvider: aws
+  #     storageRegion: us-east-1
+  #     storageServerUrl: "https://s3.example.com"
+  #     storageUsername: name
+  #     storageSecret: storage-location-default
+  #   secretContent:
+  #     storagePassword: pass
 
   customLabels: {}
 

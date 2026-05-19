@@ -1,0 +1,109 @@
+{{- if .Values.rabbitmq.envoyGateway.enabled }}
+{{- if and (.Capabilities.APIVersions.Has "gateway.networking.k8s.io/v1") (eq .Values.PAAS_PLATFORM "KUBERNETES") }}
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-httproute
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  parentRefs:
+  {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
+    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
+      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
+      port: 443
+  {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
+  {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
+      port: 443
+  {{- end }}
+  {{- end }}
+
+  hostnames:
+  {{- if .Values.rabbitmq.envoyGateway.host }}
+    - {{ .Values.rabbitmq.envoyGateway.host | quote }}
+  {{- else if .Values.rabbitmq.ingress.host }}
+    - {{ .Values.rabbitmq.ingress.host | quote }}
+  {{- end }}
+
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: rabbitmq
+          port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
+
+#################################################
+## BackendTLSPolicy for TLS communication between Gateway and RabbitMQ
+#################################################
+
+{{- if (eq (include "rabbitmq.enableTls" .) "true") }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: BackendTLSPolicy
+metadata:
+  name: rabbitmq-backend-tls
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  targetRefs:
+    - group: ""
+      kind: Service
+      name: rabbitmq
+
+  validation:
+    {{- if .Values.rabbitmq.envoyGateway.host }}
+    hostname: {{ .Values.rabbitmq.envoyGateway.host | quote }}
+    {{- else if .Values.rabbitmq.ingress.host }}
+    hostname: {{ .Values.rabbitmq.ingress.host | quote }}
+    {{- end }}
+
+    caCertificateRefs:
+      - group: ""
+        kind: Secret
+        name: {{ include "rabbitmq.tlsSecretName" . }}
+
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: rabbitmq-redirect
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app: rabbitmq
+spec:
+  parentRefs:
+  {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
+    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
+      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
+      port: 80
+  {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
+  {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
+    - name: {{ .name }}
+      namespace: {{ .namespace }}
+      port: 80
+  {{- end }}
+  {{- end }}
+
+  hostnames:
+  {{- if .Values.rabbitmq.envoyGateway.host }}
+    - {{ .Values.rabbitmq.envoyGateway.host | quote }}
+  {{- else if .Values.rabbitmq.ingress.host }}
+    - {{ .Values.rabbitmq.ingress.host | quote }}
+  {{- end }}
+
+  rules:
+    - filters:
+        - type: RequestRedirect
+          requestRedirect:
+            scheme: https
+            statusCode: 301
+{{- end }}
+{{- end }}
+{{- end }}

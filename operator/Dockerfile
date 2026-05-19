@@ -14,9 +14,14 @@ COPY src/velero_delete_pods_rmqlocal.py ${WORKDIR}
 COPY build/user_setup /usr/local/bin
 COPY build/entrypoint /usr/local/bin
 
-RUN apk add --update --no-cache bash build-base apk-tools
+RUN apk add --update --no-cache bash build-base apk-tools \
+    && apk upgrade --no-cache --available \
+    && apk add --no-cache \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        binutils=2.45.1-r1
 
-RUN pip install --upgrade pip setuptools  && pip install -r requirements.txt
+RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools==80.10.1" "jaraco.context>=6.1.0" \
+    && pip install --no-cache-dir -r requirements.txt
 
 RUN chmod 777 /usr/local/bin/user_setup && \
 chmod 777 /usr/local/bin/entrypoint && \
@@ -25,9 +30,6 @@ chmod 777 /opt/operator/rabbit_helper.py && \
 chmod 777 /opt/operator/handler.py && \
 chmod 777 /opt/operator/velero_delete_pods_rmqlocal.py
 RUN /usr/local/bin/user_setup
-
-# Upgrade all tools to avoid vulnerabilities
-RUN set -x && apk upgrade --no-cache --available --force-missing-repositories
 
 ENTRYPOINT ["/usr/local/bin/entrypoint"]
 
