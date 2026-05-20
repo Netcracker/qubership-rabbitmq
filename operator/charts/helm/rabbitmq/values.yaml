@@ -259,6 +259,20 @@ tests:
   priorityClassName: ""
   affinity: {}
   prometheusUrl: ""
+  # S3/ATP for test results (credentials under tests.atpReport.atpStorage)
+  atpReport:
+    enabled: false
+    atpStorage:
+      provider: "aws"
+      serverUrl: "https://s3.amazonaws.com"
+      serverUiUrl: ""
+      bucket: ""
+      region: "us-east-1"
+      username: ""
+      password: ""
+  atpReportViewUiUrl: ""
+  environmentName: "rabbitmq"
+  monitoredImages: ""
 
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
