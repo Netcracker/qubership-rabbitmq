@@ -113,6 +113,10 @@ Test Change Password Function
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${NEW_PASS}
 
+    Sleep  10s
+
+    Wait Until Keyword Succeeds  2 min  10 sec  Is Rabbit Alive
+
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 
     [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
