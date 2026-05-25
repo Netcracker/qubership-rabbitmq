@@ -21,7 +21,6 @@ import re
 import time
 from time import sleep
 from unittest import result
-from distutils import util
 
 import kopf
 import requests
@@ -1605,10 +1604,8 @@ def configure(settings: kopf.OperatorSettings, **_):
 def shovel_monitoring(spec,retry,  **kwargs):
     kub_helper = KubernetesHelper(spec)
     enabled = False
-    try:
-        enabled = bool(util.strtobool(os.getenv("ENABLE_SHOVEL_MONITORING", "false")))
-    except Exception:
-        enabled = False
+
+    enabled = os.getenv("ENABLE_SHOVEL_MONITORING", "false").lower() in ("yes", "true", "t", "1")
 
     if enabled:
         if not kub_helper.check_shovel_state():
