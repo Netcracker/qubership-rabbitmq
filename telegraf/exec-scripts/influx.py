@@ -22,22 +22,16 @@ from typing import Dict, Union, List
 
 import aiohttp
 
-debug_enabled_error = None
 
-try:
-    debug_enabled = bool(os.getenv("INFLUXDB_DEBUG", "false").lower() in ("yes", "true", "t", "1"))
 
-except ValueError as e:
-    debug_enabled_error = e
-    debug_enabled = False
+debug_enabled = os.getenv("INFLUXDB_DEBUG", "false").lower() in ("yes", "true", "t", "1")
+
 
 level = logging.DEBUG if debug_enabled else logging.INFO
 
 logging.basicConfig(filename='/proc/1/fd/1', filemode='w', level=level,
                     format='%(asctime)s %(message)s')
 
-if debug_enabled_error:
-    logging.error(debug_enabled_error)
 
 
 class Metric(object):
