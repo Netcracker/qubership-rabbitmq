@@ -21,7 +21,6 @@ import re
 import time
 from time import sleep
 from unittest import result
-from distutils import util
 
 import kopf
 import requests
@@ -1606,7 +1605,7 @@ def shovel_monitoring(spec,retry,  **kwargs):
     kub_helper = KubernetesHelper(spec)
     enabled = False
     try:
-        enabled = bool(util.strtobool(os.getenv("ENABLE_SHOVEL_MONITORING", "false")))
+        enabled = bool(os.getenv("ENABLE_SHOVEL_MONITORING", "false").lower() in ("yes", "true", "t", "1"))
     except Exception:
         enabled = False
 

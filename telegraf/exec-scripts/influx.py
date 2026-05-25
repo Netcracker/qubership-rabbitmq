@@ -17,7 +17,6 @@ import logging
 import operator
 import os
 import time
-from distutils import util
 from functools import reduce, wraps
 from typing import Dict, Union, List
 
@@ -26,7 +25,8 @@ import aiohttp
 debug_enabled_error = None
 
 try:
-    debug_enabled = util.strtobool(os.environ.get('INFLUXDB_DEBUG', 'false'))
+    debug_enabled = bool(os.getenv("INFLUXDB_DEBUG", "false").lower() in ("yes", "true", "t", "1"))
+
 except ValueError as e:
     debug_enabled_error = e
     debug_enabled = False
