@@ -2,7 +2,7 @@ name: Run Nightly Rabbitmq Pipeline
 
 on:
   schedule:
-    - cron: '0 2 * * *'
+    - cron: '0 22 * * *'
 
 jobs:
   Nightly-Rabbitmq-Pipeline:
