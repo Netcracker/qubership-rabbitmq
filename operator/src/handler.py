@@ -71,6 +71,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOGLEVEL)
 logger.info("loglevel is set to " + str(LOGLEVEL))
 
+CLUSTER_DOWN_SINCE = 0
 
 class FakeKubeResponse:
     def __init__(self, obj):
@@ -1616,6 +1617,29 @@ def shovel_monitoring(spec,retry,  **kwargs):
             else:
                 logger.info("All shovels are running properly after restart.")
 
+
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
+def cluster_monitoring(spec, **kwargs):
+    global CLUSTER_DOWN_SINCE
+    enabled = os.environ.get('ENABLE_CLUSTER_RESTART', 'false').lower() in ("yes", "true", "t", "1")
+    if enabled:
+        kub_helper = KubernetesHelper(spec)
+        threshold_seconds = int(os.getenv("CLUSTER_RESTART_THRESHOLD", "10800"))
+        try:
+            cluster_status = kub_helper.check_cluster_state()
+            if cluster_status == "error":
+                current_time = int(time.time())
+                if CLUSTER_DOWN_SINCE == 0:
+                    CLUSTER_DOWN_SINCE = current_time
+                outage_duration = current_time - CLUSTER_DOWN_SINCE
+                logger.warning(f"RabbitMQ cluster is unavailable for {outage_duration} seconds")
+                if outage_duration >= threshold_seconds:
+                    logger.error("RabbitMQ cluster exceeded outage threshold. Restarting cluster.")
+                    kub_helper.reboot_pods()
+            else:
+                CLUSTER_DOWN_SINCE = 0
+        except Exception as ex:
+            logger.warning(f"RabbitMQ cluster monitoring failed: {ex}")
 
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
