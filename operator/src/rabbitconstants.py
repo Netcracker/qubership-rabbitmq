@@ -46,13 +46,7 @@ fi
 """
                                             ]
 
-rabbitmq_hostpath_readiness_probe_command = ['bin/bash', '-c',
-                                             """
-rabbitmq-diagnostics -q check_running && \
-rabbitmq-diagnostics -q check_local_alarms && \
-rabbitmq-diagnostics -q check_virtual_hosts
-"""
-                                             ]
+rabbitmq_hostpath_readiness_probe_command = ['rabbitmq-diagnostics', '-q', 'check_virtual_hosts']
 
 rabbitmq_storageclass_liveness_probe_command = ['bin/bash', '-c', """
 if [ -f /var/lib/rabbitmq/started_at_least_once ]; then
