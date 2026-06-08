@@ -127,10 +127,10 @@ Change Rabbitmq Password With Function
 Get First Rabbit Pod
     ${rabbit_pods}=  Get Pods  ${NAMESPACE}
     ${pod_names}=  Get Pods By Mask  ${rabbit_pods}  rmqlocal
-    [Return]  ${pod_names[0]}
+    RETURN  ${pod_names[0]}
 
 Get Rabbit Replicas From Single Stateful Set
     [Arguments]  ${stateful_set_names}
     ${stateful_set_names}=  Set Variable  ${stateful_set_names[0]}
     ${replicas}=  Get Stateful Set Replicas Count  ${stateful_set_names}  ${NAMESPACE}
-    [Return]  ${replicas}
+    RETURN  ${replicas}
