@@ -31,6 +31,7 @@ import queue_parser
 logger = logging.getLogger(__name__)
 
 CA_CERT_PATH = '/tls/ca.crt'
+MONITORING_LOGS = os.getenv('MONITORING_LOGS')
 
 
 def suppress_errors(return_func=lambda: []):
@@ -147,16 +148,17 @@ def get_prometheus_metrics(metrics):
 
 def __configure_logging(log):
     log.setLevel(logging.DEBUG)
+    os.makedirs(MONITORING_LOGS, exist_ok=True)
     formatter = logging.Formatter(fmt='[%(asctime)s,%(msecs)03d][%(levelname)s] %(message)s',
                                   datefmt='%Y-%m-%dT%H:%M:%S')
 
-    log_handler = RotatingFileHandler(filename='/opt/rabbitmq-monitoring/exec-scripts/rabbitmq_metric.log',
+    log_handler = RotatingFileHandler(filename=f'{MONITORING_LOGS}/rabbitmq_metric.log',
                                       maxBytes=50 * 1024,
                                       backupCount=5)
     log_handler.setFormatter(formatter)
     log_handler.setLevel(logging.DEBUG if os.getenv('RABBITMQ_MONITORING_SCRIPT_DEBUG') else logging.INFO)
     log.addHandler(log_handler)
-    err_handler = RotatingFileHandler(filename='/opt/rabbitmq-monitoring/exec-scripts/rabbitmq_metric.err',
+    err_handler = RotatingFileHandler(filename=f'{MONITORING_LOGS}/rabbitmq_metric.err',
                                       maxBytes=50 * 1024,
                                       backupCount=5)
     err_handler.setFormatter(formatter)

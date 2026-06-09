@@ -36,7 +36,8 @@ from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
     V1StatefulSetUpdateStrategy, V1DeploymentStrategy, V1DeploymentSpec, \
     V1ComponentCondition, V1ComponentStatus, V1JobSpec, V1Job, \
     V1SecretVolumeSource, V1PodSecurityContext, \
-    V1SecurityContext, V1Capabilities, V1SeccompProfile, V1ContainerStateRunning, V1Probe
+    V1SecurityContext, V1Capabilities, V1SeccompProfile, V1ContainerStateRunning, V1Probe, \
+    V1EmptyDirVolumeSource
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
@@ -230,7 +231,11 @@ class KubernetesHelper:
 
     @staticmethod
     def get_container_security_context():
-        return V1SecurityContext(allow_privilege_escalation=False, capabilities=V1Capabilities(drop=["ALL"]))
+        return V1SecurityContext(
+            allow_privilege_escalation=False,
+            read_only_root_filesystem=True,
+            capabilities=V1Capabilities(drop=["ALL"])
+        )
 
     def get_affinity_rules(self):
         affinity = self._spec['rabbitmq'].get('affinity')
@@ -592,12 +597,23 @@ class KubernetesHelper:
         return 'guest'
 
     def get_volume_mounts(self):
+        # ConfigMap keys mounted via subPath so image defaults under /etc/rabbitmq/conf.d stay visible.
+        mounts = [
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/rabbitmq.conf',
+                          sub_path='rabbitmq.conf', read_only=True),
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/enabled_plugins',
+                          sub_path='enabled_plugins', read_only=True),
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/advanced.config',
+                          sub_path='advanced.config', read_only=True),
+        ]
         if self.is_hostpath():
-            mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
-                      V1VolumeMount(name='rmqvolumedatamount', mount_path='/var/lib/rabbitmq')]
+            mounts.append(V1VolumeMount(name='rmqvolumedatamount', mount_path='/var/lib/rabbitmq'))
         else:
-            mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
-                      V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq')]
+            mounts.append(V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq'))
+        mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
+        if self.is_ipv6_enabled():
+            mounts.append(V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/erl_inetrc',
+                                        sub_path='erl_inetrc', read_only=True))
         if self.is_ssl_enabled():
             mounts.append(V1VolumeMount(name=ssl_volume, mount_path='/tls'))
         if self.is_ldap_enabled():
@@ -625,6 +641,9 @@ class KubernetesHelper:
                                                     requests={'storage': self._res['storage']})))]
 
     def get_volumes(self, pv_name):
+        common_volumes = [
+            V1Volume(name='tmp', empty_dir=V1EmptyDirVolumeSource(size_limit='8Mi')),
+        ]
         if self.is_hostpath():
             return [V1Volume(name=config_volume,
                              config_map=V1ConfigMapVolumeSource(name=configmap_name,
@@ -633,13 +652,13 @@ class KubernetesHelper:
                                                                                          V1KeyToPath(key='advanced.config', path='advanced.config')])),
                     V1Volume(name='rmqvolumedatamount',
                              persistent_volume_claim=V1PersistentVolumeClaimVolumeSource(
-                                 claim_name=f'{pv_name}-rmq-pvc'))]
+                                 claim_name=f'{pv_name}-rmq-pvc'))] + common_volumes
         else:
             return [V1Volume(name=config_volume,
                              config_map=V1ConfigMapVolumeSource(name=configmap_name,
                                                                 default_mode=420, items=[V1KeyToPath(key='rabbitmq.conf', path='rabbitmq.conf'),
                                                                                          V1KeyToPath(key='enabled_plugins', path='enabled_plugins'),
-                                                                                         V1KeyToPath(key='advanced.config', path='advanced.config')]))]
+                                                                                         V1KeyToPath(key='advanced.config', path='advanced.config')]))] + common_volumes
 
     def generate_telegraf_deployment_config_body(self):
         telegraf_resources = V1ResourceRequirements(limits={'cpu': '100m', 'memory': '100Mi'},
@@ -723,7 +742,9 @@ class KubernetesHelper:
                                                    resources=telegraf_resources,
                                                    security_context=self.get_container_security_context(),
                                                    readiness_probe=readiness,
-                                                   liveness_probe=liveness,)],
+                                                   liveness_probe=liveness,
+                                                   volume_mounts=[V1VolumeMount(name='tmp', mount_path='/tmp')])],
+                           volumes=[V1Volume(name='tmp', empty_dir=V1EmptyDirVolumeSource(size_limit='16Mi'))],
                            security_context=self.get_security_context("telegraf"),
                            affinity=self.get_affinity_rules(),
                            tolerations=self.get_tolerations(),
