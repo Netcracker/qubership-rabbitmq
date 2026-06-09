@@ -23,7 +23,7 @@ data:
     log.upgrade.level = none
     log.console = true
     {{- if .Values.rabbitmq.eventLogging }}
-    management.load_definitions = /etc/rabbitmq/logging_definitions.json
+    management.load_definitions = /opt/rabbitmq/logging_definitions.json
     {{- end }}
     {{- include "rabbitmq.sslConfiguration" . | nindent 4}}
 

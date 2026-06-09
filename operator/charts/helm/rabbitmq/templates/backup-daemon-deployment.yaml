@@ -31,6 +31,7 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
       {{- with .Values.global.customLabels }}
         {{- toYaml . | nindent 8 -}}
       {{- end }}
@@ -88,6 +89,7 @@ spec:
           secret:
             secretName: {{ template "rabbitmq.tlsSecretName" . }}
         {{- end }}
+        {{- include "rabbitmq.tmpVolume" "64Mi" | nindent 8 }}
       containers:
         - name: rabbitmq-backup-daemon
           image: {{ template "backupDaemon.image" . }}
@@ -160,25 +162,26 @@ spec:
                   key: s3-key-secret
             {{- end }}
           volumeMounts:
-        {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
-          - name: backup-daemon-ssl-certs
-            mountPath: /backupTLS
-        {{- end }}
-        {{- if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
-          - name: s3-ssl-certs
-            mountPath: /s3Certs
-        {{- end }}
-        {{- if $hasS3Aliases }}
-          - name: rabbitmq-backup-daemon-s3-aliases
-            mountPath: /aliases/
-            readOnly: true
-        {{- end }}
-          - name: backup-storage
-            mountPath: /opt/rabbitmq/backup-storage
-        {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
-          - name: ssl-certs
-            mountPath: /tls
-        {{- end }}
+            {{- include "rabbitmq.tmpVolumeMount" . | nindent 12 }}
+            {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
+            - name: backup-daemon-ssl-certs
+              mountPath: /backupTLS
+            {{- end }}
+            {{- if and (include "backupDaemon.s3.tlsSecretName" .) .Values.backupDaemon.s3.sslVerify .Values.backupDaemon.s3.enabled }}
+            - name: s3-ssl-certs
+              mountPath: /s3Certs
+            {{- end }}
+            {{- if $hasS3Aliases }}
+            - name: rabbitmq-backup-daemon-s3-aliases
+              mountPath: /aliases/
+              readOnly: true
+            {{- end }}
+            - name: backup-storage
+              mountPath: /opt/rabbitmq/backup-storage
+            {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
+            - name: ssl-certs
+              mountPath: /tls
+            {{- end }}
           resources:
             requests:
               cpu: {{ default "25m" .Values.backupDaemon.resources.requests.cpu }}

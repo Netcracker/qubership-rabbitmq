@@ -13,6 +13,9 @@ RUN set -x \
         "https://github.com/amazon-mq/rabbitmq-queue-migration/releases/download/${RABBITMQ_QUEUE_MIGRATION_VERSION}/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez"
 
 ENV USER_UID=1000
+ENV RABBITMQ_CONFIG_FILES=/opt/rabbitmq/conf.d
+ENV RABBITMQ_ADVANCED_CONFIG_FILE=/opt/rabbitmq/conf.d/advanced.config
+ENV RABBITMQ_ENABLED_PLUGINS_FILE=/opt/rabbitmq/conf.d/enabled_plugins
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
@@ -43,7 +46,7 @@ RUN set -x \
     && pip3 install --upgrade pip "setuptools==80.10.1" \
     && rm -rf /var/cache/apk/*
 
-COPY logging_definitions.json /etc/rabbitmq/
+COPY logging_definitions.json /opt/rabbitmq/
 
 VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq

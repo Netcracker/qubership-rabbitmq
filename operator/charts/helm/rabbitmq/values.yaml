@@ -446,3 +446,5 @@ PART_OF: "rabbitmq"
 DELIMITER: "-"
 # Artifact descriptor version which is installed.
 ARTIFACT_DESCRIPTOR_VERSION: ""  # TO_BE_REPLACED
+# Cloud Platform type
+PAAS_PLATFORM: "KUBERNETES"
