@@ -323,6 +323,10 @@ runAsNonRoot: true
 {{- end }}
 seccompProfile:
   type: "RuntimeDefault"
+{{- if eq (default "" .Values.PAAS_PLATFORM) "KUBERNETES" }}
+runAsUser: 1000
+runAsGroup: 1000
+{{- end }}
 {{- with .Values.global.securityContext }}
 {{ toYaml . }}
 {{- end -}}
@@ -330,8 +334,20 @@ seccompProfile:
 
 {{- define "rabbitmq.globalContainerSecurityContext" -}}
 allowPrivilegeEscalation: false
+readOnlyRootFilesystem: true
 capabilities:
   drop: ["ALL"]
+{{- end -}}
+
+{{- define "rabbitmq.tmpVolume" -}}
+- name: tmp
+  emptyDir:
+    sizeLimit: 8Mi
+{{- end -}}
+
+{{- define "rabbitmq.tmpVolumeMount" -}}
+- name: tmp
+  mountPath: /tmp
 {{- end -}}
 
 {{/*

@@ -31,7 +31,7 @@ RUN set -x \
     && pip3 install --upgrade pip setuptools \
     && rm -rf /var/cache/apk/*
 
-COPY logging_definitions.json /etc/rabbitmq/
+COPY logging_definitions.json /opt/rabbitmq/
 
 VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq

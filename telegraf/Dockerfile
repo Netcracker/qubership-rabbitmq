@@ -1,6 +1,7 @@
 FROM telegraf:1.37-alpine
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
+    MONITORING_LOGS=/tmp/monitoring/logs \
     USER_UID=1000
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
@@ -40,5 +41,4 @@ WORKDIR ${RABBITMQ_MONITORING_HOME}
 
 USER ${USER_UID}
 
-ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh"]
-CMD ["telegraf"]
+ENTRYPOINT ["/sbin/tini", "--", "/entrypoint.sh", "telegraf"]

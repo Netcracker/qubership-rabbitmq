@@ -18,6 +18,7 @@ spec:
     metadata:
       creationTimestamp: null
       labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
         name: rabbit-monitoring-external
         app.kubernetes.io/name: rabbitmq-monitoring-external
     spec:
@@ -46,6 +47,9 @@ spec:
           secret:
             secretName: {{ template "rabbitmq.tlsSecretName" . }}
       {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 16Mi
       containers:
         - name: telegraf
           image: {{ template "telegraf.image" . }}
@@ -60,6 +64,8 @@ spec:
               containerPort: 8096
               protocol: TCP
           env:
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
             - name: OS_PROJECT
               valueFrom:
                 fieldRef:
@@ -82,6 +88,7 @@ spec:
             - name: DESIRED_NODE_COUNT
               value: "{{ .Values.externalRabbitmq.replicas }}"
           volumeMounts:
+            {{- include "rabbitmq.tmpVolumeMount" . | nindent 12 }}
             - name: config
               mountPath: /etc/telegraf
           {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}

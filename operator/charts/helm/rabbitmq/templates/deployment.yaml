@@ -19,6 +19,7 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
       {{- with .Values.global.customLabels }}
         {{- toYaml . | nindent 8 -}}
       {{- end }}
@@ -39,8 +40,9 @@ spec:
       {{- if .Values.operator.priorityClassName }}
       priorityClassName: {{ .Values.operator.priorityClassName | quote }}
       {{- end }}
-      {{- if or (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) (eq (include "disasterRecovery.enableTls" .) "true") (eq (include "backupDaemon.enableTls" .) "true") }}
       volumes:
+        {{- include "rabbitmq.tmpVolume" . | nindent 8 }}
+      {{- if or (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) (eq (include "disasterRecovery.enableTls" .) "true") (eq (include "backupDaemon.enableTls" .) "true") }}
       {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
         - name: ssl-certs
           secret:
@@ -135,8 +137,9 @@ spec:
             {{- end }}
             - name: API_GROUP
               value: {{ .Values.operator.apiGroup | quote }}
-        {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}
           volumeMounts:
+            {{- include "rabbitmq.tmpVolumeMount" . | nindent 12 }}
+        {{- if or (eq (include "backupDaemon.enableTls" .) "true") (and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .)) }}
         {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
             - name: ssl-certs
               mountPath: /tls
@@ -150,8 +153,9 @@ spec:
         - name: rabbitmq-disaster-recovery
           image: {{ template "disasterRecovery.image" . }}
           imagePullPolicy: Always
-          {{- if (eq (include "disasterRecovery.enableTls" .) "true") }}
           volumeMounts:
+            {{- include "rabbitmq.tmpVolumeMount" . | nindent 12 }}
+          {{- if (eq (include "disasterRecovery.enableTls" .) "true") }}
             - name: drd-ssl-certs
               mountPath: /tls
           {{- end }}

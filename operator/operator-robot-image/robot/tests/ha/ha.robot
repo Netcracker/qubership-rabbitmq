@@ -8,7 +8,8 @@ Suite Teardown  Cleanup HA Test Data
 *** Keywords ***
 
 Cleanup HA Test Data
-    Start Node If Stopped  ${first_pod}
+    ${pod_set}=  Run Keyword And Return Status  Variable Should Exist  ${first_pod}
+    Run Keyword If  '${pod_set}'=='True'  Start Node If Stopped  ${first_pod}
     Delete User If Exist
     Delete Vhost If Exist
     Delete Queue If Exist
