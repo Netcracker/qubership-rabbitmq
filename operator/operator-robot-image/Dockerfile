@@ -1,4 +1,5 @@
 FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.5.3
+
 USER root
 
 ENV ROBOT_OUTPUT=/opt/robot/output \
