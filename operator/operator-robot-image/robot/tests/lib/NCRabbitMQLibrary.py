@@ -28,7 +28,6 @@ import urllib3
 import utils
 from robot.api import logger
 import os
-from distutils import util
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from robot.utils import ConnectionCache
 from robot.libraries.BuiltIn import BuiltIn
@@ -44,8 +43,8 @@ RabbitMqMessage = Union[Tuple[Dict[str, Any], Dict[str, Any], str], Tuple[None, 
 CA_CERT_PATH = '/tls/ca.crt'
 TLS_CERT_PATH = '/tls/tls.crt'
 TLS_KEY_PATH = '/tls/tls.key'
-SSL_ENABLED = util.strtobool(os.environ.get('RABBITMQ_ENABLE_SSL', 'false'))
-EXTERNAL_ENABLED = util.strtobool(os.environ.get('EXTERNAL_ENABLED', 'false'))
+SSL_ENABLED = os.environ.get('RABBITMQ_ENABLE_SSL', 'false').lower() in ("yes", "true", "t", "1")
+EXTERNAL_ENABLED = os.environ.get('EXTERNAL_ENABLED', 'false').lower() in ("yes", "true", "t", "1")
 
 
 class RequestConnection(object):

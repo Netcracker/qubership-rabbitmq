@@ -14,13 +14,12 @@
 
 import os
 import time
-from distutils import util
 
 from PlatformLibrary import PlatformLibrary
 
 environ = os.environ
 auto_reboot = environ.get('RABBITMQ_AUTO_REBOOT', 'false').lower() in ("yes", "true", "t", "1")
-external_enabled = util.strtobool(environ.get('EXTERNAL_ENABLED', 'false'))
+external_enabled = environ.get('EXTERNAL_ENABLED', 'false').lower() in ("yes", "true", "t", "1")
 namespace = environ.get('NAMESPACE')
 initial_sleep = 120 if auto_reboot else 40
 service = 'rmqlocal'
