@@ -80,6 +80,16 @@ spec:
             httpGet:
               path: /healthz
               port: 8081
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8081
+              scheme: HTTP
+            initialDelaySeconds: 40
+            timeoutSeconds: 15
+            periodSeconds: 15
+            successThreshold: 1
+            failureThreshold: 5
           resources:
             limits:
               cpu: {{ default "100m" .Values.operator.resources.limits.cpu  }}
@@ -110,6 +120,18 @@ spec:
             {{- if .Values.operatorDeleteResources }}
             - name: OPERATOR_DELETE_RESOURCES
               value: "{{ .Values.operatorDeleteResources }}"
+            {{- end }}
+            {{- if .Values.operator.enableOperatorShovelMonitoring }}
+            - name: ENABLE_SHOVEL_MONITORING
+              value: "{{ .Values.operator.enableOperatorShovelMonitoring }}"
+            {{- end }}
+            {{- if .Values.operator.enableClusterRestart }}
+            - name: ENABLE_CLUSTER_RESTART
+              value: "{{ .Values.operator.enableClusterRestart }}"
+            {{- end }}
+            {{- if .Values.operator.clusterRestartThreshold }}
+            - name: CLUSTER_RESTART_THRESHOLD
+              value: "{{ .Values.operator.clusterRestartThreshold }}"
             {{- end }}
             - name: API_GROUP
               value: {{ .Values.operator.apiGroup | quote }}
@@ -150,6 +172,14 @@ spec:
             httpGet:
               path: /health
               scheme: {{ (eq (include "disasterRecovery.enableTls" .) "true") | ternary "HTTPS" "HTTP" }}
+              port: {{ template "disasterRecovery.port" . }}
+            initialDelaySeconds: 10
+            timeoutSeconds: 30
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          readinessProbe:
+            tcpSocket:
               port: {{ template "disasterRecovery.port" . }}
             initialDelaySeconds: 10
             timeoutSeconds: 30

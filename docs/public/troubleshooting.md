@@ -1,6 +1,30 @@
 The following topics are covered in this chapter:
 
-[[_TOC_]]
+<!-- TOC -->
+* [Prometheus Alerts](#prometheus-alerts)
+  * [NoMetrics](#nometrics)
+  * [ClusterError](#clustererror)
+  * [SomePodsAreNotWorking](#somepodsarenotworking)
+  * [MemoryAlarm](#memoryalarm)
+  * [DiskAlarm](#diskalarm)
+* [Troubleshooting Scenarios](#troubleshooting-scenarios)
+  * [Dispositions](#dispositions)
+  * [Cluster Formation](#cluster-formation)
+  * [Network Partition Recovery](#network-partition-recovery)
+  * [RabbitMQ Does Not Have Enough Permissions to Form a Cluster](#rabbitmq-does-not-have-enough-permissions-to-form-a-cluster)
+  * [Queue Data Corruption](#queue-data-corruption)
+    * [Queue Index Corruption](#queue-index-corruption)
+    * [Queue Message Corruption](#queue-message-corruption)
+  * [Vhost is Down due to a Corrupted Recovery File](#vhost-is-down-due-to-a-corrupted-recovery-file)
+  * [RabbitMQ Pod Outage](#rabbitmq-pod-outage)
+  * [RabbitMQ Process Failure](#rabbitmq-process-failure)
+  * [Memory Limit Alarm](#memory-limit-alarm)
+  * [Disk Limit Alarm](#disk-limit-alarm)
+  * [Disk Failure on One Node](#disk-failure-on-one-node)
+  * [Problems with .erlang.cookie](#problems-with-erlangcookie)
+  * [badmatch,{error,einval} error on NFS Storage](#badmatcherror-einval-error-on-nfs-storage)
+  * [Operator Contains "Object is being deleted: statefulsets.apps already exists..." Error](#operator-contains-object-is-being-deleted-statefulsetsapps-already-exists-error)
+<!-- TOC -->
 
 This section provides detailed troubleshooting procedures for the RabbitMQ cluster.
 
@@ -152,6 +176,23 @@ For more information, refer to the _Official RabbitMQ Documentation_ [https://ww
 **Note**: When using RabbitMQ operator deployment, you can check the operator logs for cluster formation.
 
 **Note**: Restarting or joining nodes will lose their data.
+
+## Network Partition Recovery
+
+### Description
+
+Network partitions split nodes into isolated groups and can leave RabbitMQ enforcing pause-minority or autoheal rules. The objective is to keep the quorum partition serving traffic while safely rejoining the isolated nodes without data loss.
+
+### Step-by-Step Cluster Rejoin Procedure
+
+1. **Detect and map partitions**. From any reachable pod (for example, `kubectl exec rmqlocal-0 -- rabbitmq-diagnostics cluster_status`), capture the list of partitions and determine which pods still see a quorum.
+2. **Select the trusted partition**. Following the RabbitMQ guidance, pick the side that preserved the majority (or the most recent writes) and treat it as the source of truth. All other partitions will lose any divergent changes when they rejoin.
+3. **Stop nodes in the losing partitions**. For every isolated pod, stop the RabbitMQ application (`rabbitmqctl stop` or delete the pod) so it can no longer accept client traffic. In Kubernetes this usually means scaling the StatefulSet down to only the trusted replicas or deleting the minority pods while keeping their PVCs intact.
+4. **Restart the stopped pods so they rejoin**. After network connectivity is restored, start the previously stopped pods (scale the StatefulSet back up or allow the deleted pods to recreate). On boot they automatically sync schema and data from the trusted partition, as described in the RabbitMQ clustering restart flow.
+5. **Cycle the trusted partition**. Once all replicas have rejoined, sequentially restart the pods that stayed online so the partition warnings are cleared and every node completes a clean sync.
+6. **Verify recovery**. Run `rabbitmq-diagnostics cluster_status` and `rabbitmq-diagnostics check_cluster` again to confirm that no partitions remain and that queues have finished synchronizing. Continue to watch operator logs for `timeout_waiting_for_tables` or other bootstrap issues.
+
+For more details, refer to the official guides on [recovering from partitions](https://www.rabbitmq.com/docs/3.13/partitions#recovering) and on [restarting clustered nodes](https://www.rabbitmq.com/docs/3.13/clustering#restarting).
 
 ## RabbitMQ Does Not Have Enough Permissions to Form a Cluster
 

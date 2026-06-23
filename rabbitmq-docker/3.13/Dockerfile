@@ -1,4 +1,4 @@
-FROM library/rabbitmq:3.13.6-management-alpine
+FROM library/rabbitmq:3.13.7-management-alpine
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY scripts/get_user /bin/
@@ -6,6 +6,9 @@ COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
 ENV USER_UID=1000
+
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN set -x && apk upgrade --no-cache --available
 

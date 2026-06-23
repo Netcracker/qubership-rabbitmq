@@ -14,18 +14,19 @@
 
 import base64
 import logging
+import math
 import os
 import pprint
 import re
 import time
 from time import sleep
-from distutils import util
+from unittest import result
 
 import kopf
 import requests
 from kubernetes import client as client, config as k8s_config
 from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
-    V1PodTemplateSpec, V1ContainerPort, \
+    V1PodTemplateSpec, V1TCPSocketAction, V1ContainerPort, \
     V1ExecAction, V1EnvVarSource, V1ObjectFieldSelector, V1VolumeMount, \
     V1ResourceRequirements, V1SecretKeySelector, \
     V1Volume, V1ConfigMapVolumeSource, V1KeyToPath, V1ConfigMap, V1Lifecycle, \
@@ -70,6 +71,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(LOGLEVEL)
 logger.info("loglevel is set to " + str(LOGLEVEL))
 
+CLUSTER_DOWN_SINCE = 0
 
 class FakeKubeResponse:
     def __init__(self, obj):
@@ -87,7 +89,7 @@ username_change_attr = ('data', 'user')
 tests_name = 'rabbitmq-integration-tests'
 nodeport_service_name = 'rabbitmq-nodeport'
 cr_version = "v2"
-api_group = os.getenv("API_GROUP", "qubership.org")
+api_group = os.getenv("API_GROUP", "netcracker.com")
 IN_PROGRESS = "In progress"
 SUCCESSFUL = "Successful"
 FAILED = "Failed"
@@ -165,6 +167,29 @@ class KubernetesHelper:
         else:
             return None
 
+    @staticmethod
+    def _is_deployment_ready(deploy) -> bool:
+        desired = deploy.spec.replicas or 1
+        st = deploy.status or None
+        ready = (st.ready_replicas or 0) if st else 0
+        updated = (st.updated_replicas or 0) if st else 0
+        available = min(ready, updated)
+        return desired == available
+
+    def _wait_backup_daemon_deployment_ready(self, deployment) -> bool:
+        timeout = self._spec.get('global', {}).get('podReadinessTimeout', 180)
+        interval = 10
+        attempts = math.ceil(timeout / interval)
+        for _ in range(attempts):
+            try:
+                if self._is_deployment_ready(deployment):
+                    return True
+                logger.info("Backup daemon deployment is not ready yet.")
+            except Exception as e:
+                logger.debug("Cannot read backup daemon deployment yet (%s). Wait 30 seconds.", e)
+            time.sleep(10)
+        return False
+
     def get_liveness_probe(self, name):
         if self.is_hostpath():
             command = rabbitconstants.rabbitmq_hostpath_liveness_probe_command
@@ -174,11 +199,11 @@ class KubernetesHelper:
             oldprobe = rabbitconstants.storageclass_liveness_probe
         livenessprobeparameters = self._spec[name].get('livenessProbe')
         if livenessprobeparameters:
-            livenessprobe = V1Probe(failure_threshold=livenessprobeparameters.get('failure_threshold', 30),
-                                    initial_delay_seconds=livenessprobeparameters.get('initial_delay_seconds', 10),
-                                    period_seconds=livenessprobeparameters.get('period_seconds', 30),
-                                    success_threshold=livenessprobeparameters.get('success_threshold', 1),
-                                    timeout_seconds=livenessprobeparameters.get('timeout_seconds', 15),
+            livenessprobe = V1Probe(failure_threshold=livenessprobeparameters.get('failureThreshold', 30),
+                                    initial_delay_seconds=livenessprobeparameters.get('initialDelaySeconds', 10),
+                                    period_seconds=livenessprobeparameters.get('periodSeconds', 30),
+                                    success_threshold=livenessprobeparameters.get('successThreshold', 1),
+                                    timeout_seconds=livenessprobeparameters.get('timeoutSeconds', 15),
                                     _exec=V1ExecAction(command=command))
             return livenessprobe
         else:
@@ -193,11 +218,11 @@ class KubernetesHelper:
             oldprobe = rabbitconstants.storageclass_readiness_probe
         readinessprobeparameters = self._spec[name].get('readinessProbe')
         if readinessprobeparameters:
-            readinessprobe = V1Probe(failure_threshold=readinessprobeparameters.get('failure_threshold', 90),
-                                     initial_delay_seconds=readinessprobeparameters.get('initial_delay_seconds', 10),
-                                     period_seconds=readinessprobeparameters.get('period_seconds', 10),
-                                     success_threshold=readinessprobeparameters.get('success_threshold', 1),
-                                     timeout_seconds=readinessprobeparameters.get('timeout_seconds', 15),
+            readinessprobe = V1Probe(failure_threshold=readinessprobeparameters.get('failureThreshold', 90),
+                                     initial_delay_seconds=readinessprobeparameters.get('initialDelaySeconds', 10),
+                                     period_seconds=readinessprobeparameters.get('periodSeconds', 10),
+                                     success_threshold=readinessprobeparameters.get('successThreshold', 1),
+                                     timeout_seconds=readinessprobeparameters.get('timeoutSeconds', 15),
                                      _exec=V1ExecAction(command=command))
             return readinessprobe
         else:
@@ -284,27 +309,52 @@ class KubernetesHelper:
         v1api = self._v1_apps_api
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
-                      stderr=True, stdin=True,
+                      stderr=True, stdin=False,
                       stdout=True, tty=False, _preload_content=False, _request_timeout=30)
         result = ''
-        count1 = 0
-        count2 = -1
         while resp.is_open():
             resp.update(timeout=30)
             if resp.peek_stdout():
-                count1 = count1 + 1
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
                 result = result + recv_text
             if resp.peek_stderr():
-                count1 = count1 + 1
                 logger.info("STDERR: %s" % resp.read_stderr())
-            else:
-                if count2 == count1:
-                    logger.info("Executed command in pod successfully.")
-                    break
-                count2 = count1
+            
+            if resp.returncode is not None:
+                break
+        
         resp.close()
+        return result
+    
+    def exec_command_in_pod_interactive(self, pod_name, commands):
+        exec_command = ['/bin/sh']
+        v1api = self._v1_apps_api
+        resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
+                      command=exec_command,
+                      stderr=True, stdin=True,
+                      stdout=True, tty=True, _preload_content=False, _request_timeout=30)
+        result = ''
+        try:
+            while resp.is_open():
+                resp.update(timeout=1)
+                if resp.peek_stdout():
+                    recv_text = resp.read_stdout()
+                    logger.info("STDOUT: %s" % recv_text)
+                    result += recv_text
+                if resp.peek_stderr():
+                    stderr_text = resp.read_stderr()
+                    logger.info("STDERR: %s" % stderr_text)
+                if commands:
+                    command = commands.pop(0)
+                    logger.info(f"Running command... {command}")
+                    resp.write_stdin(command + "\n")
+                    sleep(5)
+                else:
+                    break
+        finally:
+            resp.close()
+        logger.info("Executed commands in pod successfully.")
         return result
 
     def change_password(self):
@@ -444,6 +494,7 @@ class KubernetesHelper:
         pvc_labels = self.get_default_labels()
         pvc_labels["app"] = "rmqlocal"
         pvc_labels["rabbitmq-app"] = "rmqlocal"
+        pvc_labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
         pvc = V1PersistentVolumeClaim(api_version='v1', kind='PersistentVolumeClaim',
                                       metadata=V1ObjectMeta(name=f'{pvc_prefix}-rmq-pvc',
                                                             labels=pvc_labels),
@@ -559,12 +610,14 @@ class KubernetesHelper:
         if self.is_hostpath():
             return None
         else:
+            labels = self.get_default_labels()
+            labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
             return [V1PersistentVolumeClaim(api_version='v1',
                                             metadata=V1ObjectMeta(annotations={
                                                 'volume.beta.kubernetes.io/storage-class': self._res[
                                                     'storageclass']},
                                                 name=vct_name,
-                                                labels=self.get_default_labels()),
+                                                labels=labels),
                                             spec=V1PersistentVolumeClaimSpec(
                                                 access_modes=['ReadWriteOnce'],
                                                 storage_class_name=self._res['storageclass'],
@@ -642,6 +695,24 @@ class KubernetesHelper:
 
         telegraf_labels = {'name': telegraf_name, 'component': telegraf_name}
         telegraf_custom_labels = self.get_custom_labels(telegraf_labels, 'telegraf')
+
+        liveness = V1Probe(
+            tcp_socket=V1TCPSocketAction(port=8096),
+            initial_delay_seconds=30,
+            timeout_seconds=5,
+            period_seconds=15,
+            success_threshold=1,
+            failure_threshold=20,
+        )
+
+        readiness = V1Probe(
+            tcp_socket=V1TCPSocketAction(port=8096),
+            initial_delay_seconds=30,
+            timeout_seconds=5,
+            period_seconds=15,
+            success_threshold=1,
+            failure_threshold=20,
+        )
         podtemplate = V1PodTemplateSpec(
             metadata=V1ObjectMeta(labels=telegraf_custom_labels),
             spec=V1PodSpec(containers=[V1Container(name=telegraf_name,
@@ -650,7 +721,9 @@ class KubernetesHelper:
                                                    termination_message_path='/dev/termination-log',
                                                    image_pull_policy=image_pull_policy,
                                                    resources=telegraf_resources,
-                                                   security_context=self.get_container_security_context())],
+                                                   security_context=self.get_container_security_context(),
+                                                   readiness_probe=readiness,
+                                                   liveness_probe=liveness,)],
                            security_context=self.get_security_context("telegraf"),
                            affinity=self.get_affinity_rules(),
                            tolerations=self.get_tolerations(),
@@ -1145,6 +1218,122 @@ class KubernetesHelper:
         )
         time.sleep(5)
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
+    
+    def check_shovel_state(self, alive_percentage=0.8):
+        if self.is_ssl_enabled():
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
+        else:
+            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                         'http://rabbitmq.' + self._workspace + '.svc:15672')
+    
+        return rabbit_helper.is_shovel_alive(alive_percentage)
+
+    
+    def restart_shovel_plugin(self, pod_name):
+        logger.info(f"Restarting shovel plugin in pod {pod_name}...")
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                if rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                    if rabbitmq-plugins disable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                        | grep -q "The following plugins have been disabled:"; then
+                        echo "plugins disabled"
+                    fi
+                fi
+                """
+]
+        )
+        logger.debug("Disable shovel plugin output: {}".format(output))
+        if output.find('plugins disabled') == -1:
+            raise RuntimeError("Failed to disable shovel plugin in pod {}".format(pod_name))
+       
+        time.sleep(10)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command = [
+                "/bin/sh",
+                "-c",
+                """
+                    if ! rabbitmq-plugins list -E | grep -q rabbitmq_shovel; then
+                        if rabbitmq-plugins enable rabbitmq_shovel rabbitmq_shovel_management 2>&1 \
+                            | grep -q "The following plugins have been enabled:"; then
+                            echo "plugins enabled"
+                        fi
+                    fi
+                """
+            ]
+
+        )
+        logger.debug("Enable shovel plugin output: {}".format(output))
+        if output.find('plugins enabled') == -1:
+            raise RuntimeError("Failed to enable shovel plugin in pod {}".format(pod_name))
+    
+    def nodes_restart_shovel_plugin(self):
+        if self._check_rabbit_pods_running() is False:
+            raise RuntimeError("Cannot restart shovel plugin because not all RabbitMQ pods are running")
+        
+        logger.info("Restarting shovel plugin...")
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            for attempt in range(3):
+                try:
+                    self.restart_shovel_plugin(pod_name)
+                    logger.info(f"Successfully restarted shovel plugin in pod {pod_name}")
+                    break
+                except RuntimeError as e:
+                    if attempt < 2:
+                        logger.warning(f"Attempt {attempt + 1}/3 failed for pod {pod_name}: {e}. Retrying...")
+                        time.sleep(5)
+                    else:
+                        logger.error(f"Failed to restart shovel plugin in pod {pod_name} after 3 attempts")
+                        raise
+
+        logger.info("Shovel plugin restarted successfully")
+
+    def enable_feature_flags_for_pod(self, pod_name):
+        logger.info("Enable RabbitMQ feature flags in pod %s", pod_name)
+        output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                """
+                    if rabbitmqctl enable_feature_flag all 2>&1 \
+                        | grep -q "Enabling all feature flags"; then
+                        echo "success"
+                    else
+                        echo "failed"
+                        exit 1
+                    fi
+                """
+            ]
+        )
+        logger.debug("Enable feature flags output: {}".format(output))
+        if "failed" in output:
+            raise RuntimeError(
+                f"Failed to enable feature flags in pod {pod_name}"
+            )
+
+    def nodes_enable_feature_flags(self):
+        if self._check_rabbit_pods_running() is False:
+            raise RuntimeError("Not all RabbitMQ pods are running")
+        
+        pods = (self.get_rabbit_pods()).items
+        for pod in pods:
+            pod_name = pod.metadata.name
+            try:
+                self.enable_feature_flags_for_pod(pod_name)
+                logger.info("Successfully enable RabbitMQ feature flags in pod %s",pod_name)
+            except RuntimeError as e:
+                logger.error("Failed to enable RabbitMQ feature flags in pod %s: %s", pod_name, e)
+                raise RuntimeError(f"Failed to enable RabbitMQ feature flags in pod {pod_name}: {e}")
+
+        logger.info("Feature flags are enabled successfully")
 
     def enable_feature_flags(self):
         if self.is_hostpath():
@@ -1332,12 +1521,10 @@ class KubernetesHelper:
             mode = self._spec.get('disasterRecovery').get('mode', None)
         else:
             mode = 'None'
-        timeout = self._spec.get('global').get('podReadinessTimeout', 180)
         if (backup_daemon_enabled in positive_values) and mode != 'standby':
             deployment = self._apps_v1_api.read_namespaced_deployment(name=name, namespace=self._workspace)
             if deployment is not None:
-                backup_helper = BackupHelper(namespace=self._workspace, custom_url=backup_daemon_url, verify=self.get_backup_daemon_auth())
-                result = backup_helper.check_backup_daemon_readiness(timeout)
+                result = self._wait_backup_daemon_deployment_ready(deployment)
                 logger.debug(f'Backup daemon is ready: {result}')
                 return result
         return True
@@ -1396,7 +1583,6 @@ def restore_last_backup(namespace: str, region: str, no_wait: bool, backup_daemo
         raise DisasterRecoveryException(message='backup was restored but restore task was not succeeded')
     logger.info(f"Backup was restored successfully")
 
-
 @with_attempts(attempts=3, timeout=10, not_found_reason='not found')
 def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) -> str:
     backup_id = backup_helper.get_latest_backup_id_from_another_cluster(region)
@@ -1412,7 +1598,48 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
+    settings.posting.enabled = False
 
+
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
+def shovel_monitoring(spec,retry,  **kwargs):
+    kub_helper = KubernetesHelper(spec)
+    enabled = False
+
+    enabled = os.getenv("ENABLE_SHOVEL_MONITORING", "false").lower() in ("yes", "true", "t", "1")
+
+    if enabled:
+        if not kub_helper.check_shovel_state():
+            logger.warning("Shovel monitoring detected that some shovels are not running properly. Restarting shovel plugin...")
+            kub_helper.nodes_restart_shovel_plugin()
+            if not kub_helper.check_shovel_state():
+                logger.warning("Some shovels are not running properly after restart.")
+            else:
+                logger.info("All shovels are running properly after restart.")
+
+
+@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
+def cluster_monitoring(spec, **kwargs):
+    global CLUSTER_DOWN_SINCE
+    enabled = os.environ.get('ENABLE_CLUSTER_RESTART', 'false').lower() in ("yes", "true", "t", "1")
+    if enabled:
+        kub_helper = KubernetesHelper(spec)
+        threshold_seconds = int(os.getenv("CLUSTER_RESTART_THRESHOLD", "10800"))
+        try:
+            cluster_status = kub_helper.check_cluster_state()
+            if cluster_status == "error":
+                current_time = int(time.time())
+                if CLUSTER_DOWN_SINCE == 0:
+                    CLUSTER_DOWN_SINCE = current_time
+                outage_duration = current_time - CLUSTER_DOWN_SINCE
+                logger.warning(f"RabbitMQ cluster is unavailable for {outage_duration} seconds")
+                if outage_duration >= threshold_seconds:
+                    logger.error("RabbitMQ cluster exceeded outage threshold. Restarting cluster.")
+                    kub_helper.reboot_pods()
+            else:
+                CLUSTER_DOWN_SINCE = 0
+        except Exception as ex:
+            logger.warning(f"RabbitMQ cluster monitoring failed: {ex}")
 
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
@@ -1649,7 +1876,19 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
+    if rabbit_exist_before:
+        try:
+            logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+            kub_helper.nodes_enable_feature_flags()
+        except RuntimeError:
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "RabbitMQ upgrade failed: failed to enable all feature flags"
+            )
+            raise kopf.PermanentError("RabbitMQ upgrade failed.")
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():

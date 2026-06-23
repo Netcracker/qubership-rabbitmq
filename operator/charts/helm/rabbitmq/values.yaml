@@ -26,7 +26,7 @@ global:
   securityContext: {}
   disableRunAsNonRoot: false
   disasterRecovery:
-    siteManagerApiGroup: "qubership.org"
+    siteManagerApiGroup: "netcracker.com"
 
 operator:
   resources:
@@ -39,10 +39,13 @@ operator:
   customLabels: {}
   securityContext: {}
   priorityClassName: ""
-  apiGroup: "qubership.org"
+  apiGroup: "netcracker.com"
   pullPolicy: "Always"
+  enableOperatorShovelMonitoring: true
+  enableClusterRestart: false
+  clusterRestartThreshold: 10800
   restartScheduler:
-    dockerImage: bitnami/kubectl:1.30.6
+    dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main
     enabled: true
     schedule: "0 0 * * *"
     affinity: {}
@@ -118,6 +121,8 @@ rabbitmq:
   eventLogging: true
   auto_reboot: false
   hostpath_configuration: false
+  # Leave empty to keep the helper-driven default: autoheal when replicas < 3, otherwise pause_minority.
+  cluster_partition_handling: ""
   ipv6_enabled: false
   ldap:
     enabled: false
@@ -151,6 +156,14 @@ rabbitmq:
     enabled: false
     host: ""
     className: ""
+  
+  envoyGateway:
+    enabled: false
+    host: ""
+    parentRefs:
+      - name: default-external-gateway
+        namespace: gateway-system
+ 
   # The list of enabled plugins. For example,
   # enabledPlugins:
   #   - rabbitmq_shovel
@@ -207,6 +220,8 @@ rabbitmq:
   selectors: {}
   securityContext: {}
   priorityClassName: ""
+  disruptionBudget:
+    enabled: false
   livenessProbe:
     initialDelaySeconds: 10
     timeoutSeconds: 15
@@ -246,10 +261,26 @@ tests:
   priorityClassName: ""
   affinity: {}
   prometheusUrl: ""
+  # S3/ATP for test results (credentials under tests.atpReport.atpStorage)
+  atpReport:
+    enabled: false
+    atpStorage:
+      provider: "aws"
+      serverUrl: "https://s3.amazonaws.com"
+      serverUiUrl: ""
+      bucket: ""
+      region: "us-east-1"
+      username: ""
+      password: ""
+  atpReportViewUiUrl: ""
+  environmentName: "rabbitmq"
+  monitoredImages: ""
 
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
 backupDaemon:
+  cloudBackuper:
+    enableAnnotations: true
   tls:
     enabled: true
     certificates:
@@ -292,10 +323,10 @@ backupDaemon:
   # formatted as a YAML string.
   resources:
     requests:
-      memory: "64Mi"
-      cpu: "25m"
-    limits:
       memory: "256Mi"
+      cpu: "100m"
+    limits:
+      memory: "512Mi"
       cpu: "200m"
 
   # Affinity Settings for Backup Daemon pod, formatted as a JSON string.
@@ -351,6 +382,18 @@ backupDaemon:
     bucket: ""
     keyId: ""
     keySecret: ""
+  s3Aliases: []
+  # - name: default
+  #   spec:
+  #     default: true
+  #     storageBucket: backup-restore-bucket
+  #     storageProvider: aws
+  #     storageRegion: us-east-1
+  #     storageServerUrl: "https://s3.example.com"
+  #     storageUsername: name
+  #     storageSecret: storage-location-default
+  #   secretContent:
+  #     storagePassword: pass
 
   customLabels: {}
 

@@ -30,6 +30,9 @@ Kill All Pods w/o Data
 
     Force Kill All Pods  ${pod_names}  ${order}
 
+    # Wait for pods to be ready before checking cluster (avoids connection timeouts)
+    Wait For RabbitMQ Pods Ready
+
     ${replicas}=  Get Rabbitmq Replicas
     Check Cluster  ${replicas}
 
@@ -55,7 +58,7 @@ Kill Part Of Pods w/o Data
     Kill All Pods w/o Data  ${pod_names}  part
 
 HA Queue Test
-    [Tags]  ha  all
+    [Tags]  ha  ha_queue  all
 
     ${first_pod}=  Get First Rabbit Pod
     Set Suite Variable  ${first_pod}
@@ -75,9 +78,8 @@ HA Queue Test
     ${overview}=  Overview
     Log Dictionary  ${overview}
 
-    ${resutl}  ${err}  Set Policy Ha All  ${first_pod}  ${TEST_VHOST}
-    Should Be Empty  ${err}
-    Create And Check Queue
+    # Use quorum queue (replicated by default); ha-mode/ha-sync-mode policy not supported in RabbitMQ 4.x
+    Create And Check Queue  quorum
 
     Publish Msg  ${TEST_VHOST}  ${TEST_QUEUE}
 

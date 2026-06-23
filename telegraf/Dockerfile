@@ -1,7 +1,10 @@
-FROM telegraf:1.35-alpine
+FROM telegraf:1.37-alpine
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
     USER_UID=1000
+
+RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
+    echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
 
 RUN mkdir -p ${RABBITMQ_MONITORING_HOME}
 

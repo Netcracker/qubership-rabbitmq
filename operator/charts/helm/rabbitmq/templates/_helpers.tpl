@@ -95,7 +95,8 @@ cluster_formation.peer_discovery_backend = rabbit_peer_discovery_k8s
 cluster_formation.k8s.host = kubernetes.default.svc.cluster.local
 cluster_formation.k8s.address_type = hostname
 {{- end }}
-cluster_partition_handling = autoheal
+{{ $defaultClusterPartition := lt (int .Values.rabbitmq.replicas) 3 | ternary "autoheal" "pause_minority" }}
+cluster_partition_handling = {{ default $defaultClusterPartition .Values.rabbitmq.cluster_partition_handling }}
 {{- end }}
 
 {{/*
@@ -257,6 +258,20 @@ RabbitMQ admin password.
   {{- else -}}
     {{- required "The rabbitmq.custom_params.rabbitmq_default_password should be specified" .Values.rabbitmq.custom_params.rabbitmq_default_password -}}
   {{- end -}}
+{{- end -}}
+
+{{/*
+Compute the maximum number of unavailable replicas for the PodDisruptionBudget. This defaults to 1.
+Add a special case for replicas=1, where it should default to 0 as well.
+*/}}
+{{- define "rabbitmq.pdb.maxUnavailable" -}}
+{{- if eq (int .Values.rabbitmq.replicas) 1 -}}
+{{ 0 }}
+{{- else if .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
+{{ .Values.rabbitmq.disruptionBudget.maxUnavailable -}}
+{{- else -}}
+{{- add (div (int .Values.rabbitmq.replicas) 2) 1 -}}
+{{- end -}}
 {{- end -}}
 
 {{/*
@@ -449,18 +464,21 @@ Ingress host for RabbitMQ
 DNS names used to generate SSL certificate with "Subject Alternative Name" field
 */}}
 {{- define "rabbitmq.certDnsNames" -}}
-  {{- $rabbitmqName := "rabbitmq" -}}
-  {{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
-  {{- $nodes := .Values.rabbitmq.replicas -}}
-  {{- $rabbitmqNamespace := .Release.Namespace -}}
-  {{- range $i, $e := until ($nodes | int) -}}
-    {{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
-  {{- end -}}
-  {{ if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
-  {{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
-  {{- end -}}
-  {{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
-  {{- $dnsNames | toYaml -}}
+{{- $rabbitmqName := "rabbitmq" -}}
+{{- $dnsNames := list "localhost" $rabbitmqName (printf "%s.%s" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc.cluster.local" $rabbitmqName .Release.Namespace) (printf "%s.%s.svc" $rabbitmqName .Release.Namespace) -}}
+{{- $nodes := .Values.rabbitmq.replicas -}}
+{{- $rabbitmqNamespace := .Release.Namespace -}}
+{{- range $i, $e := until ($nodes | int) -}}
+{{- $dnsNames = append $dnsNames (printf "%s-%d.rmqlocal.%s.svc.cluster.local" $rabbitmqName $i $rabbitmqNamespace) -}}
+{{- end -}}
+{{- if (eq (include "rabbitmq.ingressEnabled" .) "true") }}
+{{- $dnsNames = append $dnsNames (include "rabbitmq.ingressHost" .) -}}
+{{- end -}}
+{{- if .Values.rabbitmq.envoyGateway.host }}
+{{- $dnsNames = append $dnsNames .Values.rabbitmq.envoyGateway.host }}
+{{- end }}
+{{- $dnsNames = concat $dnsNames .Values.rabbitmq.tls.subjectAlternativeName.additionalDnsNames -}}
+{{- $dnsNames | toYaml -}}
 {{- end -}}
 
 {{/*
@@ -593,6 +611,17 @@ Backup Daemon Port
 {{- end -}}
 
 {{/*
+Backup Daemon Protocol
+*/}}
+{{- define "backupDaemon.Protocol" -}}
+  {{- if (eq (include "backupDaemon.enableTls" .) "true") -}}
+    {{- "HTTPS" -}}
+  {{- else -}}
+    {{- "HTTP" -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
 Whether Backup Daemon certificates are Specified
 */}}
 {{- define "backupDaemon.certificatesSpecified" -}}
@@ -640,6 +669,42 @@ Backup Daemon SSL secret name
       {{- printf "" -}}
     {{- end -}}
   {{- end -}}
+{{- end -}}
+
+{{/*
+Effective backup daemon S3 aliases wrapped in a map: { items: [...] }.
+fromYaml cannot parse bare YAML lists, so the output is a map with an "items" key.
+*/}}
+{{- define "backupDaemon.s3Aliases" -}}
+{{- if and .Values.backupDaemon.s3Aliases -}}
+items: {{ toYaml .Values.backupDaemon.s3Aliases | nindent 2 }}
+{{- else -}}
+items: []
+{{- end -}}
+{{- end -}}
+
+{{/*
+Build backup daemon aliases payload as JSON object.
+*/}}
+{{- define "backupDaemon.s3AliasesJson" -}}
+{{- $s3Data := fromYaml (include "backupDaemon.s3Aliases" .) -}}
+{{- $aliases := dict -}}
+{{- range $s3Data.items }}
+  {{- $out := dict -}}
+  {{- if .spec }}
+    {{- $out = merge $out (omit .spec "storageBucket" "storageUsername" "storageRegion" "storageServerUrl") -}}
+    {{- if .spec.storageBucket }}{{- $out = set $out "bucketName" .spec.storageBucket }}{{- end -}}
+    {{- if .spec.storageUsername }}{{- $out = set $out "accessKeyId" .spec.storageUsername }}{{- end -}}
+    {{- $out = set $out "region" (default "us-east-1" .spec.storageRegion) -}}
+    {{- if .spec.storageServerUrl }}{{- $out = set $out "s3Url" .spec.storageServerUrl }}{{- end -}}
+  {{- end }}
+  {{- if .secretContent }}
+    {{- $out = merge $out (omit .secretContent "storagePassword") -}}
+    {{- if .secretContent.storagePassword }}{{- $out = set $out "accessKeySecret" .secretContent.storagePassword }}{{- end -}}
+  {{- end }}
+  {{- $aliases = set $aliases .name $out -}}
+{{- end }}
+{{- $aliases | toPrettyJson -}}
 {{- end -}}
 
 {{/*
@@ -713,6 +778,25 @@ BackupDaemon S3 accessSecret
     {{- .Values.S3_SECRETKEY }}
   {{- else -}}
     {{- .Values.backupDaemon.s3.keySecret  -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Integration tests ATP storage credentials (S3-compatible), same pattern as backupDaemon.s3AccessKey / s3AccessSecret.
+*/}}
+{{- define "tests.atpStorageUsername" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_USERNAME | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_USERNAME }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.username -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "tests.atpStoragePassword" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_PASSWORD | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_PASSWORD }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.password -}}
   {{- end -}}
 {{- end -}}
 
@@ -804,6 +888,7 @@ Core RabbitMQ resources labels with backend component label
 {{- define "rabbitmq.defaultLabels" -}}
 {{ include "rabbitmq.coreLabels" . }}
 app.kubernetes.io/component: 'backend'
+app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{- define "backupDaemon.persistentVolumeDefined" -}}

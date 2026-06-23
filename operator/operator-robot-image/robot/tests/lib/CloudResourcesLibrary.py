@@ -53,12 +53,16 @@ class CloudResourcesLibrary(object):
 
         cr = self.get_custom_resource()
         secret_change = hashlib.sha256(base64.b64encode(str(secret.data).encode())).hexdigest()
+        if 'spec' not in cr:
+            cr['spec'] = {}
+        if 'rabbitmq' not in cr['spec']:
+            cr['spec']['rabbitmq'] = {}
         cr['spec']['rabbitmq']['secret_change'] = secret_change
         self.update_custom_resource(cr)
 
     def get_custom_resource(self):
         return self.k8s_lib.get_namespaced_custom_object_status(
-            group='qubership.org',
+            group='netcracker.com',
             version=cr_version,
             namespace=self.namespace,
             plural='rabbitmqservices',
@@ -67,13 +71,17 @@ class CloudResourcesLibrary(object):
 
     def set_secret_change_field(self, secret_change):
         cr = self.get_custom_resource()
+        if 'spec' not in cr:
+            cr['spec'] = {}
+        if 'rabbitmq' not in cr['spec']:
+            cr['spec']['rabbitmq'] = {}
         cr['spec']['rabbitmq']['secret_change'] = secret_change
         self.update_custom_resource(cr)
 
     def update_custom_resource(self, body):
 
         self._custom_objects_api.patch_namespaced_custom_object(
-            group='qubership.org',
+            group='netcracker.com',
             version=cr_version,
             namespace=self.namespace,
             plural='rabbitmqservices',
@@ -83,7 +91,7 @@ class CloudResourcesLibrary(object):
 
     def get_secret_change_value(self):
         cr = self.get_custom_resource()
-        return cr['spec']['rabbitmq']['secret_change']
+        return cr.get('spec', {}).get('rabbitmq', {}).get('secret_change', '')
 
     def get_password_from_secret(self, secret):
 

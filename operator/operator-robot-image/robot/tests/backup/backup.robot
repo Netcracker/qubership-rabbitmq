@@ -29,8 +29,9 @@ Check RabbitMQ Backup Endpoints
     Should Contain  ${response}  ${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "id": "${backup_folder}", "failed": false
-    Should Contain  ${response}  ${found_word}
+    ${json}=  Evaluate  json.loads('''${response}''')  json
+    Should Be Equal As Strings  ${json['id']}  ${backup_folder}
+    Should Not Be True  ${json['failed']}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
@@ -80,6 +81,7 @@ Granular Backup And Restore
      ${restore_name}  Make Rabbitmq Granular Restore  vault_name=${backup_folder}  vhost=${TEST_VHOST}
      Wait Job Success  job_name=${restore_name}
      Evict Vault  vault_name=${backup_folder}
+     Sleep    30s
      Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
      ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
      Should Be True  ${exist}
@@ -101,8 +103,8 @@ Not Evictable Backup
     Wait Job Success  job_name=${backup_folder}
 
     ${response}=  Check Backup Information  vault_name=${backup_folder}
-    ${found_word}=  Set Variable  "evictable": false
-    Should Contain  ${response}  ${found_word}
+    ${json}=  Evaluate  json.loads('''${response}''')  json
+    Should Not Be True  ${json['evictable']}
 
     Evict Vault  vault_name=${backup_folder}
     Delete and check queue
@@ -126,10 +128,10 @@ Granular Backup With A Lot Of Queues
     ${restore_name}  Make Rabbitmq Granular Restore  vault_name=${backup_folder}  vhost=${TEST_VHOST}
     Wait Job Success  job_name=${restore_name}
     Evict Vault  vault_name=${backup_folder}
+    Sleep    30s
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
     ${exist}=  Bulk Queue Exist  count=${ITERATIONS}  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}
     Should Be True  ${exist}
     Bulk Delete Queue  count=${ITERATIONS}  vhost=${TEST_VHOST}  queue=${TEST_QUEUE}
     Clean User
     Clean Vhost
-
