@@ -13,7 +13,10 @@
 # limitations under the License.
 
 def get_excluded_tags(environ) -> list:
+    excluded_tags = []
     if not environ.get('RABBITMQ_BACKUP_DAEMON'):
-        return ['backup']
+        excluded_tags.append('backup')
     if not environ.get('S3_ENABLED') == 'true':
-        return ['s3_storage']
+        excluded_tags.append('s3_storage')
+        excluded_tags.append('backup_v2')
+    return excluded_tags

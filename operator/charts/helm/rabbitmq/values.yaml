@@ -42,6 +42,8 @@ operator:
   apiGroup: "netcracker.com"
   pullPolicy: "Always"
   enableOperatorShovelMonitoring: true
+  enableClusterRestart: false
+  clusterRestartThreshold: 10800
   restartScheduler:
     dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main
     enabled: true
@@ -259,6 +261,20 @@ tests:
   priorityClassName: ""
   affinity: {}
   prometheusUrl: ""
+  # S3/ATP for test results (credentials under tests.atpReport.atpStorage)
+  atpReport:
+    enabled: false
+    atpStorage:
+      provider: "aws"
+      serverUrl: "https://s3.amazonaws.com"
+      serverUiUrl: ""
+      bucket: ""
+      region: "us-east-1"
+      username: ""
+      password: ""
+  atpReportViewUiUrl: ""
+  environmentName: "rabbitmq"
+  monitoredImages: ""
 
 
 # Backup Daemon is a service to manage RabbitMQ snapshots.
@@ -366,6 +382,18 @@ backupDaemon:
     bucket: ""
     keyId: ""
     keySecret: ""
+  s3Aliases: []
+  # - name: default
+  #   spec:
+  #     default: true
+  #     storageBucket: backup-restore-bucket
+  #     storageProvider: aws
+  #     storageRegion: us-east-1
+  #     storageServerUrl: "https://s3.example.com"
+  #     storageUsername: name
+  #     storageSecret: storage-location-default
+  #   secretContent:
+  #     storagePassword: pass
 
   customLabels: {}
 

@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:main
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:0.1.16
 
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
@@ -29,7 +29,7 @@ RUN set -x \
     && apk add --no-cache apk-tools \
     && apk add --no-cache \
         --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
-        curl=8.19.0-r0 libcurl=8.19.0-r0 \
+        curl=8.20.0-r1 libcurl=8.20.0-r1 \
     && if python3 -m pip install --help | grep -q -- '--break-system-packages'; then PIP_BREAK_FLAG='--break-system-packages'; else PIP_BREAK_FLAG=''; fi \
     && python3 -m pip install --no-cache-dir ${PIP_BREAK_FLAG} --upgrade "pip>=26.0" \
     && python3 -m pip install --no-cache-dir ${PIP_BREAK_FLAG} "setuptools==80.10.1" "jaraco.context>=6.1.0" \

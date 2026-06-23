@@ -31,6 +31,11 @@ Library           ./lib/CloudResourcesLibrary.py
 
 *** Keywords ***
 
+Check Secret
+    [Arguments]  ${secret_name}  ${namespace}=${NAMESPACE}
+    ${response}=  Get Secret  ${secret_name}  ${namespace}
+    RETURN  ${response}
+
 Preparation Test Data
     Get All Rabbit Pods
 

@@ -672,6 +672,42 @@ Backup Daemon SSL secret name
 {{- end -}}
 
 {{/*
+Effective backup daemon S3 aliases wrapped in a map: { items: [...] }.
+fromYaml cannot parse bare YAML lists, so the output is a map with an "items" key.
+*/}}
+{{- define "backupDaemon.s3Aliases" -}}
+{{- if and .Values.backupDaemon.s3Aliases -}}
+items: {{ toYaml .Values.backupDaemon.s3Aliases | nindent 2 }}
+{{- else -}}
+items: []
+{{- end -}}
+{{- end -}}
+
+{{/*
+Build backup daemon aliases payload as JSON object.
+*/}}
+{{- define "backupDaemon.s3AliasesJson" -}}
+{{- $s3Data := fromYaml (include "backupDaemon.s3Aliases" .) -}}
+{{- $aliases := dict -}}
+{{- range $s3Data.items }}
+  {{- $out := dict -}}
+  {{- if .spec }}
+    {{- $out = merge $out (omit .spec "storageBucket" "storageUsername" "storageRegion" "storageServerUrl") -}}
+    {{- if .spec.storageBucket }}{{- $out = set $out "bucketName" .spec.storageBucket }}{{- end -}}
+    {{- if .spec.storageUsername }}{{- $out = set $out "accessKeyId" .spec.storageUsername }}{{- end -}}
+    {{- $out = set $out "region" (default "us-east-1" .spec.storageRegion) -}}
+    {{- if .spec.storageServerUrl }}{{- $out = set $out "s3Url" .spec.storageServerUrl }}{{- end -}}
+  {{- end }}
+  {{- if .secretContent }}
+    {{- $out = merge $out (omit .secretContent "storagePassword") -}}
+    {{- if .secretContent.storagePassword }}{{- $out = set $out "accessKeySecret" .secretContent.storagePassword }}{{- end -}}
+  {{- end }}
+  {{- $aliases = set $aliases .name $out -}}
+{{- end }}
+{{- $aliases | toPrettyJson -}}
+{{- end -}}
+
+{{/*
 DNS names used to generate SSL certificate with "Subject Alternative Name" field for Backup Daemon
 */}}
 {{- define "backupDaemon.certDnsNames" -}}
@@ -742,6 +778,25 @@ BackupDaemon S3 accessSecret
     {{- .Values.S3_SECRETKEY }}
   {{- else -}}
     {{- .Values.backupDaemon.s3.keySecret  -}}
+  {{- end -}}
+{{- end -}}
+
+{{/*
+Integration tests ATP storage credentials (S3-compatible), same pattern as backupDaemon.s3AccessKey / s3AccessSecret.
+*/}}
+{{- define "tests.atpStorageUsername" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_USERNAME | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_USERNAME }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.username -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "tests.atpStoragePassword" -}}
+  {{- if and (ne (.Values.ATP_STORAGE_PASSWORD | toString) "<nil>") .Values.global.cloudIntegrationEnabled -}}
+    {{- .Values.ATP_STORAGE_PASSWORD }}
+  {{- else -}}
+    {{- .Values.tests.atpReport.atpStorage.password -}}
   {{- end -}}
 {{- end -}}
 

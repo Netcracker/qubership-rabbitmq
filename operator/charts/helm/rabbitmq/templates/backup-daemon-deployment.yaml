@@ -2,6 +2,8 @@
 {{ if .Values.backupDaemon.enabled }}
 {{ $persistentVolume := eq (include "backupDaemon.persistentVolumeDefined" .) "true" }}
 {{ $storageClass := eq (include "backupDaemon.storageClassDefined" .) "true" }}
+{{- $s3AliasesData := fromYaml (include "backupDaemon.s3Aliases" .) }}
+{{- $hasS3Aliases := not (empty $s3AliasesData.items) }}
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -76,6 +78,11 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+        {{- if $hasS3Aliases }}
+        - name: rabbitmq-backup-daemon-s3-aliases
+          secret:
+            secretName: rabbitmq-backup-daemon-s3-aliases
+        {{- end }}
         {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
         - name: ssl-certs
           secret:
@@ -95,6 +102,8 @@ spec:
               value: "{{ default "0 0 * * *" .Values.backupDaemon.backupSchedule }}"
             - name: EVICTION_POLICY
               value: "{{ default "0/1d,7d/delete" .Values.backupDaemon.evictionPolicy }}"
+            - name: S3_ALIASES_USED
+              value: {{ $hasS3Aliases | quote }}
             {{- if .Values.externalRabbitmq.enabled }}
             - name: RABBITMQ_PASSWORD
               valueFrom:
@@ -159,6 +168,11 @@ spec:
           - name: s3-ssl-certs
             mountPath: /s3Certs
         {{- end }}
+        {{- if $hasS3Aliases }}
+          - name: rabbitmq-backup-daemon-s3-aliases
+            mountPath: /aliases/
+            readOnly: true
+        {{- end }}
           - name: backup-storage
             mountPath: /opt/rabbitmq/backup-storage
         {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
@@ -171,7 +185,7 @@ spec:
               memory: {{ default "64Mi" .Values.backupDaemon.resources.requests.memory }}
             limits:
               cpu: {{ default "200m" .Values.backupDaemon.resources.limits.cpu }}
-              memory: {{ default "256Mi" .Values.backupDaemon.resources.limits.memory }}
+              memory: {{ default "512Mi" .Values.backupDaemon.resources.limits.memory }}
           securityContext:
             {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
           imagePullPolicy: Always
