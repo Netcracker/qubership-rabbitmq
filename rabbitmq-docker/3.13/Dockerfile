@@ -5,6 +5,8 @@ COPY scripts/get_user /bin/
 COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
+COPY plugins/rabbitmq_queue_migration-1.0.6.ez /opt/rabbitmq/plugins/
+
 ENV USER_UID=1000
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
