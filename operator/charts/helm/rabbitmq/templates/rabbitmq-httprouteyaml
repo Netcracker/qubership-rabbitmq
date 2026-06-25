@@ -11,12 +11,16 @@ metadata:
 spec:
   parentRefs:
   {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
-    - name: {{ .Values.GATEWAY_SYSTEM_NAME }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .Values.GATEWAY_SYSTEM_NAME }}- name: {{ .Values.GATEWAY_SYSTEM_NAME }}
       namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
       port: 443
   {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
-    - name: {{ .name }}
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: {{ .name }}}
       namespace: {{ .namespace }}
       port: 443
   {{- end }}
@@ -36,6 +40,9 @@ spec:
             value: /
       backendRefs:
         - name: rabbitmq
+          group: ""
+          kind: Service
+          weight: 1
           port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}15671{{ else }}15672{{ end }}
 
 #################################################
