@@ -20,7 +20,7 @@ spec:
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: {{ .name }}}
+      name: {{ .name }}
       namespace: {{ .namespace }}
       port: 443
   {{- end }}
@@ -96,7 +96,7 @@ spec:
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - group: gateway.networking.k8s.io
       kind: Gateway
-      name: {{ .name }}}
+      name: {{ .name }}
       namespace: {{ .namespace }}
       port: 80
   {{- end }}
