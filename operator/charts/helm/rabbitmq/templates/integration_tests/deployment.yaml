@@ -1,4 +1,5 @@
 {{- if .Values.tests.runTests }}
+{{- $integrationTestsPodSecretsMount := include "rabbitmq.podSecretsMountPath" (dict "service" "rabbitmq-integration-tests") -}}
 {{- $s3AliasesData := fromYaml (include "backupDaemon.s3Aliases" .) }}
 {{- $defaultS3AliasName := "" }}
 {{- range $s3AliasesData.items }}
@@ -34,6 +35,18 @@ spec:
       {{- end }}
         name: rabbitmq-integration-tests
         app.kubernetes.io/name: rabbitmq-integration-tests
+      annotations:
+        {{- if .Values.externalRabbitmq.enabled }}
+        checksum/rabbitmq-secret: {{ toJson .Values.externalRabbitmq | sha256sum }}
+        {{- else }}
+        checksum/rabbitmq-secret: {{ printf "%s:%s:%s" (include "rabbitmq.adminUsername" .) (include "rabbitmq.adminPassword" .) (default "secretcookie" .Values.rabbitmq.custom_params.secretcookie) | sha256sum }}
+        {{- end }}
+        {{- if .Values.backupDaemon.s3.enabled }}
+        checksum/s3-secret: {{ printf "%s:%s" (include "backupDaemon.s3AccessKey" .) (include "backupDaemon.s3AccessSecret" .) | sha256sum }}
+        {{- end }}
+        {{- if .Values.tests.atpReport.enabled }}
+        checksum/atp-storage-secret: {{ include (print $.Template.BasePath "/atp-storage-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       {{- if .Values.tests.affinity }}
       affinity:
@@ -107,16 +120,6 @@ spec:
               value: {{ (include "backupDaemon.s3Endpoint" .) | quote }}
             - name: S3_BUCKET
               value: {{ .Values.backupDaemon.s3.bucket | quote }}
-            - name: S3_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-backup-s3-secret
-                  key: s3-key-id
-            - name: S3_KEY_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-backup-s3-secret
-                  key: s3-key-secret
             - name: S3_ALIASES_SECRET_NAME
               value: rabbitmq-backup-daemon-s3-aliases
             - name: S3_DEFAULT_ALIAS_NAME
@@ -125,25 +128,8 @@ spec:
             {{- end }}
             - name: AMQP_PORT
               value: {{ .Values.tests.amqp_port | quote }}
-            - name: RMQUSER
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.externalRabbitmq.enabled }}
-                  name: rabbitmq-external-secret
-                  key: username
-                  {{- else }}
-                  name: rabbitmq-default-secret
-                  key: user
-                  {{- end }}
-            - name: RMQPASSWORD
-              valueFrom:
-                secretKeyRef:
-                  {{- if .Values.externalRabbitmq.enabled }}
-                  name: rabbitmq-external-secret
-                  {{- else }}
-                  name: rabbitmq-default-secret
-                  {{- end }}
-                  key: password
+            - name: INTEGRATION_TESTS_SECRETS_DIR
+              value: {{ $integrationTestsPodSecretsMount | quote }}
             - name: PROMETHEUS_URL
               value: {{ .Values.tests.prometheusUrl }}
             {{- if .Values.tests.atpReport.enabled }}
@@ -159,16 +145,6 @@ spec:
               value: {{ .Values.tests.atpReport.atpStorage.bucket | quote }}
             - name: ATP_STORAGE_REGION
               value: {{ .Values.tests.atpReport.atpStorage.region | quote }}
-            - name: ATP_STORAGE_USERNAME
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-integration-tests-atp-storage-secret
-                  key: atp-storage-username
-            - name: ATP_STORAGE_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-integration-tests-atp-storage-secret
-                  key: atp-storage-password
             - name: ATP_REPORT_VIEW_UI_URL
               value: {{ .Values.tests.atpReportViewUiUrl | quote }}
             {{- end }}
@@ -196,6 +172,9 @@ spec:
             - name: ssl-certs
               mountPath: /tls
           {{- end }}
+            - name: rabbitmq-integration-tests-pod-secrets
+              mountPath: {{ $integrationTestsPodSecretsMount }}
+              readOnly: true
           terminationMessagePath: /dev/termination-log
           imagePullPolicy: Always
           readinessProbe:
@@ -225,4 +204,43 @@ spec:
           secret:
             secretName: {{ template "rabbitmq.tlsSecretName" . }}
       {{- end }}
+        - name: rabbitmq-integration-tests-pod-secrets
+          projected:
+            defaultMode: 420
+            sources:
+              {{- if .Values.externalRabbitmq.enabled }}
+              - secret:
+                  name: rabbitmq-external-secret
+                  items:
+                    - key: password
+                      path: RMQPASSWORD
+                    - key: username
+                      path: RMQUSER
+              {{- else }}
+              - secret:
+                  name: rabbitmq-default-secret
+                  items:
+                    - key: password
+                      path: RMQPASSWORD
+                    - key: user
+                      path: RMQUSER
+              {{- end }}
+              {{- if .Values.backupDaemon.s3.enabled }}
+              - secret:
+                  name: rabbitmq-backup-s3-secret
+                  items:
+                    - key: s3-key-id
+                      path: S3_KEY_ID
+                    - key: s3-key-secret
+                      path: S3_KEY_SECRET
+              {{- end }}
+              {{- if .Values.tests.atpReport.enabled }}
+              - secret:
+                  name: rabbitmq-integration-tests-atp-storage-secret
+                  items:
+                    - key: atp-storage-username
+                      path: ATP_STORAGE_USERNAME
+                    - key: atp-storage-password
+                      path: ATP_STORAGE_PASSWORD
+              {{- end }}
 {{- end }}

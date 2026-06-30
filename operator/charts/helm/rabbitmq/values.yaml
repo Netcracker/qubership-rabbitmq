@@ -240,7 +240,7 @@ rabbitmq:
 
 tests:
   runTests: false
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main
+  dockerImage: dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main
   statusWritingEnabled: true
   isShortStatusMessage: true
   runTestsOnly: false

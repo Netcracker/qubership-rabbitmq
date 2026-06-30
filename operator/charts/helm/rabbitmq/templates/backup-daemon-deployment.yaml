@@ -4,6 +4,7 @@
 {{ $storageClass := eq (include "backupDaemon.storageClassDefined" .) "true" }}
 {{- $s3AliasesData := fromYaml (include "backupDaemon.s3Aliases" .) }}
 {{- $hasS3Aliases := not (empty $s3AliasesData.items) }}
+{{- $backupDaemonPodSecretsMount := include "rabbitmq.podSecretsMountPath" (dict "service" "rabbitmq-backup-daemon") -}}
 kind: Deployment
 apiVersion: apps/v1
 metadata:
@@ -40,6 +41,15 @@ spec:
         app.kubernetes.io/name: rabbitmq-backup-daemon
         name: rabbitmq-backup-daemon
         app: rabbitmq-backup-daemon
+      annotations:
+        {{- if .Values.externalRabbitmq.enabled }}
+        checksum/rabbitmq-secret: {{ include (print $.Template.BasePath "/rabbit_secret_external.yaml") . | sha256sum }}
+        {{- else }}
+        checksum/rabbitmq-secret: {{ include (print $.Template.BasePath "/rabbit_secret.yaml") . | sha256sum }}
+        {{- end }}
+        {{- if .Values.backupDaemon.s3.enabled }}
+        checksum/s3-secret: {{ include (print $.Template.BasePath "/s3-secret.yaml") . | sha256sum }}
+        {{- end }}
     spec:
       {{- if .Values.backupDaemon.affinity }}
       affinity:
@@ -88,6 +98,36 @@ spec:
           secret:
             secretName: {{ template "rabbitmq.tlsSecretName" . }}
         {{- end }}
+        - name: rabbitmq-backup-daemon-pod-secrets
+          projected:
+            defaultMode: 420
+            sources:
+              {{- if .Values.externalRabbitmq.enabled }}
+              - secret:
+                  name: rabbitmq-external-secret
+                  items:
+                    - key: password
+                      path: RABBITMQ_PASSWORD
+                    - key: username
+                      path: RABBITMQ_USER
+              {{- else }}
+              - secret:
+                  name: rabbitmq-default-secret
+                  items:
+                    - key: password
+                      path: RABBITMQ_PASSWORD
+                    - key: user
+                      path: RABBITMQ_USER
+              {{- end }}
+              {{- if .Values.backupDaemon.s3.enabled }}
+              - secret:
+                  name: rabbitmq-backup-s3-secret
+                  items:
+                    - key: s3-key-id
+                      path: S3_KEY_ID
+                    - key: s3-key-secret
+                      path: S3_KEY_SECRET
+              {{- end }}
       containers:
         - name: rabbitmq-backup-daemon
           image: {{ template "backupDaemon.image" . }}
@@ -104,32 +144,14 @@ spec:
               value: "{{ default "0/1d,7d/delete" .Values.backupDaemon.evictionPolicy }}"
             - name: S3_ALIASES_USED
               value: {{ $hasS3Aliases | quote }}
+            - name: BACKUP_DAEMON_SECRETS_DIR
+              value: {{ $backupDaemonPodSecretsMount }}
             {{- if .Values.externalRabbitmq.enabled }}
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-external-secret
-                  key: password
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-external-secret
-                  key: username
             - name: RABBITMQ_URL
               value: {{ .Values.externalRabbitmq.url }}
             {{- else }}
             - name: RABBITMQ_URL
               value: {{ printf "%s://rabbitmq.%s:%s" (include "rabbitmq.protocol" .) .Release.Namespace (include "rabbitmq.port" .) }}
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-default-secret
-                  key: user
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-default-secret
-                  key: password
             {{- end }}
             {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
             - name: REGION
@@ -148,16 +170,6 @@ spec:
             {{- end }}
             - name: S3_SSL_VERIFY
               value: {{ .Values.backupDaemon.s3.sslVerify | quote }}
-            - name: S3_KEY_ID
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-backup-s3-secret
-                  key: s3-key-id
-            - name: S3_KEY_SECRET
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-backup-s3-secret
-                  key: s3-key-secret
             {{- end }}
           volumeMounts:
         {{- if (eq (include "backupDaemon.enableTls" .) "true") }}
@@ -179,6 +191,9 @@ spec:
           - name: ssl-certs
             mountPath: /tls
         {{- end }}
+          - name: rabbitmq-backup-daemon-pod-secrets
+            mountPath: {{ $backupDaemonPodSecretsMount }}
+            readOnly: true
           resources:
             requests:
               cpu: {{ default "25m" .Values.backupDaemon.resources.requests.cpu }}

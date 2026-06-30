@@ -28,6 +28,18 @@ import connection_parser
 import node_parser
 import queue_parser
 
+
+def get_secret_value(key):
+    secrets_dir = os.getenv("RABBITMQ_MONITORING_SECRETS_DIR", "/etc/secrets/rabbitmq-monitoring-pod-secrets")
+    if secrets_dir:
+        path = os.path.join(secrets_dir, key)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                value = f.read().strip()
+                if value:
+                    return value
+    return os.getenv(key, "")
+
 logger = logging.getLogger(__name__)
 
 CA_CERT_PATH = '/tls/ca.crt'
@@ -170,8 +182,8 @@ def run():
         loop = asyncio.get_event_loop()
         rabbitmq_helper = RabbitMQHelper(
             host=os.getenv('RABBITMQ_HOST', '').rstrip('/'),
-            user=os.getenv('RABBITMQ_USER', ''),
-            password=os.getenv('RABBITMQ_PASSWORD', '')
+            user=get_secret_value('RABBITMQ_USER'),
+            password=get_secret_value('RABBITMQ_PASSWORD')
         )
         tasks = [asyncio.ensure_future(x)
                  for x in [rabbitmq_helper.nodes(),

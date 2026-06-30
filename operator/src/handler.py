@@ -36,7 +36,8 @@ from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
     V1StatefulSetUpdateStrategy, V1DeploymentStrategy, V1DeploymentSpec, \
     V1ComponentCondition, V1ComponentStatus, V1JobSpec, V1Job, \
     V1SecretVolumeSource, V1PodSecurityContext, \
-    V1SecurityContext, V1Capabilities, V1SeccompProfile, V1ContainerStateRunning, V1Probe
+    V1SecurityContext, V1Capabilities, V1SeccompProfile, V1ContainerStateRunning, V1Probe, \
+    V1ProjectedVolumeSource, V1VolumeProjection, V1SecretProjection
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
@@ -604,6 +605,9 @@ class KubernetesHelper:
             mounts.append(V1VolumeMount(name='ldap-credentials', mount_path='/ldap-credentials'))
             if self.is_ldap_ssl_enabled():
                 mounts.append(V1VolumeMount(name='trusted-certs', mount_path='/trusted-certs'))
+        mounts.append(V1VolumeMount(name='rabbitmq-pod-secrets',
+                                    mount_path='/etc/secrets/rabbitmq-pod-secrets',
+                                    read_only=True))
         return mounts
 
     def get_volume_claim_templates(self):
@@ -670,26 +674,7 @@ class KubernetesHelper:
                          secret_key_ref=V1SecretKeySelector(
                              key='influxdb-database',
                              name='rabbitmq-monitoring'))),
-            V1EnvVar(name='INFLUXDB_USER',
-                     value_from=V1EnvVarSource(
-                         secret_key_ref=V1SecretKeySelector(
-                             key='influxdb-user',
-                             name='rabbitmq-monitoring'))),
-            V1EnvVar(name='INFLUXDB_PASSWORD',
-                     value_from=V1EnvVarSource(
-                         secret_key_ref=V1SecretKeySelector(
-                             key='influxdb-password',
-                             name='rabbitmq-monitoring'))),
-            V1EnvVar(name='RABBITMQ_PASSWORD',
-                     value_from=V1EnvVarSource(
-                         secret_key_ref=V1SecretKeySelector(
-                             key='password',
-                             name='rabbitmq-default-secret'))),
-            V1EnvVar(name='RABBITMQ_USER',
-                     value_from=V1EnvVarSource(
-                         secret_key_ref=V1SecretKeySelector(
-                             key='user',
-                             name='rabbitmq-default-secret'))),
+            V1EnvVar(name='RABBITMQ_MONITORING_SECRETS_DIR', value='/etc/secrets/rabbitmq-monitoring-pod-secrets'),
             V1EnvVar(name='RABBITMQ_HOST', value='rabbitmq'),
             V1EnvVar(name='NAMESPACE', value_from=V1EnvVarSource(field_ref=V1ObjectFieldSelector(field_path='metadata.namespace')))]
 
@@ -713,6 +698,38 @@ class KubernetesHelper:
             success_threshold=1,
             failure_threshold=20,
         )
+        telegraf_default_mode = 420
+        telegraf_pod_secrets_volume = V1Volume(
+            name='rabbitmq-monitoring-pod-secrets',
+            projected=V1ProjectedVolumeSource(
+                default_mode=telegraf_default_mode,
+                sources=[
+                    V1VolumeProjection(
+                        secret=V1SecretProjection(
+                            name='rabbitmq-monitoring',
+                            items=[
+                                V1KeyToPath(key='influxdb-user', path='influxdb_user'),
+                                V1KeyToPath(key='influxdb-password', path='influxdb_password'),
+                            ]
+                        )
+                    ),
+                    V1VolumeProjection(
+                        secret=V1SecretProjection(
+                            name=secret_name,
+                            items=[
+                                V1KeyToPath(key='user', path='RABBITMQ_USER'),
+                                V1KeyToPath(key='password', path='RABBITMQ_PASSWORD'),
+                            ]
+                        )
+                    ),
+                ]
+            )
+        )
+        telegraf_pod_secrets_mount = V1VolumeMount(
+            name='rabbitmq-monitoring-pod-secrets',
+            mount_path='/etc/secrets/rabbitmq-monitoring-pod-secrets',
+            read_only=True
+        )
         podtemplate = V1PodTemplateSpec(
             metadata=V1ObjectMeta(labels=telegraf_custom_labels),
             spec=V1PodSpec(containers=[V1Container(name=telegraf_name,
@@ -721,9 +738,11 @@ class KubernetesHelper:
                                                    termination_message_path='/dev/termination-log',
                                                    image_pull_policy=image_pull_policy,
                                                    resources=telegraf_resources,
+                                                   volume_mounts=[telegraf_pod_secrets_mount],
                                                    security_context=self.get_container_security_context(),
                                                    readiness_probe=readiness,
                                                    liveness_probe=liveness,)],
+                           volumes=[telegraf_pod_secrets_volume],
                            security_context=self.get_security_context("telegraf"),
                            affinity=self.get_affinity_rules(),
                            tolerations=self.get_tolerations(),
@@ -867,6 +886,23 @@ class KubernetesHelper:
         if self.is_ldap_enabled() and self.is_ldap_ssl_enabled():
             volumes.append(V1Volume(name='trusted-certs',
                                     secret=V1SecretVolumeSource(secret_name='rabbitmq-trusted-certs')))
+        default_mode = 420
+        volumes.append(V1Volume(
+            name='rabbitmq-pod-secrets',
+            projected=V1ProjectedVolumeSource(
+                default_mode=default_mode,
+                sources=[V1VolumeProjection(
+                    secret=V1SecretProjection(
+                        name=secret_name,
+                        items=[
+                            V1KeyToPath(key='user', path='RABBITMQ_DEFAULT_USER'),
+                            V1KeyToPath(key='password', path='RABBITMQ_DEFAULT_PASS'),
+                            V1KeyToPath(key='rmqcookie', path='RABBITMQ_COOKIE'),
+                        ]
+                    )
+                )]
+            )
+        ))
         rabbit_labels = {'app': 'rmqlocal', 'deploymentconfig': name}
         rabbit_custom_labels = self.get_custom_labels(rabbit_labels, 'rabbitmq')
         rabbit_annotations = {'pre.hook.backup.velero.io/command': '["sync"]'}
@@ -897,9 +933,7 @@ class KubernetesHelper:
                                                         V1EnvVar(name='K8S_SERVICE_NAME', value=name),
                                                         V1EnvVar(name='CLEANUP_WARN_ONLY', value='true'),
                                                         V1EnvVar(name='AUTOCLUSTER_CLEANUP', value='false'),
-                                                        V1EnvVar(name='RABBITMQ_DEFAULT_USER', value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(key='user', name=secret_name))),
-                                                        V1EnvVar(name='RABBITMQ_DEFAULT_PASS', value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(key='password', name=secret_name))),
-                                                        V1EnvVar(name='RABBITMQ_COOKIE', value_from=V1EnvVarSource(secret_key_ref=V1SecretKeySelector(key='rmqcookie', name=secret_name))),
+                                                        V1EnvVar(name='RABBITMQ_POD_SECRETS_DIR', value='/etc/secrets/rabbitmq-pod-secrets'),
                                                         V1EnvVar(name='RABBITMQ_ENABLE_IPV6', value=str(self.is_ipv6_enabled())),
                                                         *self.get_additional_environment_variables()
                                                         ],

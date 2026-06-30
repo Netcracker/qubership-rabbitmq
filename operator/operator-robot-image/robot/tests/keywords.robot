@@ -3,8 +3,6 @@
 ${RABBITMQ_HOST}    %{RABBITMQ_HOST}
 ${RABBITMQ_PORT}    %{RABBITMQ_PORT}
 ${AMQP_PORT}        %{AMQP_PORT}
-${RMQUSER}          %{RMQUSER}
-${RMQPASSWORD}      %{RMQPASSWORD}
 ${TIMEOUT}          10
 ${TEST_USER}        robottestuser
 ${TEST_VHOST}       robottestvhost
@@ -17,6 +15,7 @@ ${RABBITMQ_BACKUP_DAEMON}    %{RABBITMQ_BACKUP_DAEMON=rabbitmq-backup-daemon}
 
 *** Settings ***
 
+Variables         %{ROBOT_HOME}/SecretData.py
 Library           PlatformLibrary  managed_by_operator=%{RABBIT_IS_MANAGED_BY_OPERATOR}
 Library           Collections
 Library           String
