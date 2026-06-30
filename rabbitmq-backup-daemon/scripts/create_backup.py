@@ -23,9 +23,21 @@ import requests
 import os
 
 
+def get_secret_value(key):
+    secrets_dir = os.getenv("BACKUP_DAEMON_SECRETS_DIR", "/etc/secrets/rabbitmq-backup-daemon-pod-secrets")
+    if secrets_dir:
+        path = os.path.join(secrets_dir, key)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                value = f.read().strip()
+                if value:
+                    return value
+    return os.getenv(key, "")
+
+
 RABBITMQ_URL = os.environ['RABBITMQ_URL']
-RABBITMQ_PASSWORD = os.environ['RABBITMQ_PASSWORD']
-RABBITMQ_USER = os.environ['RABBITMQ_USER']
+RABBITMQ_PASSWORD = get_secret_value('RABBITMQ_PASSWORD')
+RABBITMQ_USER = get_secret_value('RABBITMQ_USER')
 CA_CERT_PATH = '/tls/ca.crt'
 
 
