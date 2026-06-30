@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-backup-daemon-go:0.1.16
+FROM ghcr.io/netcracker/qubership-backup-daemon-go:0.1.17
 
 ENV RABBITMQ_HOME=/opt/rabbitmq \
     RABBITMQ_BACKUP=/opt/rabbitmq/backup-storage/ \
