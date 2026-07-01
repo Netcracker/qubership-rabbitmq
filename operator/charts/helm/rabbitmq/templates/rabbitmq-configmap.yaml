@@ -35,11 +35,9 @@ data:
     {{ . }}
     {{- end }}
 
-    {{- if .Values.rabbitmq.queueMigration.enabled }}
     ## queue migration
     quorum_queue.property_equivalence.relaxed_checks_on_redeclaration = true
-    queue_migration.snapshot_mode = {{ .Values.rabbitmq.queueMigration.snapshotMode | default "tar" }}
-    {{- end }}
+    queue_migration.snapshot_mode = tar
 
     {{- if .Values.rabbitmq.ldap.enabled }}
     ## LDAP Configuration
