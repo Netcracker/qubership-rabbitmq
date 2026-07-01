@@ -78,7 +78,6 @@ Create the list of enabled RabbitMQ plugins
 {{- $plugins = append $plugins "rabbitmq_prometheus" }}
 {{- end }}
 {{- $plugins = append $plugins "rabbitmq_auth_backend_ldap" }}
-{{- $plugins = append $plugins "rabbitmq_queue_migration" }}
 {{- join "," $plugins }}
 {{- end }}
 
