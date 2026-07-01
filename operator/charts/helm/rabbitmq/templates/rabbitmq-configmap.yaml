@@ -35,8 +35,10 @@ data:
     {{ . }}
     {{- end }}
 
+    {{- if .Values.rabbitmq.queueMigration.enabled }}
     ## queue migration
     quorum_queue.property_equivalence.relaxed_checks_on_redeclaration = true
+    {{- end }}
 
     {{- if .Values.rabbitmq.ldap.enabled }}
     ## LDAP Configuration
