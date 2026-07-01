@@ -5,7 +5,7 @@ COPY scripts/get_user /bin/
 COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
-ARG RABBITMQ_QUEUE_MIGRATION_VERSION="1.1.0"
+ARG RABBITMQ_QUEUE_MIGRATION_VERSION="1.0.6"
 RUN set -x \
     && wget \
         -nv \
