@@ -5,7 +5,12 @@ COPY scripts/get_user /bin/
 COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
-COPY plugins/rabbitmq_queue_migration-1.0.6.ez /opt/rabbitmq/plugins/
+ARG RABBITMQ_QUEUE_MIGRATION_VERSION="1.1.0"
+RUN set -x \
+    && wget \
+        -nv \
+        -O /opt/rabbitmq/plugins/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez \
+        "https://github.com/amazon-mq/rabbitmq-queue-migration/releases/download/${RABBITMQ_QUEUE_MIGRATION_VERSION}/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez"
 
 ENV USER_UID=1000
 
