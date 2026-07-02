@@ -38,7 +38,7 @@ data:
     {{- if .Values.rabbitmq.queueMigration.enabled }}
     ## queue migration
     quorum_queue.property_equivalence.relaxed_checks_on_redeclaration = true
-    queue_migration.snapshot_mode = tar
+    queue_migration.snapshot_mode = {{ .Values.rabbitmq.queueMigration.snapshotMode | default "tar" }}
     {{- end }}
 
     {{- if .Values.rabbitmq.ldap.enabled }}
