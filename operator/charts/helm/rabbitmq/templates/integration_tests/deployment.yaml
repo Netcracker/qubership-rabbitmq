@@ -26,6 +26,7 @@ spec:
   template:
     metadata:
       labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
       {{- with .Values.global.customLabels }}
         {{- toYaml . | nindent 8 -}}
       {{- end }}
@@ -61,6 +62,8 @@ spec:
                   fieldPath: metadata.namespace
             - name: RABBIT_IS_MANAGED_BY_OPERATOR
               value: {{ .Values.tests.rabbitIsManagedByOperator | quote }}
+            - name: PART_OF
+              value: {{ .Values.PART_OF | quote }}
             - name: TAGS
               value: {{ default "smoke" .Values.tests.tags | quote }}
             {{- if and .Values.deployDescriptor .Values.testsImage }}
@@ -180,6 +183,8 @@ spec:
             - name: MONITORED_IMAGES
               value: {{ .Values.tests.monitoredImages | quote }}
             {{- end }}
+            - name: PYTHONDONTWRITEBYTECODE
+              value: "1"
           resources:
             requests:
               memory: {{ default "256Mi" .Values.tests.resources.requests.memory }}
@@ -190,6 +195,7 @@ spec:
           securityContext:
             {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
           volumeMounts:
+            {{- include "rabbitmq.tmpVolumeMount" . | nindent 12 }}
             - name: output
               mountPath: /opt/robot/output
           {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
@@ -220,6 +226,9 @@ spec:
       volumes:
         - name: output
           emptyDir: {}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 32Mi
       {{- if and (eq (include "rabbitmq.enableTls" .) "true") (include "rabbitmq.tlsSecretName" .) }}
         - name: ssl-certs
           secret:

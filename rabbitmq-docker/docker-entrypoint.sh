@@ -7,6 +7,8 @@ set -eu
 echo 'Using Custom Entrypoint'
 
 cp /configmap/* /etc/rabbitmq
+cp /opt/rabbitmq/logging_definitions.json /etc/rabbitmq/
+mkdir -p /etc/rabbitmq/conf.d
 echo -e "\n" >> /etc/rabbitmq/rabbitmq.conf
 echo "Configs were copied to the /etc/rabbitmq folder."
 
