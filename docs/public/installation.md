@@ -41,6 +41,7 @@ The following topics are covered in this chapter:
   * [Rolling Upgrade](#rolling-upgrade)
   * [CRD Upgrade](#crd-upgrade)
   * [Migration](#migration)
+  * [Migration From CMQ to Quorum queues](#migration-from-cmq-to-quorum-queues)
 * [Additional Features](#additional-features)
   * [Multiple Availability Zone Deployment](#multiple-availability-zone-deployment)
 <!-- TOC -->
@@ -681,6 +682,8 @@ It can be done manually or automatically through jobs.
 | rabbitmq.ldap.base                                        | string  | no        | `""`                                                                                                                    | LDAP search base, for example `DC=testad,DC=local`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | rabbitmq.ldap.sslOptions.trustedCerts                     | object  | no        | `[]`                                                                                                                    | The root CA certificate of LDAPS.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | rabbitmq.ldap.advancedConfig                              | string  | no        | `"{rabbitmq_auth_backend_ldap, [{tag_queries, [{administrator, {constant, false}}, {management, {constant, true}}]}]}"` | This parameter specifies the advanced configuration properties for RabbitMQ.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| rabbitmq.queueMigration.enabled                           | string  | no        | `false` | This parameter is specified for migration of classic queues to quorum queues                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| rabbitmq.queueMigration.snapshotMode                      | string  | no        | `tar`   | The plugin for queue migration creates snapshots before migration to enable rollback in case of failure. Snapshots capture the RabbitMQ data directory state, allowing recovery if migration encounters issues.<br><br>Supported modes:<br>- ebs – Creates AWS EBS snapshots.<br>- tar (default) – Creates tar archive snapshots.<br>- none – Disables snapshot creation. Use when snapshots are managed externally or are not required.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | rabbitmq.clean_rabbitmq_pvs                               | boolean | no        | `false`                                                                                                                 | When set to "true", RabbitMQ tries to clean the PVs specified in the `PV_NAME` parameter. **Warning**: When upgrading RabbitMQ, setting this parameter to "true" deletes all the RabbitMQ user data from the previous installation, including messages, queues, users, vhosts, and so on.                                                                                                                                                                                                                                                                                      |
 | rabbitmq.auto_reboot                                      | boolean | no        | `false`                                                                                                                 | This parameter specifies the RabbitMQ upgrade. If set to "false", the new configuration is applied, but the RabbitMQ pods are not rebooted. This means that the new configuration is not applied until the pods are rebooted for any reason (with the exception of the default password - the new password is applied even without the reboot). If set to "true", the RabbitMQ pods are rebooted one after the other during the update, and it checks the cluster formation.                                                                                                   |
 | rabbitmq.hostpath_configuration                           | boolean | no        | `false`                                                                                                                 | This parameter specifies whether local PVs can be used. If set to "true", RabbitMQ tries to deploy on local PVs using the PV and node values/labels provided in other parameters. If set to "false", RabbitMQ is deployed using the storage class. <br> **Note**: The `hostpath` configuration is obsolete, consider using the storage class.                                                                                                                                                                                                                                  |
@@ -1253,6 +1256,53 @@ If the installation failed, or you need to delete the entities manually, impleme
 4. Restart all RabbitMQ pods after successful installation.
 
 **Important**: It is recommended to not change the deployment parameters.
+
+## Migration From CMQ to Quorum queues
+
+CMQs are deprecated since RabbitMQ 3.9, and were removed in RabbitMQ 4.0.
+Classic Mirrored Queues, a.k.a. CMQs, were introduced to add in-cluster data replication to classic queues.
+Quorum Queues are designed with data safety as top priority. All QQs have a leader and some followers; locagically, 
+leader and followers are distributed among RabbitMQ nodes.
+Given the different nature of both queue types, including at the storage level, it is not possible to turn an existing 
+classic queue into a quorum queue "in place".
+Hence, the RabbitMQ plugin for migrating mirrored classic queues to quorum queues in RabbitMQ 3.13.x clusters.
+
+### Overview
+
+- Two-phase migration algorithm with message-by-message transfer
+- Automatic binding preservation and rollback support
+- Selective migration by queue name or batch size
+- EBS or tar-based snapshots before migration
+- HTTP API and Web UI for control and monitoring
+
+### Prerequisites
+
+- RabbitMQ 3.13.x
+- Multi-node cluster (3+ nodes recommended)
+- `rabbitmq_management` plugin enabled
+- `rabbitmq_shovel` plugin enabled
+- **Mnesia metadata store** (Khepri must NOT be enabled)
+
+### Web UI
+
+The plugin extends the RabbitMQ Management UI with:
+- **Queue Migration** tab in Admin section
+- Real-time progress monitoring
+- Migration history
+- Per-queue status details
+
+### Usage
+
+- Access **Queue Migration** tab in Admin section
+- Select the respective Virtual Host from the dropdown
+- Check classic queues for compatibility with quorum queues before starting migration via **Check Compatibility**
+- Verify all system requirements are met and all queues are compatible
+- Proceed with the migration via **Start Migration**
+
+### Disclaimer
+
+Product team have only added the migration plugin to the RabbitMQ delivery. 
+We are not implementing any migration automation on our side. 
 
 ## HA to DR Scheme
 

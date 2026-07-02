@@ -5,6 +5,13 @@ COPY scripts/get_user /bin/
 COPY scripts/get_password /bin/
 COPY scripts/change_password /bin/
 
+ARG RABBITMQ_QUEUE_MIGRATION_VERSION="1.0.6"
+RUN set -x \
+    && wget \
+        -nv \
+        -O /opt/rabbitmq/plugins/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez \
+        "https://github.com/amazon-mq/rabbitmq-queue-migration/releases/download/${RABBITMQ_QUEUE_MIGRATION_VERSION}/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez"
+
 ENV USER_UID=1000
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
