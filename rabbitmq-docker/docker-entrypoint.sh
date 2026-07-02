@@ -30,6 +30,24 @@ echo "List of files and directories inside the RabbitMQ data folder: $(ls /var/l
 #	exec gosu rabbitmq "$BASH_SOURCE" "$@"
 #fi
 
+SECRETS_DIR="${RABBITMQ_POD_SECRETS_DIR:-/etc/secrets/rabbitmq-pod-secrets}"
+
+resolve_secret_value() {
+  local secret_key="$1"
+  local env_var_name="$2"
+  local secret_path="${SECRETS_DIR}/${secret_key}"
+  if [ -r "${secret_path}" ]; then
+    tr -d '\r' < "${secret_path}"
+    return 0
+  fi
+  eval "printf '%s' \"\${${env_var_name}:-}\""
+}
+
+RABBITMQ_DEFAULT_USER="$(resolve_secret_value "RABBITMQ_DEFAULT_USER" "RABBITMQ_DEFAULT_USER")"
+RABBITMQ_DEFAULT_PASS="$(resolve_secret_value "RABBITMQ_DEFAULT_PASS" "RABBITMQ_DEFAULT_PASS")"
+RABBITMQ_COOKIE="$(resolve_secret_value "RABBITMQ_COOKIE" "RABBITMQ_COOKIE")"
+export RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS RABBITMQ_COOKIE
+
 if [ "${RABBITMQ_COOKIE:-}" ]; then
 	cookieFile='/var/lib/rabbitmq/.erlang.cookie'
 	if [ -e "$cookieFile" ]; then

@@ -5,8 +5,8 @@ Suite Setup       Preparation Rabbitmq Connnection
 
 Library           S3BackupLibrary  url=%{S3_URL}
 ...               bucket=%{S3_BUCKET}
-...               key_id=%{S3_KEY_ID}
-...               key_secret=%{S3_KEY_SECRET}
+...               key_id=${S3_KEY_ID}
+...               key_secret=${S3_KEY_SECRET}
 ...               ssl_verify=false
 
 *** Variables ***
@@ -14,7 +14,6 @@ ${S3_BUCKET}                 %{S3_BUCKET}
 ${BACKUP_STORAGE_PATH}       /opt/rabbitmq/backup-storage
 ${S3_ALIASES_SECRET_NAME}    %{S3_ALIASES_SECRET_NAME=rabbitmq-backup-daemon-s3-aliases}
 ${S3_DEFAULT_ALIAS_NAME}     %{S3_DEFAULT_ALIAS_NAME=default}
-${S3_KEY_SECRET}             %{S3_KEY_SECRET}
 
 *** Keywords ***
 Clear Data

@@ -12,11 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+DEFAULT_SECRETS_DIR = '/etc/secrets/rabbitmq-integration-tests-pod-secrets'
+
+
+def _secrets_dir(environ) -> str:
+    return environ.get('INTEGRATION_TESTS_SECRETS_DIR', DEFAULT_SECRETS_DIR)
+
+
+def secret_is_present(environ, name) -> bool:
+    path = os.path.join(_secrets_dir(environ), name)
+    return os.path.isfile(path) and os.path.getsize(path) > 0
+
+
 def get_excluded_tags(environ) -> list:
     excluded_tags = []
     if not environ.get('RABBITMQ_BACKUP_DAEMON'):
         excluded_tags.append('backup')
-    if not environ.get('S3_ENABLED') == 'true':
+    if environ.get('S3_ENABLED') != 'true' or not (
+            secret_is_present(environ, 'S3_KEY_ID')
+            and secret_is_present(environ, 'S3_KEY_SECRET')):
         excluded_tags.append('s3_storage')
         excluded_tags.append('backup_v2')
     return excluded_tags
