@@ -334,7 +334,7 @@ runAsGroup: 1000
 
 {{- define "rabbitmq.globalContainerSecurityContext" -}}
 allowPrivilegeEscalation: false
-readOnlyRootFilesystem: false
+readOnlyRootFilesystem: true
 capabilities:
   drop: ["ALL"]
 {{- end -}}
