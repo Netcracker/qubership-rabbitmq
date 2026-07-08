@@ -1,4 +1,5 @@
 {{ if and .Values.externalRabbitmq.enabled .Values.telegraf.install }}
+{{- $monitoringPodSecretsMount := include "rabbitmq.podSecretsMountPath" (dict "service" "rabbitmq-monitoring") -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,6 +21,8 @@ spec:
       labels:
         name: rabbit-monitoring-external
         app.kubernetes.io/name: rabbitmq-monitoring-external
+      annotations:
+        checksum/rabbitmq-secret: {{ include (print $.Template.BasePath "/rabbit_secret_external.yaml") . | sha256sum }}
     spec:
       {{- if .Values.telegraf.affinity }}
       affinity:
@@ -46,6 +49,17 @@ spec:
           secret:
             secretName: {{ template "rabbitmq.tlsSecretName" . }}
       {{- end }}
+        - name: rabbitmq-monitoring-pod-secrets
+          projected:
+            defaultMode: 420
+            sources:
+              - secret:
+                  name: rabbitmq-external-secret
+                  items:
+                    - key: password
+                      path: RABBITMQ_PASSWORD
+                    - key: username
+                      path: RABBITMQ_USER
       containers:
         - name: telegraf
           image: {{ template "telegraf.image" . }}
@@ -65,16 +79,8 @@ spec:
                 fieldRef:
                   apiVersion: v1
                   fieldPath: metadata.namespace
-            - name: RABBITMQ_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-external-secret
-                  key: password
-            - name: RABBITMQ_USER
-              valueFrom:
-                secretKeyRef:
-                  name: rabbitmq-external-secret
-                  key: username
+            - name: RABBITMQ_MONITORING_SECRETS_DIR
+              value: {{ $monitoringPodSecretsMount }}
             - name: RABBITMQ_HOST
               value: {{ .Values.externalRabbitmq.url }}
             - name: RABBIT_EXEC_PLUGIN_TIMEOUT
@@ -88,6 +94,9 @@ spec:
             - name: ssl-certs
               mountPath: /tls
           {{- end }}
+            - name: rabbitmq-monitoring-pod-secrets
+              mountPath: {{ $monitoringPodSecretsMount }}
+              readOnly: true
           imagePullPolicy: {{ default "IfNotPresent" .Values.telegraf.pullPolicy }}
           resources:
             limits:

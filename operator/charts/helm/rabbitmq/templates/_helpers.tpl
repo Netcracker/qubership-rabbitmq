@@ -911,6 +911,14 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
 
 {{/*
+Mount path for pod secrets volume of a given service.
+Usage: include "rabbitmq.podSecretsMountPath" (dict "service" "rabbitmq-backup-daemon")
+*/}}
+{{- define "rabbitmq.podSecretsMountPath" -}}
+{{- printf "/etc/secrets/%s-pod-secrets" .service -}}
+{{- end -}}
+
+{{/*
 Service Account for Site Manager depending on smSecureAuth
 */}}
 {{- define "disasterRecovery.siteManagerServiceAccount" -}}
