@@ -19,6 +19,11 @@ RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositor
 
 RUN set -x && apk upgrade --no-cache --available
 
+# Upgrade tools from edge to avoid vulnerabilities
+RUN apk add --no-cache \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+    libssl3=3.5.7-r0 libcrypto3=3.5.7-r0
+
 RUN ln -sf usr/local/bin/docker-entrypoint.sh && \
 mkdir -p /var/log/rabbitmq && \
 chmod -R  777 /var/log/rabbitmq && \
@@ -35,7 +40,7 @@ RUN set -x \
     && python3 -m ensurepip \
     && rm -r /usr/lib/python*/ensurepip \
     && apk add --update --no-cache curl \
-    && pip3 install --upgrade pip setuptools \
+    && pip3 install --upgrade pip "setuptools==80.10.1" \
     && rm -rf /var/cache/apk/*
 
 COPY logging_definitions.json /etc/rabbitmq/
