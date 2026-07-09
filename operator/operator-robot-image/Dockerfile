@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.5.3
+FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.5.6
 
 USER root
 
@@ -13,10 +13,9 @@ ENV STATUS_CUSTOM_RESOURCE_PLURAL=deployments
 ENV STATUS_CUSTOM_RESOURCE_NAME=rabbitmq-integration-tests
 
 # Upgrade tools from edge to avoid vulnerabilities
-RUN echo "https://dl-cdn.alpinelinux.org/alpine/edge/main" > /etc/apk/repositories && \
-    echo "https://dl-cdn.alpinelinux.org/alpine/edge/community" >> /etc/apk/repositories \
-    && apk add --update --upgrade --no-cache \
-        libssl3 libcrypto3
+RUN apk add --no-cache \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+    libssl3=3.5.7-r0 libcrypto3=3.5.7-r0
 
 RUN set -x && apk upgrade --no-cache --available
 
@@ -25,17 +24,21 @@ RUN mkdir -p ${ROBOT_HOME} \
 
 RUN set -x && apk upgrade --no-cache --available
 
-RUN apk add --update file gcc musl-dev libc6-compat zip jq gettext grep findutils wget sed \
-    && pip3 install setuptools==80.9.0
+RUN apk add --update file gcc musl-dev libc6-compat zip gettext grep findutils wget sed \
+    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+    jq=1.8.2-r0
 
 COPY requirements.txt ${ROBOT_HOME}/requirements.txt
 COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
 COPY robot ${ROBOT_HOME}
 
 RUN set -x \
+    && pip3 install "setuptools==80.10.1" \
     && pip3 install pbr \
     && pip3 install -r ${ROBOT_HOME}/requirements.txt \
-    && apk add --no-cache curl \
+    && apk add --no-cache \
+        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
+        curl=8.21.0-r0 libcurl=8.21.0-r0 \
     && rm -rf /var/cache/apk/*
 
 RUN chown -R 1000:0 ${ROBOT_HOME} && chmod -R 775 ${ROBOT_HOME}
