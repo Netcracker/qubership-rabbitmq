@@ -939,6 +939,7 @@ class KubernetesHelper:
 
         spec = client.V1StatefulSetSpec(
             replicas=rabbit_replicas,
+            pod_management_policy="Parallel",
             template=pod_template_spec, update_strategy=V1StatefulSetUpdateStrategy(type='OnDelete'),
             service_name=name,
             selector=client.V1LabelSelector(match_labels={'app': 'rmqlocal', 'deploymentconfig': name}),
