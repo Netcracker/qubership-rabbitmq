@@ -15,14 +15,14 @@ spec:
       kind: Gateway
       name: {{ .Values.GATEWAY_SYSTEM_NAME }}
       namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
-      port: 443
+      port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}443{{ else }}80{{ end }}
   {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ .name }}
       namespace: {{ .namespace }}
-      port: 443
+      port: {{ if (eq (include "rabbitmq.enableTls" $) "true") }}443{{ else }}80{{ end }}
   {{- end }}
   {{- end }}
 
