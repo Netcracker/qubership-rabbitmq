@@ -939,6 +939,7 @@ class KubernetesHelper:
 
         spec = client.V1StatefulSetSpec(
             replicas=rabbit_replicas,
+            pod_management_policy="Parallel",
             template=pod_template_spec, update_strategy=V1StatefulSetUpdateStrategy(type='OnDelete'),
             service_name=name,
             selector=client.V1LabelSelector(match_labels={'app': 'rmqlocal', 'deploymentconfig': name}),
@@ -1074,7 +1075,7 @@ class KubernetesHelper:
                         V1ServicePort(name='15671-tcp-local', port=15671, protocol='TCP', target_port=15671),
                         V1ServicePort(name='25672-tcp-local', port=25672, protocol='TCP', target_port=25672),
                         V1ServicePort(name='15692-tcp-local', port=15692, protocol='TCP', target_port=15692)]
-        servicespec = V1ServiceSpec(cluster_ip='None', ports=serviceports,
+        servicespec = V1ServiceSpec(cluster_ip='None', publish_not_ready_addresses=True, ports=serviceports,
                                     selector={'deploymentconfig': deploymentconfigname})
         servicename = deploymentconfigname
         if self.is_hostpath():
