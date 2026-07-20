@@ -604,7 +604,7 @@ class KubernetesHelper:
             mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
                       V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq')]
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
-        mounts.append(V1VolumeMount(name='rabbitmq-etc', mount_path='/etc/rabbitmq'))
+        mounts.append(V1VolumeMount(name='rabbitmq-etc', mount_path='/opt/rabbitmq'))
         if self.is_ssl_enabled():
             mounts.append(V1VolumeMount(name=ssl_volume, mount_path='/tls'))
         if self.is_ldap_enabled():
@@ -937,7 +937,7 @@ class KubernetesHelper:
         if self.is_ipv6_enabled():
             pod_template_spec.spec.containers[0].env.extend(
                 [
-                    V1EnvVar(name='RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS', value="-kernel inetrc '/etc/rabbitmq/erl_inetrc' -proto_dist inet6_tcp"),
+                    V1EnvVar(name='RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS', value="-kernel inetrc '/opt/rabbitmq/conf.d/erl_inetrc' -proto_dist inet6_tcp"),
                     V1EnvVar(name='RABBITMQ_CTL_ERL_ARGS', value="-proto_dist inet6_tcp"),
                 ]
             )
