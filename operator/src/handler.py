@@ -604,7 +604,8 @@ class KubernetesHelper:
             mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
                       V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq')]
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
-        mounts.append(V1VolumeMount(name='rabbitmq-etc', mount_path='/opt/rabbitmq'))
+        # Writable config dir only — never mount over /opt/rabbitmq (RABBITMQ_HOME / sbin).
+        mounts.append(V1VolumeMount(name='rabbitmq-conf', mount_path='/opt/rabbitmq/conf.d'))
         if self.is_ssl_enabled():
             mounts.append(V1VolumeMount(name=ssl_volume, mount_path='/tls'))
         if self.is_ldap_enabled():
@@ -634,7 +635,7 @@ class KubernetesHelper:
     def get_volumes(self, pv_name):
         common_volumes = [
             V1Volume(name='tmp', empty_dir=V1EmptyDirVolumeSource(size_limit='8Mi')),
-            V1Volume(name='rabbitmq-etc', empty_dir=V1EmptyDirVolumeSource(size_limit='10Mi')),
+            V1Volume(name='rabbitmq-conf', empty_dir=V1EmptyDirVolumeSource(size_limit='10Mi')),
         ]
         if self.is_hostpath():
             return [V1Volume(name=config_volume,

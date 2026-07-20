@@ -6,9 +6,26 @@ set -eu
 
 echo 'Using Custom Entrypoint'
 
+# Runtime config directory (RABBITMQ_CONFIG_FILES / RABBITMQ_*_FILE point here).
+# Under readOnlyRootFilesystem this path is an emptyDir; do not write into RABBITMQ_HOME (/opt/rabbitmq).
 mkdir -p /opt/rabbitmq/conf.d
-# Copy RabbitMQ configuration
-cp -r /etc/rabbitmq/. /opt/rabbitmq/
+
+# Copy all default files from the image config dir so upgrades that add files under
+# /etc/rabbitmq are picked up without mixing configs into the installation tree.
+if [ -d /etc/rabbitmq/conf.d ]; then
+	cp -a /etc/rabbitmq/conf.d/. /opt/rabbitmq/conf.d/
+fi
+for f in /etc/rabbitmq/*; do
+	if [ -f "$f" ]; then
+		cp -a "$f" /opt/rabbitmq/conf.d/
+	fi
+done
+
+# Definitions are baked into the image (read-only); copy before sed under ROFS.
+if [ -f /opt/rabbitmq/logging_definitions.json ]; then
+	cp /opt/rabbitmq/logging_definitions.json /opt/rabbitmq/conf.d/
+fi
+
 cp /configmap/* /opt/rabbitmq/conf.d/
 echo -e "\n" >> /opt/rabbitmq/conf.d/rabbitmq.conf
 
@@ -86,9 +103,9 @@ if [ -z "${RABBITMQ_USE_LONGNAME:-}" ] && [ "$(hostname)" != "$(hostname -s)" ];
 fi
 
 # replace username and password inside definition using credentials from ENV
-if [ -f /opt/rabbitmq/logging_definitions.json ]; then
-    sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /opt/rabbitmq/logging_definitions.json
-    sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /opt/rabbitmq/logging_definitions.json
+if [ -f /opt/rabbitmq/conf.d/logging_definitions.json ]; then
+    sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /opt/rabbitmq/conf.d/logging_definitions.json
+    sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /opt/rabbitmq/conf.d/logging_definitions.json
 fi
 
 
