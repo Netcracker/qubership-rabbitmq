@@ -597,15 +597,23 @@ class KubernetesHelper:
         return 'guest'
 
     def get_volume_mounts(self):
+        # ConfigMap keys mounted via subPath so image defaults under /etc/rabbitmq/conf.d stay visible.
+        mounts = [
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/rabbitmq.conf',
+                          sub_path='rabbitmq.conf', read_only=True),
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/enabled_plugins',
+                          sub_path='enabled_plugins', read_only=True),
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/advanced.config',
+                          sub_path='advanced.config', read_only=True),
+        ]
         if self.is_hostpath():
-            mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
-                      V1VolumeMount(name='rmqvolumedatamount', mount_path='/var/lib/rabbitmq')]
+            mounts.append(V1VolumeMount(name='rmqvolumedatamount', mount_path='/var/lib/rabbitmq'))
         else:
-            mounts = [V1VolumeMount(name=config_volume, mount_path='/configmap'),
-                      V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq')]
+            mounts.append(V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq'))
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
-        # Writable config dir only — never mount over /opt/rabbitmq (RABBITMQ_HOME / sbin).
-        mounts.append(V1VolumeMount(name='rabbitmq-conf', mount_path='/opt/rabbitmq/conf.d'))
+        if self.is_ipv6_enabled():
+            mounts.append(V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/erl_inetrc',
+                                        sub_path='erl_inetrc', read_only=True))
         if self.is_ssl_enabled():
             mounts.append(V1VolumeMount(name=ssl_volume, mount_path='/tls'))
         if self.is_ldap_enabled():
@@ -635,7 +643,6 @@ class KubernetesHelper:
     def get_volumes(self, pv_name):
         common_volumes = [
             V1Volume(name='tmp', empty_dir=V1EmptyDirVolumeSource(size_limit='8Mi')),
-            V1Volume(name='rabbitmq-conf', empty_dir=V1EmptyDirVolumeSource(size_limit='10Mi')),
         ]
         if self.is_hostpath():
             return [V1Volume(name=config_volume,
@@ -938,7 +945,7 @@ class KubernetesHelper:
         if self.is_ipv6_enabled():
             pod_template_spec.spec.containers[0].env.extend(
                 [
-                    V1EnvVar(name='RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS', value="-kernel inetrc '/opt/rabbitmq/conf.d/erl_inetrc' -proto_dist inet6_tcp"),
+                    V1EnvVar(name='RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS', value="-kernel inetrc '/etc/rabbitmq/erl_inetrc' -proto_dist inet6_tcp"),
                     V1EnvVar(name='RABBITMQ_CTL_ERL_ARGS', value="-proto_dist inet6_tcp"),
                 ]
             )

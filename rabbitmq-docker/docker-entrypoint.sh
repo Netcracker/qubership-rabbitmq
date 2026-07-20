@@ -6,30 +6,13 @@ set -eu
 
 echo 'Using Custom Entrypoint'
 
-# Runtime config directory (RABBITMQ_CONFIG_FILES / RABBITMQ_*_FILE point here).
-# Under readOnlyRootFilesystem this path is an emptyDir; do not write into RABBITMQ_HOME (/opt/rabbitmq).
-mkdir -p /opt/rabbitmq/conf.d
-
-# Copy all default files from the image config dir so upgrades that add files under
-# /etc/rabbitmq are picked up without mixing configs into the installation tree.
-if [ -d /etc/rabbitmq/conf.d ]; then
-	cp -a /etc/rabbitmq/conf.d/. /opt/rabbitmq/conf.d/
-fi
-for f in /etc/rabbitmq/*; do
-	if [ -f "$f" ]; then
-		cp -a "$f" /opt/rabbitmq/conf.d/
-	fi
-done
-
-# Definitions are baked into the image (read-only); copy before sed under ROFS.
-if [ -f /opt/rabbitmq/logging_definitions.json ]; then
-	cp /opt/rabbitmq/logging_definitions.json /opt/rabbitmq/conf.d/
+# Static config is mounted via subPath into /etc/rabbitmq (image conf.d stays intact).
+# logging_definitions.json needs sed under readOnlyRootFilesystem -> prepare a copy in /tmp.
+if [ -f /etc/rabbitmq/logging_definitions.json ]; then
+	cp /etc/rabbitmq/logging_definitions.json /tmp/logging_definitions.json
 fi
 
-cp /configmap/* /opt/rabbitmq/conf.d/
-echo -e "\n" >> /opt/rabbitmq/conf.d/rabbitmq.conf
-
-echo "Configs were copied."
+echo "Configs are ready."
 
 # Diff from community version - we need this if to be able to clean PVs
 if [[ -f /var/lib/rabbitmq/delete_all ]]; then
@@ -103,9 +86,9 @@ if [ -z "${RABBITMQ_USE_LONGNAME:-}" ] && [ "$(hostname)" != "$(hostname -s)" ];
 fi
 
 # replace username and password inside definition using credentials from ENV
-if [ -f /opt/rabbitmq/conf.d/logging_definitions.json ]; then
-    sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /opt/rabbitmq/conf.d/logging_definitions.json
-    sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /opt/rabbitmq/conf.d/logging_definitions.json
+if [ -f /tmp/logging_definitions.json ]; then
+    sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /tmp/logging_definitions.json
+    sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /tmp/logging_definitions.json
 fi
 
 

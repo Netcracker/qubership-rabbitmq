@@ -13,9 +13,6 @@ RUN set -x \
         "https://github.com/amazon-mq/rabbitmq-queue-migration/releases/download/${RABBITMQ_QUEUE_MIGRATION_VERSION}/rabbitmq_queue_migration-${RABBITMQ_QUEUE_MIGRATION_VERSION}.ez"
 
 ENV USER_UID=1000
-ENV RABBITMQ_CONFIG_FILES=/opt/rabbitmq/conf.d
-ENV RABBITMQ_ADVANCED_CONFIG_FILE=/opt/rabbitmq/conf.d/advanced.config
-ENV RABBITMQ_ENABLED_PLUGINS_FILE=/opt/rabbitmq/conf.d/enabled_plugins
 
 RUN echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/main" > /etc/apk/repositories && \
     echo "https://dl-cdn.alpinelinux.org/alpine/v3.23/community" >> /etc/apk/repositories
@@ -27,10 +24,9 @@ RUN apk add --no-cache \
     --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
     libssl3=3.5.7-r0 libcrypto3=3.5.7-r0
 
-RUN ln -sf usr/local/bin/docker-entrypoint.sh && \
+RUN ln -sf /usr/local/bin/docker-entrypoint.sh && \
 mkdir -p /var/log/rabbitmq && \
 chmod -R  777 /var/log/rabbitmq && \
-chmod -R  777 /etc/rabbitmq && \
 chmod +x /bin/change_password && \
 chmod +x /bin/get_user && \
 chmod +x /bin/get_password && \
@@ -46,9 +42,8 @@ RUN set -x \
     && pip3 install --upgrade pip "setuptools==80.10.1" \
     && rm -rf /var/cache/apk/*
 
-COPY logging_definitions.json /opt/rabbitmq/
+COPY logging_definitions.json /etc/rabbitmq/
 
-VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq
 VOLUME /tmp
 
