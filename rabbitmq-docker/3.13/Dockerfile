@@ -27,6 +27,7 @@ RUN apk add --no-cache \
 RUN ln -sf /usr/local/bin/docker-entrypoint.sh && \
 mkdir -p /var/log/rabbitmq && \
 chmod -R  777 /var/log/rabbitmq && \
+chmod -R  777 /etc/rabbitmq && \
 chmod +x /bin/change_password && \
 chmod +x /bin/get_user && \
 chmod +x /bin/get_password && \
@@ -44,6 +45,7 @@ RUN set -x \
 
 COPY logging_definitions.json /etc/rabbitmq/
 
+VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq
 VOLUME /tmp
 
