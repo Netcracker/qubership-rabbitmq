@@ -16,15 +16,15 @@ RUN apk add --no-cache \
 
 RUN set -x && apk upgrade --no-cache --available
 
-RUN ln -sf usr/local/bin/docker-entrypoint.sh && \
+RUN ln -sf /usr/local/bin/docker-entrypoint.sh && \
     mkdir -p /var/log/rabbitmq && \
-    chmod -R  777 /var/log/rabbitmq && \
+    chmod -R 777 /var/log/rabbitmq && \
     chmod -R  777 /etc/rabbitmq && \
     chmod +x /bin/change_password && \
     chmod +x /bin/get_user && \
     chmod +x /bin/get_password && \
     chmod +x /usr/local/bin/docker-entrypoint.sh && \
-    chmod -R  a+r /opt/rabbitmq/plugins
+    chmod -R a+r /opt/rabbitmq/plugins
 
 COPY logging_definitions.json /etc/rabbitmq/
 
