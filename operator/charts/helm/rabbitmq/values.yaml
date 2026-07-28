@@ -146,6 +146,7 @@ rabbitmq:
 #    - paas-infra311-master-3
   replicas: 3
   dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main
+  dockerImage3: ghcr.io/netcracker/qubership-rabbitmq-image-3:main
   resources:
     requests:
       cpu: 1
