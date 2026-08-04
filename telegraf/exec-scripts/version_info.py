@@ -27,6 +27,7 @@ from prometheus_client import Gauge
 logger = logging.getLogger(__name__)
 
 CA_CERT_PATH = '/tls/ca.crt'
+MONITORING_LOGS = os.getenv('MONITORING_LOGS')
 
 
 class RetryExhaustedError(IOError):
@@ -89,14 +90,15 @@ def prometheus_formatted_metrics(version):
 def __configure_logging(log):
 
     log.setLevel(logging.DEBUG)
+    os.makedirs(MONITORING_LOGS, exist_ok=True)
     formatter = logging.Formatter(fmt='[%(asctime)s,%(msecs)03d][%(levelname)s] %(message)s', datefmt='%Y-%m-%dT%H:%M:%S')
 
-    log_handler = RotatingFileHandler(filename='/opt/rabbitmq-monitoring/exec-scripts/version_info.log', maxBytes=50 * 1024, backupCount=5)
+    log_handler = RotatingFileHandler(filename=f'{MONITORING_LOGS}/version_info.log', maxBytes=50 * 1024, backupCount=5)
     log_handler.setFormatter(formatter)
     log_handler.setLevel(logging.DEBUG if os.getenv('RABBITMQ_MONITORING_SCRIPT_DEBUG') else logging.INFO)
     log.addHandler(log_handler)
 
-    err_handler = RotatingFileHandler(filename='/opt/rabbitmq-monitoring/exec-scripts/version_info.err', maxBytes=50 * 1024, backupCount=5)
+    err_handler = RotatingFileHandler(filename=f'{MONITORING_LOGS}/version_info.err', maxBytes=50 * 1024, backupCount=5)
     err_handler.setFormatter(formatter)
     err_handler.setLevel(logging.ERROR)
     log.addHandler(err_handler)

@@ -7,7 +7,7 @@ metadata:
   name: rabbitmq-config
 data:
   enabled_plugins: "{{ printf "[%s]." (include "rabbitmq.enabledPlugins" .) }}"
-  rabbitmq.conf: |-
+  rabbitmq.conf: |
     ## clustering
     {{- include "rabbitmq.clusterConfiguration" . | nindent 4}}
 
@@ -23,7 +23,7 @@ data:
     log.upgrade.level = none
     log.console = true
     {{- if .Values.rabbitmq.eventLogging }}
-    management.load_definitions = /etc/rabbitmq/logging_definitions.json
+    management.load_definitions = /tmp/logging_definitions.json
     {{- end }}
     {{- include "rabbitmq.sslConfiguration" . | nindent 4}}
 

@@ -19,6 +19,7 @@ spec:
     metadata:
       name: rabbitmq-status-provisioner-cleanup
       labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
         app: rabbitmq
         chart: rabbitmq
         release: {{ .Release.Name }}

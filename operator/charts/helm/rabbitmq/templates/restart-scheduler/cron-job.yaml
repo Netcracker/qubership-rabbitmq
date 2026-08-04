@@ -19,6 +19,11 @@ spec:
       backoffLimit: 2
       activeDeadlineSeconds: 300
       template:
+        metadata:
+          labels:
+            {{- include "rabbitmq.defaultLabels" . | nindent 12 }}
+            app.kubernetes.io/name: rabbitmq-pod-restarter
+            name: rabbitmq-pod-restarter
         spec:
           securityContext:
             {{- include "rabbitmq.globalPodSecurityContext" . | nindent 12 }}
