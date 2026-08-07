@@ -23,6 +23,17 @@ from typing import Dict, Union, List
 import aiohttp
 
 
+def get_secret_value(key):
+    secrets_dir = os.getenv("RABBITMQ_MONITORING_SECRETS_DIR", "/etc/secrets/rabbitmq-monitoring-pod-secrets")
+    if secrets_dir:
+        path = os.path.join(secrets_dir, key)
+        if os.path.isfile(path):
+            with open(path, encoding="utf-8") as f:
+                value = f.read().strip()
+                if value:
+                    return value
+    return os.getenv(key, "")
+
 
 debug_enabled = os.getenv("INFLUXDB_DEBUG", "false").lower() in ("yes", "true", "t", "1")
 
@@ -342,8 +353,8 @@ def main():
     loop = asyncio.get_event_loop()
     rabbitmq_helper = RabbitMQHelper(
         host=os.getenv('RABBITMQ_HOST', 'localhost'),
-        user=os.getenv('RABBITMQ_USER', 'guest'),
-        password=os.getenv('RABBITMQ_PASSWORD', 'guest')
+        user=get_secret_value('RABBITMQ_USER'),
+        password=get_secret_value('RABBITMQ_PASSWORD')
     )
     os_helper = OpenshiftHelper()
 
