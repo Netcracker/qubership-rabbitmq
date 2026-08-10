@@ -1652,7 +1652,10 @@ def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) ->
     return task_id
 
 
-_VHOST_REMEDIATION_SCRIPT = """
+def remediate_vhost_queue_types(kub_helper, pod_name):
+    logger.info("Running vhost default_queue_type remediation on pod %s", pod_name)
+    remediate_vhost_queue_types = """
+rabbitmqctl eval '    
 lists:foreach(
   fun(VHostName) ->
     VHost = rabbit_vhost:lookup(VHostName),
@@ -1670,9 +1673,23 @@ lists:foreach(
   end,
   rabbit_vhost:list_names()),
 ok.
+'
 """
+    output = kub_helper.exec_command_in_pod(
+        pod_name=pod_name,
+        exec_command=[
+            "/bin/sh",
+            "-c",
+            remediate_vhost_queue_types
+        ]
+    )
+    logger.info("Vhost remediation output: %s", output)
 
-_QUEUE_REMEDIATION_SCRIPT = """
+
+def remediate_queue_types(kub_helper, pod_name):
+    logger.info("Running queue x-queue-type remediation on pod %s", pod_name)
+    remediate_queue_types = """
+rabbitmqctl eval '
 lists:foreach(
   fun(Q) ->
     QName = amqqueue:get_name(Q),
@@ -1692,23 +1709,15 @@ lists:foreach(
   end,
   rabbit_amqqueue:list()),
 ok.
+'
 """
-
-
-def remediate_vhost_queue_types(kub_helper, pod_name):
-    logger.info("Running vhost default_queue_type remediation on pod %s", pod_name)
     output = kub_helper.exec_command_in_pod(
         pod_name=pod_name,
-        exec_command=['rabbitmqctl', 'eval', _VHOST_REMEDIATION_SCRIPT]
-    )
-    logger.info("Vhost remediation output: %s", output)
-
-
-def remediate_queue_types(kub_helper, pod_name):
-    logger.info("Running queue x-queue-type remediation on pod %s", pod_name)
-    output = kub_helper.exec_command_in_pod(
-        pod_name=pod_name,
-        exec_command=['rabbitmqctl', 'eval', _QUEUE_REMEDIATION_SCRIPT]
+        exec_command=[ 
+            "/bin/sh",
+            "-c",
+            remediate_queue_types
+            ]
     )
     logger.info("Queue remediation output: %s", output)
 
