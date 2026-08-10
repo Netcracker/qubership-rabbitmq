@@ -892,7 +892,8 @@ class KubernetesHelper:
         sts_labels["app.kubernetes.io/instance"] = f'rabbitmq-{self._workspace}'
         meta = V1ObjectMeta(labels=sts_labels, name=name, namespace=self._workspace)
         rabbitmq_image = self._spec['rabbitmq']['dockerImage']
-        image_pull_policy = 'Always' if 'latest' in rabbitmq_image.lower() else 'IfNotPresent'
+        tag = rabbitmq_image.rsplit(':', 1)[-1] if ':' in rabbitmq_image else 'latest'
+        image_pull_policy = 'IfNotPresent' if re.match(r'^v?\d+\.\d+\.\d+$', tag) else 'Always'
         if self.is_ipv6_enabled():
             volumes = self.get_volumes(pv_name)
             volumes[0].config_map.items.extend([V1KeyToPath(key='erl_inetrc', path='erl_inetrc')])
@@ -1912,6 +1913,7 @@ def on_update_secret(diff, **kwargs):
     else:
         logger.info("changing password...")
         kub_helper.change_password()
+    sleep(30)
     logger.info("rebooting all pods in rabbitmq namespace")
     v1_apps_api = client.CoreV1Api()
     pods = v1_apps_api.list_namespaced_pod(namespace)
