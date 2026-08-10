@@ -892,8 +892,7 @@ class KubernetesHelper:
         sts_labels["app.kubernetes.io/instance"] = f'rabbitmq-{self._workspace}'
         meta = V1ObjectMeta(labels=sts_labels, name=name, namespace=self._workspace)
         rabbitmq_image = self._spec['rabbitmq']['dockerImage']
-        tag = rabbitmq_image.rsplit(':', 1)[-1] if ':' in rabbitmq_image else 'latest'
-        image_pull_policy = 'IfNotPresent' if re.match(r'^v?\d+\.\d+\.\d+$', tag) else 'Always'
+        image_pull_policy = 'Always' if 'main' in rabbitmq_image.lower() else 'IfNotPresent'
         if self.is_ipv6_enabled():
             volumes = self.get_volumes(pv_name)
             volumes[0].config_map.items.extend([V1KeyToPath(key='erl_inetrc', path='erl_inetrc')])
