@@ -601,6 +601,8 @@ class KubernetesHelper:
         mounts = [
             V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/rabbitmq.conf',
                           sub_path='rabbitmq.conf', read_only=True),
+            V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/conf.d/20-operator.conf',
+                          sub_path='rabbitmq.conf', read_only=True),
             V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/enabled_plugins',
                           sub_path='enabled_plugins', read_only=True),
             V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/advanced.config',
@@ -668,7 +670,7 @@ class KubernetesHelper:
                                                     requests={'cpu': '100m', 'memory': '100Mi'})
 
         telegraf_image = self._spec['telegraf']['dockerImage']
-        image_pull_policy = 'Always' if 'latest' in telegraf_image.lower() \
+        image_pull_policy = 'Always' if 'main' in telegraf_image.lower() or 'latest' in telegraf_image.lower() \
             else 'IfNotPresent'
 
         pod_envs = [
@@ -1912,7 +1914,7 @@ def on_update_secret(diff, **kwargs):
     else:
         logger.info("changing password...")
         kub_helper.change_password()
-    sleep(30)
+    sleep(65)
     logger.info("rebooting all pods in rabbitmq namespace")
     v1_apps_api = client.CoreV1Api()
     pods = v1_apps_api.list_namespaced_pod(namespace)
