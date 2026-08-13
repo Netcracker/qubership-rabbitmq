@@ -1666,7 +1666,7 @@ lists:foreach(
         io:format("Set DQT for virtual host ~p (was not set)~n", [VHostName]);
       <<"undefined">> ->
         rabbit_db_vhost:merge_metadata(VHostName, #{default_queue_type => <<"classic">>}),
-        io:format("Set DQT for virtual host ~p (was <<\"undefined\">>)~n", [VHostName]);
+        io:format("Set DQT for virtual host ~p (was undefined)~n", [VHostName]);
       DQT ->
         io:format("Virtual host ~p already has DQT = ~p~n", [VHostName, DQT])
     end
@@ -1698,11 +1698,11 @@ lists:foreach(
       undefined ->
         NewArgs = rabbit_misc:set_table_value(Args, <<"x-queue-type">>, longstr, <<"classic">>),
         rabbit_db_queue:update(QName, fun(Q0) -> amqqueue:set_arguments(Q0, NewArgs) end),
-        io:format("Set x-queue-type for ~p to <<\"classic\">> (was not set)~n", [QName]);
+        io:format("Set x-queue-type for ~p to classic (was not set)~n", [QName]);
       {longstr, <<"undefined">>} ->
         NewArgs = rabbit_misc:set_table_value(Args, <<"x-queue-type">>, longstr, <<"classic">>),
         rabbit_db_queue:update(QName, fun(Q0) -> amqqueue:set_arguments(Q0, NewArgs) end),
-        io:format("Set x-queue-type for ~p to <<\"classic\">> (was <<\"undefined\">>)~n", [QName]);
+        io:format("Set x-queue-type for ~p to classic (was undefined)~n", [QName]);
       {_Type, Val} ->
         io:format("Queue ~p already has x-queue-type = ~p~n", [QName, Val])
     end
