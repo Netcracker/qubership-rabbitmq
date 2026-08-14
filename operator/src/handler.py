@@ -42,7 +42,7 @@ from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
 
-from operator.src import rabbit_helper
+
 import rabbitconstants
 from rabbit_helper import RabbitHelper
 from rabbit_helper import join_maps
