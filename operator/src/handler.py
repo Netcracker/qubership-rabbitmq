@@ -41,6 +41,7 @@ from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
+from operator.src import rabbit_helper
 import rabbitconstants
 from rabbit_helper import RabbitHelper
 from rabbit_helper import join_maps
@@ -1731,6 +1732,9 @@ if os.environ.get('RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC', 'true').lower() in 
     def queue_type_remediation(spec, **kwargs):
         kub_helper = KubernetesHelper(spec)
         pod_name = get_primary_rabbitmq_pod(kub_helper)
+        if not rabbit_helper.is_cluster_alive(spec['rabbitmq']['replicas']):
+            logger.warning("RabbitMQ cluster is not alive. Skipping queue-type remediation.")
+            return
         try:
             remediate_vhost_queue_types(kub_helper, pod_name)
         except Exception as ex:
