@@ -1733,10 +1733,10 @@ if os.environ.get('RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC', 'true').lower() in 
     def queue_type_remediation(spec, **kwargs):
         kub_helper = KubernetesHelper(spec)
         if 'ssl_enabled' in spec['rabbitmq'] and spec['rabbitmq']['ssl_enabled']:
-            rabbit_helper = RabbitHelper(get_user_from_secret(v1_apps_api, namespace), get_password_from_secret(v1_apps_api, namespace),
+            rabbit_helper = RabbitHelper(kub_helper.get_user_from_secret(), kub_helper.get_password_from_secret(),
                                      'https://rabbitmq.' + namespace + '.svc:15671', ssl=CA_CERT_PATH)
         else:
-            rabbit_helper = RabbitHelper(get_user_from_secret(v1_apps_api, namespace), get_password_from_secret(v1_apps_api, namespace),
+            rabbit_helper = RabbitHelper(kub_helper.get_user_from_secret(), kub_helper.get_password_from_secret(),
                                      'http://rabbitmq.' + namespace + '.svc:15672')
         pod_name = get_primary_rabbitmq_pod(kub_helper)
         if not rabbit_helper.is_cluster_alive(spec['rabbitmq']['replicas']):
