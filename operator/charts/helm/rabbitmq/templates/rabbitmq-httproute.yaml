@@ -15,14 +15,12 @@ spec:
       kind: Gateway
       name: {{ .Values.GATEWAY_SYSTEM_NAME }}
       namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
-      port: {{ if (eq (include "rabbitmq.enableTls" .) "true") }}443{{ else }}80{{ end }}
   {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
   {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: {{ .name }}
       namespace: {{ .namespace }}
-      port: {{ if (eq (include "rabbitmq.enableTls" $) "true") }}443{{ else }}80{{ end }}
   {{- end }}
   {{- end }}
 
@@ -76,49 +74,6 @@ spec:
         kind: Secret
         name: {{ include "rabbitmq.tlsSecretName" . }}
 
----
-apiVersion: gateway.networking.k8s.io/v1
-kind: HTTPRoute
-metadata:
-  name: rabbitmq-redirect
-  labels:
-    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
-    app: rabbitmq
-spec:
-  parentRefs:
-  {{- if and .Values.GATEWAY_SYSTEM_NAME .Values.GATEWAY_SYSTEM_NAMESPACE }}
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {{ .Values.GATEWAY_SYSTEM_NAME }}
-      namespace: {{ .Values.GATEWAY_SYSTEM_NAMESPACE }}
-      port: 80
-  {{- else if .Values.rabbitmq.envoyGateway.parentRefs }}
-  {{- range .Values.rabbitmq.envoyGateway.parentRefs }}
-    - group: gateway.networking.k8s.io
-      kind: Gateway
-      name: {{ .name }}
-      namespace: {{ .namespace }}
-      port: 80
-  {{- end }}
-  {{- end }}
-
-  hostnames:
-  {{- if .Values.rabbitmq.envoyGateway.host }}
-    - {{ .Values.rabbitmq.envoyGateway.host | quote }}
-  {{- else if .Values.rabbitmq.ingress.host }}
-    - {{ .Values.rabbitmq.ingress.host | quote }}
-  {{- end }}
-
-  rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 301
 {{- end }}
 {{- end }}
 {{- end }}
