@@ -46,7 +46,7 @@ spec:
         checksum/s3-secret: {{ printf "%s:%s" (include "backupDaemon.s3AccessKey" .) (include "backupDaemon.s3AccessSecret" .) | sha256sum }}
         {{- end }}
         {{- if .Values.tests.atpReport.enabled }}
-        checksum/atp-storage-secret: {{ include (print $.Template.BasePath "/atp-storage-secret.yaml") . | sha256sum }}
+        checksum/atp-storage-secret: {{ include (print $.Template.BasePath "/integration_tests/atp-storage-secret.yaml") . | sha256sum }}
         {{- end }}
     spec:
       {{- if .Values.tests.affinity }}
