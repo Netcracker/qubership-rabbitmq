@@ -342,6 +342,13 @@ capabilities:
   drop: ["ALL"]
 {{- end -}}
 
+{{- define "rabbitmq.globalContainerSecurityContextRWRootFs" -}}
+allowPrivilegeEscalation: false
+readOnlyRootFilesystem: false
+capabilities:
+  drop: ["ALL"]
+{{- end -}}
+
 {{- define "rabbitmq.tmpVolume" -}}
 - name: tmp
   emptyDir:
