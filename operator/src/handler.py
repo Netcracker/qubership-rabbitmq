@@ -890,6 +890,7 @@ class KubernetesHelper:
         sts_labels["name"] = "rabbitmq"
         sts_labels["app.kubernetes.io/name"] = "rabbitmq"
         sts_labels["app.kubernetes.io/instance"] = f'rabbitmq-{self._workspace}'
+        sts_labels["velero.io/exclude-from-backup"] = "true"
         meta = V1ObjectMeta(labels=sts_labels, name=name, namespace=self._workspace)
         rabbitmq_image = self._spec['rabbitmq']['dockerImage']
         image_pull_policy = 'Always' if 'main' in rabbitmq_image.lower() else 'IfNotPresent'
