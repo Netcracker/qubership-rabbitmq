@@ -41,6 +41,8 @@ from kubernetes.client import V1ObjectMeta, V1EnvVar, V1Container, V1PodSpec, \
 from kubernetes.client.rest import ApiException
 from kubernetes.stream import stream
 
+
+
 import rabbitconstants
 from rabbit_helper import RabbitHelper
 from rabbit_helper import join_maps
@@ -1651,6 +1653,99 @@ def _restore_last_backup_with_retry(backup_helper: BackupHelper, region: str) ->
     logger.info(f"Restore backup {backup_id}")
     task_id = backup_helper.restore(backup_id)
     return task_id
+
+
+def remediate_vhost_queue_types(kub_helper, pod_name):
+    logger.info("Running vhost default_queue_type remediation on pod %s", pod_name)
+    remediate_vhost_queue_types = """
+rabbitmqctl eval '    
+lists:foreach(
+  fun(VHostName) ->
+    VHost = rabbit_vhost:lookup(VHostName),
+    Meta = vhost:get_metadata(VHost),
+    case maps:get(default_queue_type, Meta, undefined) of
+      undefined ->
+        rabbit_db_vhost:merge_metadata(VHostName, #{default_queue_type => <<"classic">>}),
+        io:format("Set DQT for virtual host ~p (was not set)~n", [VHostName]);
+      <<"undefined">> ->
+        rabbit_db_vhost:merge_metadata(VHostName, #{default_queue_type => <<"classic">>}),
+        io:format("Set DQT for virtual host ~p (was undefined)~n", [VHostName]);
+      DQT ->
+        io:format("Virtual host ~p already has DQT = ~p~n", [VHostName, DQT])
+    end
+  end,
+  rabbit_vhost:list_names()),
+ok.
+'
+"""
+    output = kub_helper.exec_command_in_pod(
+        pod_name=pod_name,
+        exec_command=[
+            "/bin/sh",
+            "-c",
+            remediate_vhost_queue_types
+        ]
+    )
+    logger.info("Vhost remediation output: %s", output)
+
+
+def remediate_queue_types(kub_helper, pod_name):
+    logger.info("Running queue x-queue-type remediation on pod %s", pod_name)
+    remediate_queue_types = """
+rabbitmqctl eval '
+lists:foreach(
+  fun(Q) ->
+    QName = amqqueue:get_name(Q),
+    Args = amqqueue:get_arguments(Q),
+    case rabbit_misc:table_lookup(Args, <<"x-queue-type">>) of
+      undefined ->
+        NewArgs = rabbit_misc:set_table_value(Args, <<"x-queue-type">>, longstr, <<"classic">>),
+        rabbit_db_queue:update(QName, fun(Q0) -> amqqueue:set_arguments(Q0, NewArgs) end),
+        io:format("Set x-queue-type for ~p to classic (was not set)~n", [QName]);
+      {longstr, <<"undefined">>} ->
+        NewArgs = rabbit_misc:set_table_value(Args, <<"x-queue-type">>, longstr, <<"classic">>),
+        rabbit_db_queue:update(QName, fun(Q0) -> amqqueue:set_arguments(Q0, NewArgs) end),
+        io:format("Set x-queue-type for ~p to classic (was undefined)~n", [QName]);
+      {_Type, Val} ->
+        io:format("Queue ~p already has x-queue-type = ~p~n", [QName, Val])
+    end
+  end,
+  rabbit_amqqueue:list()),
+ok.
+'
+"""
+    output = kub_helper.exec_command_in_pod(
+        pod_name=pod_name,
+        exec_command=[ 
+            "/bin/sh",
+            "-c",
+            remediate_queue_types
+            ]
+    )
+    logger.info("Queue remediation output: %s", output)
+
+
+def get_primary_rabbitmq_pod(kub_helper):
+    return 'rmqlocal-0-0' if kub_helper.is_hostpath() else 'rmqlocal-0'
+
+
+if os.environ.get('RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC', 'true').lower() in ('yes', 'true', 't', '1'):
+    @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=86400, initial_delay=0)
+    def queue_type_remediation(spec, **kwargs):
+        kub_helper = KubernetesHelper(spec)
+        
+        pod_name = get_primary_rabbitmq_pod(kub_helper)
+        if not kub_helper.check_rabbit_pods_readiness():
+            logger.warning("RabbitMQ cluster is not alive. Skipping queue-type remediation.")
+            return
+        try:
+            remediate_vhost_queue_types(kub_helper, pod_name)
+        except Exception as ex:
+            logger.warning("Vhost queue-type remediation failed: %s", ex)
+        try:
+            remediate_queue_types(kub_helper, pod_name)
+        except Exception as ex:
+            logger.warning("Queue x-queue-type remediation failed: %s", ex)
 
 
 @kopf.on.startup()

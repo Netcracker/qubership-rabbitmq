@@ -203,6 +203,11 @@ rabbitmq:
   environmentVariables: []
   customLabels: {}
   customAnnotations: {}
+  # When true (default), adds default_queue_type = classic to rabbitmq.conf and enables the operator's
+  # nightly remediation timer that sets classic as the explicit type on any vhost/queue where it is
+  # missing or stored as the string "undefined". Set to false only if this cluster intentionally uses
+  # quorum or stream queues as the default type.
+  setDefaultQueueTypeClassic: true
   affinity: {
     "podAntiAffinity": {
       "requiredDuringSchedulingIgnoredDuringExecution": [

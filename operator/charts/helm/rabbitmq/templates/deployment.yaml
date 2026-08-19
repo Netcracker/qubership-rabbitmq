@@ -135,6 +135,8 @@ spec:
             - name: CLUSTER_RESTART_THRESHOLD
               value: "{{ .Values.operator.clusterRestartThreshold }}"
             {{- end }}
+            - name: RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC
+              value: "{{ .Values.rabbitmq.setDefaultQueueTypeClassic }}"
             - name: API_GROUP
               value: {{ .Values.operator.apiGroup | quote }}
           volumeMounts:
