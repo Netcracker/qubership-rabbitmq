@@ -97,6 +97,9 @@ cluster_formation.k8s.address_type = hostname
 {{- end }}
 {{ $defaultClusterPartition := lt (int .Values.rabbitmq.replicas) 3 | ternary "autoheal" "pause_minority" }}
 cluster_partition_handling = {{ default $defaultClusterPartition .Values.rabbitmq.cluster_partition_handling }}
+{{- if .Values.rabbitmq.setDefaultQueueTypeClassic }}
+default_queue_type = classic
+{{- end }}
 {{- end }}
 
 {{/*
