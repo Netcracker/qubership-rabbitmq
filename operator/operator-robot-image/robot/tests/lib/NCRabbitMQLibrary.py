@@ -409,35 +409,26 @@ class NCRabbitMQLibrary(object):
         except ChannelClosed:
             return False
 
-    @utils.timeout()
-    def is_rabbit_alive(self):
-        # Use explicit timeout so connection attempts fail fast and decorator can retry
+    def _check_management_auth(self, password: str):
+        # GET /api does not always require valid credentials; overview does.
         r = requests.get(
-            url=f'{self._rabbitmq_url}/api',
-            auth=(self._user, self._password),
-            verify=self.verify,
-            timeout=30
-        )
-        r.raise_for_status()
-
-        if r.status_code == requests.codes.ok:
-            return True
-
-        raise Exception(f'Expected the {requests.codes.ok} http status code')
-
-    @utils.timeout()
-    def is_rabbit_alive_with_password(self, password: str):
-        r = requests.get(
-            url=f'{self._rabbitmq_url}/api',
+            url=f'{self._rabbitmq_url}/api/overview',
             auth=(self._user, password),
             verify=self.verify,
             timeout=30
         )
         r.raise_for_status()
-
         if r.status_code == requests.codes.ok:
             return True
         raise Exception(f'Expected the {requests.codes.ok} http status code')
+
+    @utils.timeout()
+    def is_rabbit_alive(self):
+        return self._check_management_auth(self._password)
+
+    @utils.timeout()
+    def is_rabbit_alive_with_password(self, password: str):
+        return self._check_management_auth(password)
 
     @utils.timeout()
     def is_cluster_alive(self, wait_for):

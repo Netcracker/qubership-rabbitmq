@@ -81,8 +81,8 @@ Change Rabbitmq Password With Operator Teardown
 
 Change Rabbitmq Password With Function Teardown
     [Arguments]  ${pod_name}  ${old_password}
-    ${status}  ${msg}=  Run Keyword And Ignore Error  Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
-    Run Keyword If  '${status}' == 'FAIL'  Log  Teardown: restore password failed: ${msg}  level=WARN
+    Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
+    Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${old_password}
 
 *** Test Cases ***
 Test Change Rabbitmq Password With Operator
@@ -112,10 +112,6 @@ Test Change Password Function
     ${pod_name}=  Get First Rabbit Pod
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${NEW_PASS}
-
-    Sleep  10s
-
-    Wait Until Keyword Succeeds  2 min  10 sec  Is Rabbit Alive
 
     Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
 

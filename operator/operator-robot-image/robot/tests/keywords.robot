@@ -106,7 +106,9 @@ Check Rabbitmq Ready Replicas
 
 Delete And Check Queue
     NCRabbitMQLibrary.Delete Queue  ${TEST_VHOST}  ${TEST_QUEUE}
+    Wait Until Keyword Succeeds  30s  2s  Queue Should Not Exist
 
+Queue Should Not Exist
     ${exist}=  Queue Exist  ${TEST_VHOST}  ${TEST_QUEUE}
     Should Not Be True  ${exist}
 
@@ -118,9 +120,14 @@ Set Replicas
 
 Change Rabbitmq Password With Function
     [Arguments]  ${pod_name}  ${password}
+    ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
+    ${username}=  Get User From Secret  ${secret}
     ${result}  ${error}=  Execute Command In Pod  ${pod_name}  ${NAMESPACE}
-    ...  change_password $RABBITMQ_DEFAULT_USER ${password}
+    ...  change_password ${username} ${password}
+    ${error}=  Convert To String  ${error}
     Log  result: ${result} error: ${error}
+    Should Not Contain  ${error}  does not exist
+    Should Not Contain  ${error}  command not found
     Sleep  10s
 
 Get First Rabbit Pod

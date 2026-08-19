@@ -97,6 +97,10 @@ class CloudResourcesLibrary(object):
 
         return str(base64.b64decode(secret.data.get('password')), 'utf-8')
 
+    def get_user_from_secret(self, secret):
+
+        return str(base64.b64decode(secret.data.get('user')), 'utf-8')
+
     def get_stateful_sets(self):
 
         return self.k8s_lib.get_stateful_set_names_by_label(
