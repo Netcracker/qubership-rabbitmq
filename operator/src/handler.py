@@ -611,6 +611,7 @@ class KubernetesHelper:
         else:
             mounts.append(V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq'))
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
+        mounts.append(V1VolumeMount(name='rabbitmq-log', mount_path='/var/log/rabbitmq'))
         if self.is_ipv6_enabled():
             mounts.append(V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/erl_inetrc',
                                         sub_path='erl_inetrc', read_only=True))
@@ -646,6 +647,7 @@ class KubernetesHelper:
     def get_volumes(self, pv_name):
         common_volumes = [
             V1Volume(name='tmp', empty_dir=V1EmptyDirVolumeSource(size_limit='8Mi')),
+            V1Volume(name='rabbitmq-log', empty_dir=V1EmptyDirVolumeSource(size_limit='64Mi')),
         ]
         if self.is_hostpath():
             return [V1Volume(name=config_volume,

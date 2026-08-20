@@ -19,7 +19,6 @@ data:
 
     ## logging
     log.file = false
-    log.upgrade.file = false
     log.upgrade.level = none
     log.console = true
     {{- if .Values.rabbitmq.eventLogging }}
