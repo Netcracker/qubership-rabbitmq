@@ -10,9 +10,7 @@ COPY scripts/change_password /bin/
 ENV USER_UID=1000
 
 # Upgrade tools from edge to avoid vulnerabilities
-RUN apk add --no-cache \
-    --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
-    libssl3=3.5.7-r0 libcrypto3=3.5.7-r0
+RUN apk add --no-cache libssl3 libcrypto3
 
 RUN set -x && apk upgrade --no-cache --available
 

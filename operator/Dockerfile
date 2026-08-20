@@ -16,9 +16,7 @@ COPY build/entrypoint /usr/local/bin
 
 RUN apk add --update --no-cache bash build-base apk-tools \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache \
-        --repository=https://dl-cdn.alpinelinux.org/alpine/edge/main \
-        binutils=2.45.1-r1
+    && apk add --no-cache binutils 
 
 RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && pip install --no-cache-dir -r requirements.txt
