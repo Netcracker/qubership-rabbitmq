@@ -14,6 +14,9 @@ RUN apk add --no-cache libssl3 libcrypto3
 
 RUN set -x && apk upgrade --no-cache --available
 
+# change_password / get_user / get_password talk to the Kubernetes API
+RUN apk add --no-cache curl
+
 RUN ln -sf /usr/local/bin/docker-entrypoint.sh && \
     mkdir -p /var/log/rabbitmq && \
     chmod -R 777 /var/log/rabbitmq && \
