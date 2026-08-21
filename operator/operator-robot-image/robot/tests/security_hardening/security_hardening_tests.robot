@@ -14,9 +14,11 @@
 
 *** Settings ***
 Library    PlatformLibrary    managed_by_operator=%{RABBIT_IS_MANAGED_BY_OPERATOR}
+Library    Collections
 
 *** Test Cases ***
 Test Container Hardening
     [Tags]    rabbitmq    hardening
     ${part_of}=    Create List    %{PART_OF}
-    Check Container Hardening    ${part_of}    %{NAMESPACE}
+    ${exclusions}=    Create Dictionary    rabbitmq-operator=CH4
+    Check Container Hardening    ${part_of}    %{NAMESPACE}    ${exclusions}

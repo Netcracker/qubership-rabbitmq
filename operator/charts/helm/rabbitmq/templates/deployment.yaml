@@ -100,7 +100,7 @@ spec:
               cpu: {{ default "100m" .Values.operator.resources.requests.cpu }}
               memory: {{ default "100Mi" .Values.operator.resources.requests.memory }}
           securityContext:
-            {{- include "rabbitmq.globalContainerSecurityContext" . | nindent 12 }}
+            {{- include "rabbitmq.globalContainerSecurityContextRWRootFs" . | nindent 12 }}
           {{- end }}
           env:
             - name: WATCH_NAMESPACE
