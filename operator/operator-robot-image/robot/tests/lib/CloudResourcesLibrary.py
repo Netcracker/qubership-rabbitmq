@@ -94,7 +94,6 @@ class CloudResourcesLibrary(object):
         return cr.get('spec', {}).get('rabbitmq', {}).get('secret_change', '')
 
     def normalize_exec_stderr(self, error):
-        """Drop empty/None stderr and curl's progress meter; keep real errors."""
         if error in (None, 'None', ''):
             return ''
         remaining = []
