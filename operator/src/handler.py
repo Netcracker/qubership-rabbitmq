@@ -1037,9 +1037,9 @@ class KubernetesHelper:
         return join_maps(own_annotations, custom_annotations)
 
     def get_default_labels(self) -> dict:
-        _global = self._spec.get('global', None)
-        default_labels = _global.get('defaultLabels', None) if _global is not None else None
-        return default_labels
+        _global = self._spec.get('global') or {}
+        default_labels = _global.get('defaultLabels') or {}
+        return dict(default_labels)
 
     def update_hostpath_stateful_sets(self):
         replicas = self._spec['rabbitmq']['replicas']

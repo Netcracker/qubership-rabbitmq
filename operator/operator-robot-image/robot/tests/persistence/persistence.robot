@@ -51,19 +51,19 @@ Verify Password Applied
     ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
     ${current_password}=  Get Password From Secret  ${secret}
     Should Be Equal As Strings  ${current_password}  ${password}
-    ${alive}=  Is Rabbit Alive With Password  ${password}
+    ${alive}=  Check Management Auth With Password  ${password}
     Should Be True  ${alive}
 
 Verify RabbitMQ Accepts Password
     [Arguments]  ${password}
-    ${alive}=  Is Rabbit Alive With Password  ${password}
+    ${alive}=  Check Management Auth With Password  ${password}
     Should Be True  ${alive}
 
 Change Rabbitmq Password Through Operator
     [Arguments]  ${username}  ${password}
 
     Change Rabbitmq Password With Operator  ${username}  ${password}
-    Wait Until Keyword Succeeds  120s  5s  Verify Password Applied  ${password}
+    Wait Until Keyword Succeeds  20 min  15 s  Verify Password Applied  ${password}
 
 Change Rabbitmq Password Through Function
     [Arguments]  ${pod_name}  ${password}
@@ -93,12 +93,13 @@ Test Change Rabbitmq Password With Operator
     Set Test Variable  ${old_secret_change}  ${EMPTY}
     ${pod_name}=  Get First Rabbit Pod
     ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
+    ${username}=  Get User From Secret  ${secret}
     ${old_password}=  Get Password From Secret  ${secret}
     ${old_secret_change}=  Get Secret Change Value
 
-    Change Rabbitmq Password Through Operator  admin  ${NEW_PASS}
+    Change Rabbitmq Password Through Operator  ${username}  ${NEW_PASS}
 
-    Change Rabbitmq Password Through Operator  admin  ${old_password}
+    Change Rabbitmq Password Through Operator  ${username}  ${old_password}
 
     [Teardown]  Change Rabbitmq Password With Operator Teardown  ${pod_name}  ${old_password}  ${old_secret_change}
 

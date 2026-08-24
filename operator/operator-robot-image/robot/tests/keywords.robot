@@ -124,7 +124,7 @@ Change Rabbitmq Password With Function
     ${username}=  Get User From Secret  ${secret}
     ${result}  ${error}=  Execute Command In Pod  ${pod_name}  ${NAMESPACE}
     ...  change_password ${username} ${password}
-    ${error}=  Evaluate  ('' if $error in (None, 'None') else str($error)).strip()
+    ${error}=  Normalize Exec Stderr  ${error}
     Log  result: ${result} error: ${error}
     Should Be Empty  ${error}
     Sleep  10s
