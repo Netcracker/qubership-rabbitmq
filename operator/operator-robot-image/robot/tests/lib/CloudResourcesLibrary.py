@@ -93,6 +93,26 @@ class CloudResourcesLibrary(object):
         cr = self.get_custom_resource()
         return cr.get('spec', {}).get('rabbitmq', {}).get('secret_change', '')
 
+    def normalize_exec_stderr(self, error):
+        """Drop empty/None stderr and curl's progress meter; keep real errors."""
+        if error in (None, 'None', ''):
+            return ''
+        remaining = []
+        skipping_curl_progress = False
+        for line in str(error).splitlines():
+            if '% Total' in line and 'Xferd' in line:
+                skipping_curl_progress = True
+                continue
+            if skipping_curl_progress:
+                stripped = line.strip()
+                if not stripped or 'Dload' in line:
+                    continue
+                if stripped[0].isdigit():
+                    continue
+                skipping_curl_progress = False
+            remaining.append(line)
+        return '\n'.join(remaining).strip()
+
     def get_password_from_secret(self, secret):
 
         return str(base64.b64decode(secret.data.get('password')), 'utf-8')

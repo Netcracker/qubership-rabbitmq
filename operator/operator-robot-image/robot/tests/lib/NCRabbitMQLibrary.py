@@ -430,6 +430,10 @@ class NCRabbitMQLibrary(object):
     def is_rabbit_alive_with_password(self, password: str):
         return self._check_management_auth(password)
 
+    def check_management_auth_with_password(self, password: str):
+        """Single overview auth attempt. Use with Wait Until Keyword Succeeds."""
+        return self._check_management_auth(password)
+
     @utils.timeout()
     def is_cluster_alive(self, wait_for):
         r = requests.get(
