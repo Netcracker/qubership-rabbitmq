@@ -6,7 +6,6 @@ set -eu
 
 echo 'Using Custom Entrypoint'
 
-# Static config is mounted via subPath into /etc/rabbitmq (image conf.d stays intact).
 if [ -f /usr/share/rabbitmq/logging_definitions.json ]; then
 	cp /usr/share/rabbitmq/logging_definitions.json /tmp/logging_definitions.json
 fi

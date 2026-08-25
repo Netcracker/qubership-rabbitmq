@@ -613,8 +613,6 @@ class KubernetesHelper:
         else:
             mounts.append(V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq'))
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
-        # Same emptyDir file as /tmp/logging_definitions.json so RabbitMQ can read
-        # the path used since 2.3.6 while sed writes to the writable /tmp mount.
         mounts.append(V1VolumeMount(name='tmp', mount_path='/etc/rabbitmq/logging_definitions.json',
                                     sub_path='logging_definitions.json'))
         mounts.append(V1VolumeMount(name='rabbitmq-log', mount_path='/var/log/rabbitmq'))
