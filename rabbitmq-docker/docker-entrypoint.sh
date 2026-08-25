@@ -98,10 +98,9 @@ if [ -z "${RABBITMQ_USE_LONGNAME:-}" ] && [ "$(hostname)" != "$(hostname -s)" ];
 fi
 
 if [ -f /usr/share/rabbitmq/logging_definitions.json ]; then
-	sed -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' \
-		-e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' \
-		/usr/share/rabbitmq/logging_definitions.json \
-		> /tmp/logging_definitions.json
+	cp /usr/share/rabbitmq/logging_definitions.json /tmp/logging_definitions.json
+	sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /tmp/logging_definitions.json
+	sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /tmp/logging_definitions.json
 fi
 
 

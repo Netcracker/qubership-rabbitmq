@@ -613,8 +613,6 @@ class KubernetesHelper:
         else:
             mounts.append(V1VolumeMount(name=vct_name, mount_path='/var/lib/rabbitmq'))
         mounts.append(V1VolumeMount(name='tmp', mount_path='/tmp'))
-        mounts.append(V1VolumeMount(name='tmp', mount_path='/etc/rabbitmq/logging_definitions.json',
-                                    sub_path='logging_definitions.json'))
         mounts.append(V1VolumeMount(name='rabbitmq-log', mount_path='/var/log/rabbitmq'))
         if self.is_ipv6_enabled():
             mounts.append(V1VolumeMount(name=config_volume, mount_path='/etc/rabbitmq/erl_inetrc',
