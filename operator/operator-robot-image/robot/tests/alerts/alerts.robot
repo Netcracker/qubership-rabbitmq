@@ -1,10 +1,10 @@
 *** Variables ***
 ${SOME_PODS_ARE_NOT_WORKING_ALERT}             SomePodsAreNotWorking
-${ALERT_RETRY_TIME}                            5min
+${ALERT_RETRY_TIME}                            8min
 ${ALERT_RETRY_INTERVAL}                        10s
 ${NO_METRICS_ALERT}                            NoMetrics
-${RABBITMQ_PLUGIN_ENABLE}                      rabbitmq-plugins enable rabbitmq_prometheus
-${RABBITMQ_PLUGIN_DISABLE}                     rabbitmq-plugins disable rabbitmq_prometheus
+${RABBITMQ_PLUGIN_ENABLE}                      rabbitmq-plugins enable --online rabbitmq_prometheus
+${RABBITMQ_PLUGIN_DISABLE}                     rabbitmq-plugins disable --online rabbitmq_prometheus
 
 *** Settings ***
 Library  MonitoringLibrary  host=%{PROMETHEUS_URL}

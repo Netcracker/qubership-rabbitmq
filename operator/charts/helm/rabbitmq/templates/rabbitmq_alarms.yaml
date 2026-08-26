@@ -17,7 +17,7 @@ spec:
       annotations:
         description: "Cluster is unavailable or there's more then one cluster in the namespace"
         summary: RabbitMQ cluster is misconfigured
-      expr: count(count by (rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"})) != 1
+      expr: count(count by (rabbitmq_cluster) (rabbitmq_identity_info{namespace="{{ .Release.Namespace }}"})) != 1
       for: "1m"
       labels:
         service: {{ .Release.Name }}
@@ -27,7 +27,7 @@ spec:
       annotations:
         description: "Some or all pods are not responding/working"
         summary: Some or all pods are not working
-      expr: sum(rabbitmq_build_info{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"} * on(instance) group_left(rabbitmq_cluster) max by (instance, rabbitmq_cluster) (rabbitmq_identity_info{rabbitmq_endpoint="aggregated", rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) )/count(count by (exported_pod) (kube_pod_info{exported_namespace="{{ .Release.Namespace }}", exported_pod=~"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$"}))<1
+      expr: count(max by (instance) (rabbitmq_build_info{namespace="{{ .Release.Namespace }}"}) * on(instance) group_left() max by (instance) (rabbitmq_identity_info{rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) )/count(count by (exported_pod) (kube_pod_info{exported_namespace="{{ .Release.Namespace }}", exported_pod=~"^rmqlocal-[0-9]+$|^rmqlocal-[0-9]+-0$"}))<1
       for: "1m"
       labels:
         service: {{ .Release.Name }}
@@ -37,7 +37,7 @@ spec:
       annotations:
         description: "Memory alarm was triggered"
         summary: Memory alarm was triggered
-      expr: (rabbitmq_resident_memory_limit_bytes{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_endpoint="aggregated", rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) ) - (rabbitmq_process_resident_memory_bytes{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_endpoint="aggregated", rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) ) < 0
+      expr: (max by (instance) (rabbitmq_resident_memory_limit_bytes{namespace="{{ .Release.Namespace }}"}) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) ) - (max by (instance) (rabbitmq_process_resident_memory_bytes{namespace="{{ .Release.Namespace }}"}) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) ) < 0
       for: "1m"
       labels:
         service: {{ .Release.Name }}
@@ -47,7 +47,7 @@ spec:
       annotations:
         description: "Disk alarm was triggered"
         summary: Disk alarm was triggered
-      expr: rabbitmq_disk_space_available_bytes{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"} * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_endpoint="aggregated", rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) < 50000000
+      expr: max by (instance) (rabbitmq_disk_space_available_bytes{namespace="{{ .Release.Namespace }}"}) * on(instance) group_left(rabbitmq_cluster, rabbitmq_node) max by (instance, rabbitmq_cluster, rabbitmq_node) (rabbitmq_identity_info{rabbitmq_cluster="{{ .Values.rabbitmq.custom_params.rabbitmq_cluster_name }}",namespace="{{ .Release.Namespace }}"}) < 50000000
       for: "1m"
       labels:
         service: {{ .Release.Name }}
@@ -57,7 +57,7 @@ spec:
       annotations:
         description: "No metrics is sent"
         summary: No metrics is sent
-      expr: absent(rabbitmq_identity_info{rabbitmq_endpoint="aggregated", namespace="{{ .Release.Namespace }}"})
+      expr: absent(rabbitmq_identity_info{namespace="{{ .Release.Namespace }}"})
       for: "1m"
       labels:
         service: {{ .Release.Name }}
