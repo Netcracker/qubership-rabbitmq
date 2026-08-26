@@ -41,7 +41,10 @@ RUN set -x \
     && pip3 install --upgrade pip "setuptools==80.10.1" \
     && rm -rf /var/cache/apk/*
 
-COPY logging_definitions.json /etc/rabbitmq/
+COPY logging_definitions.json /usr/share/rabbitmq/logging_definitions.json
+# Symlink baked into the image (cannot create it at runtime with readOnlyRootFilesystem).
+# Entrypoint writes credentials into /tmp; rabbitmq.conf keeps the old path for upgrades.
+RUN ln -sfn /tmp/logging_definitions.json /etc/rabbitmq/logging_definitions.json
 
 VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq

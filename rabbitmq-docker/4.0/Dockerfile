@@ -27,7 +27,8 @@ RUN ln -sf /usr/local/bin/docker-entrypoint.sh && \
     chmod +x /usr/local/bin/docker-entrypoint.sh && \
     chmod -R a+r /opt/rabbitmq/plugins
 
-COPY logging_definitions.json /etc/rabbitmq/
+COPY logging_definitions.json /usr/share/rabbitmq/logging_definitions.json
+RUN ln -sfn /tmp/logging_definitions.json /etc/rabbitmq/logging_definitions.json
 
 VOLUME /etc/rabbitmq
 VOLUME /var/log/rabbitmq

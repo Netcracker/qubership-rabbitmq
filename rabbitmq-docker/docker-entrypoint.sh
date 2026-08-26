@@ -6,12 +6,6 @@ set -eu
 
 echo 'Using Custom Entrypoint'
 
-# Static config is mounted via subPath into /etc/rabbitmq (image conf.d stays intact).
-# logging_definitions.json needs sed under readOnlyRootFilesystem -> prepare a copy in /tmp.
-if [ -f /etc/rabbitmq/logging_definitions.json ]; then
-	cp /etc/rabbitmq/logging_definitions.json /tmp/logging_definitions.json
-fi
-
 echo "Configs are ready."
 
 # Diff from community version - we need this if to be able to clean PVs
@@ -103,10 +97,10 @@ if [ -z "${RABBITMQ_USE_LONGNAME:-}" ] && [ "$(hostname)" != "$(hostname -s)" ];
 	: "${RABBITMQ_USE_LONGNAME:=true}"
 fi
 
-# replace username and password inside definition using credentials from ENV
-if [ -f /tmp/logging_definitions.json ]; then
-    sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /tmp/logging_definitions.json
-    sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /tmp/logging_definitions.json
+if [ -f /usr/share/rabbitmq/logging_definitions.json ]; then
+	cp /usr/share/rabbitmq/logging_definitions.json /tmp/logging_definitions.json
+	sed -i -e 's/username_to_replace/'${RABBITMQ_DEFAULT_USER}'/g' /tmp/logging_definitions.json
+	sed -i -e 's/password_to_replace/'${RABBITMQ_DEFAULT_PASS}'/g' /tmp/logging_definitions.json
 fi
 
 
