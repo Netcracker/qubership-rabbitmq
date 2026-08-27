@@ -3,10 +3,7 @@ ${SOME_PODS_ARE_NOT_WORKING_ALERT}             SomePodsAreNotWorking
 ${ALERT_RETRY_TIME}                            8min
 ${ALERT_RETRY_INTERVAL}                        10s
 ${NO_METRICS_ALERT}                            NoMetrics
-# enabled_plugins is a read-only ConfigMap mount, so rabbitmq-plugins enable/disable
-# cannot update the file and the running plugin stays as-is. Toggle the application instead.
-${RABBITMQ_PLUGIN_ENABLE}                      rabbitmqctl eval application:ensure_all_started(rabbitmq_prometheus).
-${RABBITMQ_PLUGIN_DISABLE}                     rabbitmqctl eval application:stop(rabbitmq_prometheus).
+${PROMETHEUS_PLUGIN}                           rabbitmq_prometheus
 
 *** Settings ***
 Library  MonitoringLibrary  host=%{PROMETHEUS_URL}
@@ -23,11 +20,21 @@ Check That Prometheus Alert Is Inactive
     ${status}=  Get Alert Status  ${alert_name}  ${NAMESPACE}
     Should Be Equal As Strings  ${status}    inactive
 
-RabbitMQ Prometheus Plugin Switch
-    [Arguments]  ${switch_position}
-    FOR    ${item}    IN    @{pod_names}
-        Execute Command In Pod  ${item}  ${NAMESPACE}  ${switch_position}
-    END
+Restart RabbitMQ To Apply Plugin Config
+    Get All Rabbit Pods
+    Restart All Rabbit Pods  ${pod_names}
+    Wait For RabbitMQ Pods Ready
+
+Disable Prometheus Plugin Via Config
+    ${original_plugins}=  Remove Plugin From Enabled Plugins  ${PROMETHEUS_PLUGIN}
+    Set Test Variable  ${original_plugins}
+    Restart RabbitMQ To Apply Plugin Config
+
+Restore Prometheus Plugin Via Config
+    [Arguments]  ${original_plugins}
+    Return From Keyword If  '${original_plugins}' == '${EMPTY}'
+    Set Enabled Plugins  ${original_plugins}
+    Restart RabbitMQ To Apply Plugin Config
 
 Restore RabbitMQ App
     [Arguments]  ${pod_name}
@@ -53,12 +60,12 @@ RabbitMQ Some Pods Are Not Working Alert
 
 RabbitMQ No Metrics Alert
     [Tags]  all  alerts  no_metrics_alert
+    Set Test Variable  ${original_plugins}  ${EMPTY}
     Check That Prometheus Alert Is Inactive  ${NO_METRICS_ALERT}
-    Get All Rabbit Pods
-    RabbitMQ Prometheus Plugin Switch  ${RABBITMQ_PLUGIN_DISABLE}
+    Disable Prometheus Plugin Via Config
     Wait Until Keyword Succeeds    ${ALERT_RETRY_TIME}    ${ALERT_RETRY_INTERVAL}
     ...  Check That Prometheus Alert Is Active  ${NO_METRICS_ALERT}
-    RabbitMQ Prometheus Plugin Switch  ${RABBITMQ_PLUGIN_ENABLE}
+    Restore Prometheus Plugin Via Config  ${original_plugins}
     Wait Until Keyword Succeeds    ${ALERT_RETRY_TIME}    ${ALERT_RETRY_INTERVAL}
     ...  Check That Prometheus Alert Is Inactive  ${NO_METRICS_ALERT}
-    [Teardown]  RabbitMQ Prometheus Plugin Switch  ${RABBITMQ_PLUGIN_ENABLE}
+    [Teardown]  Restore Prometheus Plugin Via Config  ${original_plugins}

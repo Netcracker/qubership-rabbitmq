@@ -283,3 +283,37 @@ class CloudResourcesLibrary(object):
         for i in range(kill_number):
             self.force_kill(pod_name)
             time.sleep(period)
+
+    def get_enabled_plugins(self) -> str:
+        config_map = self._v1_apps_api.read_namespaced_config_map(
+            name='rabbitmq-config',
+            namespace=self.namespace
+        )
+        return config_map.data.get('enabled_plugins', '')
+
+    def set_enabled_plugins(self, enabled_plugins: str):
+        self._v1_apps_api.patch_namespaced_config_map(
+            name='rabbitmq-config',
+            namespace=self.namespace,
+            body={'data': {'enabled_plugins': enabled_plugins}}
+        )
+
+    def remove_plugin_from_enabled_plugins(self, plugin_name: str) -> str:
+        original = self.get_enabled_plugins()
+        self.set_enabled_plugins(self._without_plugin(original, plugin_name))
+        return original
+
+    def restart_all_rabbit_pods(self, pod_names: list):
+        for pod_name in pod_names:
+            self.force_kill(pod_name)
+
+    @staticmethod
+    def _without_plugin(enabled_plugins: str, plugin_name: str) -> str:
+        content = enabled_plugins.strip()
+        if content.endswith('.'):
+            content = content[:-1].strip()
+        if content.startswith('[') and content.endswith(']'):
+            content = content[1:-1]
+        plugins = [plugin.strip() for plugin in content.split(',') if plugin.strip()]
+        plugins = [plugin for plugin in plugins if plugin != plugin_name]
+        return f"[{','.join(plugins)}]."
