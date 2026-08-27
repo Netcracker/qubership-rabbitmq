@@ -6,6 +6,12 @@ set -eu
 
 echo 'Using Custom Entrypoint'
 
+if [ -d /configmap ] && [ -f /configmap/rabbitmq.conf ] && [ ! -f /etc/rabbitmq/rabbitmq.conf ]; then
+	echo "Legacy /configmap mount detected; copying configs to /etc/rabbitmq"
+	cp /configmap/* /etc/rabbitmq/
+	echo >> /etc/rabbitmq/rabbitmq.conf
+fi
+
 echo "Configs are ready."
 
 # Diff from community version - we need this if to be able to clean PVs
