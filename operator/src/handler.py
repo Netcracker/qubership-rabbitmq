@@ -87,7 +87,6 @@ config_volume = 'config-volume'
 ssl_volume = 'ssl-certs'
 secret_name = 'rabbitmq-default-secret'
 vct_name = 'default-vct-name'
-backup_daemon_pvc_name = 'data-rabbitmq-backup-daemon'
 telegraf_name = 'telegraf'
 username_change_attr = ('data', 'user')
 tests_name = 'rabbitmq-integration-tests'
@@ -394,9 +393,6 @@ class KubernetesHelper:
             return [f'{pv_name}-rmq-pvc' for pv_name in (self._pvs or [])]
         return [f'{vct_name}-rmqlocal-{idx}' for idx in range(replicas)]
 
-    def get_expected_pvc_names(self) -> list:
-        return self.get_expected_rmq_pvc_names() + [backup_daemon_pvc_name]
-
     @staticmethod
     def get_previously_managed_pvc_annotations(cr_object: dict) -> dict:
         if not cr_object:
@@ -441,7 +437,7 @@ class KubernetesHelper:
     def reconcile_pvc_annotations(self, previously_managed: dict = None) -> None:
         previously_managed = dict(previously_managed or {})
         desired = self.get_pvc_annotations()
-        for pvc_name in self.get_expected_pvc_names():
+        for pvc_name in self.get_expected_rmq_pvc_names():
             self._ensure_pvc_annotations(pvc_name, desired, previously_managed)
         if desired != previously_managed:
             self.update_pvc_status(desired)
