@@ -18,6 +18,10 @@ spec:
     customLabels:
       {{- toYaml . | nindent 6 -}}
   {{- end }}
+  {{- with .Values.pvc }}
+  pvc:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
   {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
   disasterRecovery:
     mode: {{ .Values.disasterRecovery.mode }}

@@ -28,6 +28,12 @@ global:
   disasterRecovery:
     siteManagerApiGroup: "netcracker.com"
 
+# Annotations copied to RabbitMQ and Backup Daemon PVCs.
+pvc:
+  metadata:
+    annotations: {}
+      # argocd.argoproj.io/sync-options: Prune=false
+
 operator:
   resources:
     limits:
