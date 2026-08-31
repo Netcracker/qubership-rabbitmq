@@ -71,6 +71,12 @@ Change Rabbitmq Password Through Function
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
     Wait Until Keyword Succeeds  ${timeout}  5s  Verify RabbitMQ Accepts Password  ${password}
 
+Change Rabbitmq Password Through Function And Verify
+    [Arguments]  ${pod_name}  ${password}  ${timeout}=5 min
+
+    Change Rabbitmq Password With Function  ${pod_name}  ${password}
+    Wait Until Keyword Succeeds  ${timeout}  15 s  Verify Password Applied  ${password}
+
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
 
@@ -127,14 +133,16 @@ Test Change Password Function With Kill All Pods
 
     ${pod_name}=  Get First Rabbit Pod
 
-    Change Rabbitmq Password Through Function  ${pod_name}  ${NEW_PASS}
+    Wait Until Keyword Succeeds  5 min  15 s  Verify Password Applied  ${old_password}
+
+    Change Rabbitmq Password Through Function And Verify  ${pod_name}  ${NEW_PASS}
 
     Force Kill All Pods  ${pod_names}  at_once
     Wait For RabbitMQ Pods Ready
     Wait Until Keyword Succeeds  5 min  15 s  Verify Password Applied  ${NEW_PASS}
     ${pod_name}=  Get First Rabbit Pod
 
-    Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}  5 min
+    Change Rabbitmq Password Through Function And Verify  ${pod_name}  ${old_password}
 
     [Teardown]  Change Rabbitmq Password With Function Teardown  ${pod_name}  ${old_password}
 
