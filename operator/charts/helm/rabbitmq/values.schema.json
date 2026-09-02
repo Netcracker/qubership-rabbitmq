@@ -546,6 +546,14 @@
         "dockerImage": { "type": "string" },
         "dockerImage3": { "type": "string" },
         "resources": { "$ref": "#/$defs/rabbitmqResources" },
+        "storage": {
+          "type": "string",
+          "description": "Legacy alias for rabbitmq.resources.storage used in CI deployment templates"
+        },
+        "storageclass": {
+          "type": "string",
+          "description": "Legacy alias for rabbitmq.resources.storageclass"
+        },
         "ingress": { "$ref": "#/$defs/rabbitmqIngress" },
         "envoyGateway": { "$ref": "#/$defs/rabbitmqEnvoyGateway" },
         "enabledPlugins": {
@@ -710,8 +718,8 @@
         "enabled": { "type": "boolean", "default": false },
         "image": { "type": "string" },
         "storage": { "type": "string", "default": "1Gi" },
-        "storageClass": { "type": "string" },
-        "persistentVolume": { "type": "string" },
+        "storageClass": { "$ref": "#/$defs/stringOrNull" },
+        "persistentVolume": { "$ref": "#/$defs/stringOrNull" },
         "backupSchedule": { "type": "string", "default": "0 0 * * *" },
         "evictionPolicy": { "type": "string", "default": "0/1d,7d/delete" },
         "resources": { "$ref": "#/$defs/resourceRequirements" },
