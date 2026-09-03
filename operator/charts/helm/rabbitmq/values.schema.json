@@ -1,0 +1,790 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "rabbitmq-chart values",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "operatorImage": {
+      "type": "string",
+      "description": "RabbitMQ operator container image"
+    },
+    "allowEvents": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether the RabbitMQ operator should have permissions to create Kubernetes events"
+    },
+    "global": {
+      "$ref": "#/$defs/global"
+    },
+    "operator": {
+      "$ref": "#/$defs/operator"
+    },
+    "externalRabbitmq": {
+      "$ref": "#/$defs/externalRabbitmq"
+    },
+    "disasterRecovery": {
+      "$ref": "#/$defs/disasterRecovery"
+    },
+    "rabbitmq": {
+      "$ref": "#/$defs/rabbitmq"
+    },
+    "tests": {
+      "$ref": "#/$defs/tests"
+    },
+    "backupDaemon": {
+      "$ref": "#/$defs/backupDaemon"
+    },
+    "telegraf": {
+      "$ref": "#/$defs/telegraf"
+    },
+    "statusProvisioner": {
+      "$ref": "#/$defs/statusProvisioner"
+    },
+    "SERVICE_NAME": {
+      "type": "string",
+      "default": "rabbitmq",
+      "description": "The name of the Service exposed for RabbitMQ"
+    },
+    "PART_OF": {
+      "type": "string",
+      "default": "rabbitmq",
+      "description": "Microservice belonging to a group"
+    },
+    "DELIMITER": {
+      "type": "string",
+      "default": "-",
+      "description": "Delimiter for labels"
+    },
+    "ARTIFACT_DESCRIPTOR_VERSION": {
+      "type": "string",
+      "default": "",
+      "description": "Artifact descriptor version which is installed"
+    },
+    "PAAS_PLATFORM": {
+      "type": "string",
+      "default": "KUBERNETES",
+      "description": "Cloud Platform type"
+    },
+    "name": {
+      "type": "string",
+      "description": "RabbitMQ service name used for the Custom Resource"
+    },
+    "loglevel": {
+      "type": "string",
+      "description": "RabbitMQ operator logging level (DEBUG, INFO, etc.)"
+    },
+    "operatorDeleteResources": {
+      "type": "boolean",
+      "description": "Whether the operator should delete all RabbitMQ resources when the CR is deleted"
+    },
+    "rabbitmqPrometheusMonitoring": {
+      "type": "boolean",
+      "default": false,
+      "description": "Whether RabbitMQ Prometheus monitoring needs to be installed"
+    },
+    "pvc": {
+      "$ref": "#/$defs/pvc"
+    }
+  },
+  "$defs": {
+    "stringOrNull": {
+      "type": ["string", "null"]
+    },
+    "stringStringMap": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "securityContext": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runAsUser": { "type": "integer" },
+        "runAsGroup": { "type": "integer" },
+        "fsGroup": { "type": "integer" },
+        "runAsNonRoot": { "type": "boolean" },
+        "seccompProfile": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "capabilities": {
+          "type": "object",
+          "additionalProperties": true
+        },
+        "allowPrivilegeEscalation": { "type": "boolean" },
+        "readOnlyRootFilesystem": { "type": "boolean" },
+        "supplementalGroups": {
+          "type": "array",
+          "items": { "type": "integer" }
+        }
+      }
+    },
+    "resourceRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
+            "memory": { "type": "string" }
+          }
+        }
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "initialDelaySeconds": { "type": "integer" },
+        "timeoutSeconds": { "type": "integer" },
+        "periodSeconds": { "type": "integer" },
+        "successThreshold": { "type": "integer" },
+        "failureThreshold": { "type": "integer" }
+      }
+    },
+    "tlsCertificates": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "crt": { "$ref": "#/$defs/stringOrNull" },
+        "key": { "$ref": "#/$defs/stringOrNull" },
+        "ca": { "$ref": "#/$defs/stringOrNull" }
+      }
+    },
+    "subjectAlternativeName": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "additionalDnsNames": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "additionalIpAddresses": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "tlsConfig": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "certificates": { "$ref": "#/$defs/tlsCertificates" },
+        "secretName": { "type": "string" },
+        "cipherSuites": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "subjectAlternativeName": { "$ref": "#/$defs/subjectAlternativeName" }
+      }
+    },
+    "affinity": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "properties": {
+        "nodeAffinity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preferredDuringSchedulingIgnoredDuringExecution": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            },
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "type": "object",
+              "additionalProperties": true
+            }
+          }
+        },
+        "podAffinity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preferredDuringSchedulingIgnoredDuringExecution": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            },
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            }
+          }
+        },
+        "podAntiAffinity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preferredDuringSchedulingIgnoredDuringExecution": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            },
+            "requiredDuringSchedulingIgnoredDuringExecution": {
+              "type": "array",
+              "items": { "type": "object", "additionalProperties": true }
+            }
+          }
+        }
+      }
+    },
+    "tolerations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "key": { "type": "string" },
+          "operator": { "type": "string", "enum": ["Equal", "Exists"] },
+          "value": { "type": "string" },
+          "effect": {
+            "type": "string",
+            "enum": ["NoSchedule", "PreferNoSchedule", "NoExecute"]
+          },
+          "tolerationSeconds": { "type": "integer" }
+        }
+      }
+    },
+    "globalTls": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether to use SSL for all RabbitMQ services"
+        },
+        "cipherSuites": {
+          "type": "array",
+          "items": { "type": "string" },
+          "default": []
+        },
+        "allowNonencryptedAccess": {
+          "type": "boolean",
+          "default": true
+        },
+        "generateCerts": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean", "default": true },
+            "certProvider": {
+              "type": "string",
+              "enum": ["helm", "cert-manager"],
+              "default": "cert-manager"
+            },
+            "durationDays": { "type": "integer", "default": 365 },
+            "clusterIssuerName": { "type": "string", "default": "" }
+          }
+        }
+      }
+    },
+    "global": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tls": { "$ref": "#/$defs/globalTls" },
+        "podReadinessTimeout": {
+          "type": "integer",
+          "default": 360,
+          "description": "Timeout in seconds for pods to become ready"
+        },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "disableRunAsNonRoot": { "type": "boolean", "default": false },
+        "cloudIntegrationEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether to apply Cloud Integration Parameters instead of RabbitMQ parameters"
+        },
+        "disasterRecovery": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "siteManagerApiGroup": {
+              "type": "string",
+              "default": "netcracker.com"
+            }
+          }
+        }
+      }
+    },
+    "restartScheduler": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dockerImage": { "type": "string" },
+        "enabled": { "type": "boolean", "default": true },
+        "schedule": { "type": "string", "default": "0 0 * * *" },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "nodeSelector": { "$ref": "#/$defs/stringStringMap" },
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" }
+      }
+    },
+    "operator": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "priorityClassName": { "type": "string", "default": "" },
+        "apiGroup": { "type": "string", "default": "netcracker.com" },
+        "pullPolicy": { "type": "string", "default": "Always" },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "enableOperatorShovelMonitoring": { "type": "boolean", "default": true },
+        "enableClusterRestart": { "type": "boolean", "default": false },
+        "clusterRestartThreshold": { "type": "integer", "default": 10800 },
+        "restartScheduler": { "$ref": "#/$defs/restartScheduler" }
+      }
+    },
+    "externalRabbitmq": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "url": { "type": "string", "default": "" },
+        "username": { "type": "string", "default": "" },
+        "password": { "type": "string", "default": "" },
+        "replicas": { "type": "integer", "default": 0 },
+        "clusterName": { "type": "string", "default": "" },
+        "sslSecretName": { "type": "string", "default": "" },
+        "enableSsl": { "type": "boolean", "default": false }
+      }
+    },
+    "disasterRecoveryHttpAuth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "smSecureAuth": { "type": "boolean", "default": false },
+        "smNamespace": { "type": "string", "default": "site-manager" },
+        "smServiceAccountName": { "type": "string", "default": "" },
+        "restrictedEnvironment": { "type": "boolean", "default": false },
+        "customAudience": { "type": "string", "default": "sm-services" }
+      }
+    },
+    "disasterRecovery": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "image": { "type": "string" },
+        "tls": { "$ref": "#/$defs/tlsConfig" },
+        "httpAuth": { "$ref": "#/$defs/disasterRecoveryHttpAuth" },
+        "mode": {
+          "type": "string",
+          "default": "",
+          "description": "Disaster Recovery mode: active, standby, or disable"
+        },
+        "region": { "type": "string", "default": "" },
+        "noWait": { "type": "boolean", "default": false },
+        "siteManagerEnabled": { "type": "boolean", "default": true },
+        "afterServices": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "resources": { "$ref": "#/$defs/resourceRequirements" }
+      }
+    },
+    "rabbitmqLdap": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "enableSsl": { "type": "boolean", "default": false },
+        "server": { "type": "string", "default": "" },
+        "port": { "type": "integer" },
+        "log": { "type": "boolean" },
+        "dnAttribute": { "type": "string", "default": "" },
+        "base": { "type": "string", "default": "" },
+        "advancedConfig": { "type": "string" },
+        "dn": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "usernameDn": { "type": "string", "default": "" },
+            "passwordDn": { "type": "string", "default": "" }
+          }
+        },
+        "sslOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "trustedCerts": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "rabbitmqQueueMigration": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "snapshotMode": {
+          "type": "string",
+          "enum": ["tar", "ebs", "none"],
+          "default": "tar"
+        }
+      }
+    },
+    "rabbitmqCustomParams": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "rabbitmq_cluster_name": { "type": "string", "default": "rabbitmq" },
+        "rabbitmq_vm_memory_high_watermark": { "type": "string", "default": "80%" },
+        "rabbitmq_default_user": { "type": "string" },
+        "rabbitmq_default_password": { "type": "string" },
+        "secretcookie": { "type": "string" }
+      }
+    },
+    "rabbitmqResources": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requests": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
+            "memory": { "type": "string" }
+          }
+        },
+        "limits": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
+            "memory": { "type": "string" }
+          }
+        },
+        "storage": { "type": "string" },
+        "storageclass": { "type": "string" }
+      }
+    },
+    "rabbitmqIngress": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "host": { "type": "string", "default": "" },
+        "className": { "type": "string", "default": "" }
+      }
+    },
+    "gatewayParentRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "group": { "type": "string" },
+        "kind": { "type": "string" },
+        "name": { "type": "string" },
+        "namespace": { "type": "string" }
+      }
+    },
+    "rabbitmqEnvoyGateway": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "host": { "type": "string", "default": "" },
+        "parentRefs": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/gatewayParentRef" }
+        }
+      }
+    },
+    "rabbitmqNodePortService": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "install": { "type": "boolean", "default": false },
+        "amqpNodePort": { "type": "integer" },
+        "mgmtNodePort": { "type": "integer" }
+      }
+    },
+    "rabbitmqDisruptionBudget": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "maxUnavailable": { "type": "integer" }
+      }
+    },
+    "rabbitmq": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "tls": { "$ref": "#/$defs/tlsConfig" },
+        "eventLogging": { "type": "boolean", "default": true },
+        "auto_reboot": { "type": "boolean", "default": false },
+        "hostpath_configuration": { "type": "boolean", "default": false },
+        "cluster_partition_handling": { "type": "string", "default": "" },
+        "ipv6_enabled": { "type": "boolean", "default": false },
+        "ldap": { "$ref": "#/$defs/rabbitmqLdap" },
+        "queueMigration": { "$ref": "#/$defs/rabbitmqQueueMigration" },
+        "custom_params": { "$ref": "#/$defs/rabbitmqCustomParams" },
+        "replicas": { "type": "integer", "default": 3 },
+        "dockerImage": { "type": "string" },
+        "dockerImage3": { "type": "string" },
+        "resources": { "$ref": "#/$defs/rabbitmqResources" },
+        "storage": {
+          "type": "string",
+          "description": "Legacy alias for rabbitmq.resources.storage used in CI deployment templates"
+        },
+        "storageclass": {
+          "type": "string",
+          "description": "Legacy alias for rabbitmq.resources.storageclass"
+        },
+        "ingress": { "$ref": "#/$defs/rabbitmqIngress" },
+        "envoyGateway": { "$ref": "#/$defs/rabbitmqEnvoyGateway" },
+        "enabledPlugins": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "customConfigProperties": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "customAdvancedProperties": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "environmentVariables": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "customAnnotations": { "$ref": "#/$defs/stringStringMap" },
+        "setDefaultQueueTypeClassic": { "type": "boolean", "default": true },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "selectors": {
+          "oneOf": [
+            { "$ref": "#/$defs/stringStringMap" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ]
+        },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "priorityClassName": { "type": "string", "default": "" },
+        "disruptionBudget": { "$ref": "#/$defs/rabbitmqDisruptionBudget" },
+        "livenessProbe": { "$ref": "#/$defs/probe" },
+        "readinessProbe": { "$ref": "#/$defs/probe" },
+        "deleteStatefulSetOnForbiddenUpdate": { "type": "boolean", "default": true },
+        "tolerations": { "$ref": "#/$defs/tolerations" },
+        "volumes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "nodes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "nodePortService": { "$ref": "#/$defs/rabbitmqNodePortService" },
+        "perQueueMetrics": { "type": "boolean", "default": false },
+        "validate_state": { "type": "boolean", "default": false },
+        "clean_rabbitmq_pvs": { "type": "boolean", "default": false },
+        "fsGroup": { "type": "integer" },
+        "runAsUser": { "type": "integer" },
+        "secret_change": { "type": "string" }
+      }
+    },
+    "atpStorage": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "provider": { "type": "string", "default": "aws" },
+        "serverUrl": { "type": "string", "default": "https://s3.amazonaws.com" },
+        "serverUiUrl": { "type": "string", "default": "" },
+        "bucket": { "type": "string", "default": "" },
+        "region": { "type": "string", "default": "us-east-1" },
+        "username": { "type": "string", "default": "" },
+        "password": { "type": "string", "default": "" }
+      }
+    },
+    "atpReport": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "atpStorage": { "$ref": "#/$defs/atpStorage" }
+      }
+    },
+    "tests": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "runTests": { "type": "boolean", "default": false },
+        "dockerImage": { "type": "string" },
+        "statusWritingEnabled": { "type": "boolean", "default": true },
+        "isShortStatusMessage": { "type": "boolean", "default": true },
+        "runTestsOnly": { "type": "boolean", "default": false },
+        "timeout": { "type": "integer", "default": 1800 },
+        "requestTimeout": { "type": "integer", "default": 60 },
+        "tags": { "type": "string", "default": "smoke" },
+        "waitTestResultOnJob": { "type": "boolean", "default": false },
+        "rabbitIsManagedByOperator": { "type": "boolean", "default": true },
+        "rabbitmq_port": { "type": "integer", "default": 15672 },
+        "amqp_port": { "type": "integer", "default": 5672 },
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "priorityClassName": { "type": "string", "default": "" },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "prometheusUrl": { "type": "string", "default": "" },
+        "atpReport": { "$ref": "#/$defs/atpReport" },
+        "atpReportViewUiUrl": { "type": "string", "default": "" },
+        "environmentName": { "type": "string", "default": "rabbitmq" },
+        "monitoredImages": { "type": "string", "default": "" },
+        "runAsUser": { "type": "integer" }
+      }
+    },
+    "backupDaemonCloudBackuper": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enableAnnotations": { "type": "boolean", "default": true }
+      }
+    },
+    "backupDaemonS3": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": false },
+        "sslVerify": { "type": "boolean", "default": true },
+        "sslSecretName": { "type": "string", "default": "" },
+        "sslCert": { "type": "string", "default": "" },
+        "url": { "type": "string", "default": "" },
+        "bucket": { "type": "string", "default": "" },
+        "keyId": { "type": "string", "default": "" },
+        "keySecret": { "type": "string", "default": "" }
+      }
+    },
+    "backupDaemonS3AliasSpec": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "default": { "type": "boolean" },
+        "storageBucket": { "type": "string" },
+        "storageProvider": { "type": "string" },
+        "storageRegion": { "type": "string" },
+        "storageServerUrl": { "type": "string" },
+        "storageUsername": { "type": "string" },
+        "storageSecret": { "type": "string" }
+      }
+    },
+    "backupDaemonS3Alias": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": { "type": "string" },
+        "spec": { "$ref": "#/$defs/backupDaemonS3AliasSpec" },
+        "secretContent": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "storagePassword": { "type": "string" }
+          }
+        }
+      },
+      "required": ["name"]
+    },
+    "backupDaemon": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "cloudBackuper": { "$ref": "#/$defs/backupDaemonCloudBackuper" },
+        "tls": { "$ref": "#/$defs/tlsConfig" },
+        "enabled": { "type": "boolean", "default": false },
+        "image": { "type": "string" },
+        "storage": { "type": "string", "default": "1Gi" },
+        "storageClass": { "$ref": "#/$defs/stringOrNull" },
+        "persistentVolume": { "$ref": "#/$defs/stringOrNull" },
+        "backupSchedule": { "type": "string", "default": "0 0 * * *" },
+        "evictionPolicy": { "type": "string", "default": "0/1d,7d/delete" },
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "tolerations": { "$ref": "#/$defs/tolerations" },
+        "nodeSelector": { "$ref": "#/$defs/stringStringMap" },
+        "priorityClassName": { "type": "string", "default": "" },
+        "s3": { "$ref": "#/$defs/backupDaemonS3" },
+        "s3Aliases": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/backupDaemonS3Alias" }
+        },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" }
+      }
+    },
+    "telegraf": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "dockerImage": { "type": "string" },
+        "install": { "type": "boolean", "default": false },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" },
+        "priorityClassName": { "type": "string", "default": "" },
+        "affinity": { "$ref": "#/$defs/affinity" },
+        "runAsUser": { "type": "integer" },
+        "influxdbDebug": { "type": "boolean", "default": false },
+        "influxdbUrl": { "type": "string", "default": "" },
+        "influxdbDatabase": { "type": "string", "default": "rabbit_database" },
+        "influxdbUser": { "type": "string", "default": "admin" },
+        "influxdbPassword": { "type": "string", "default": "admin" },
+        "metricCollectionInterval": { "type": "string", "default": "30s" },
+        "pullPolicy": { "type": "string" }
+      }
+    },
+    "statusProvisioner": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": { "type": "boolean", "default": true },
+        "dockerImage": { "type": "string" },
+        "lifetimeAfterCompletion": { "type": "integer", "default": 600 },
+        "podReadinessTimeout": { "type": "integer", "default": 300 },
+        "resources": { "$ref": "#/$defs/resourceRequirements" },
+        "customLabels": { "$ref": "#/$defs/stringStringMap" },
+        "securityContext": { "$ref": "#/$defs/securityContext" }
+      }
+    },
+    "pvcMetadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "annotations": { "$ref": "#/$defs/stringStringMap" }
+      }
+    },
+    "pvc": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "metadata": { "$ref": "#/$defs/pvcMetadata" }
+      }
+    }
+  }
+}
