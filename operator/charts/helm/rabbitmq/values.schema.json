@@ -87,12 +87,6 @@
     }
   },
   "$defs": {
-    "stringOrNumber": {
-      "oneOf": [
-        { "type": "string" },
-        { "type": "number" }
-      ]
-    },
     "stringOrNull": {
       "type": ["string", "null"]
     },
@@ -132,7 +126,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "cpu": { "$ref": "#/$defs/stringOrNumber" },
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
             "memory": { "type": "string" }
           }
         },
@@ -140,7 +136,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "cpu": { "$ref": "#/$defs/stringOrNumber" },
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
             "memory": { "type": "string" }
           }
         }
@@ -465,7 +463,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "cpu": { "$ref": "#/$defs/stringOrNumber" },
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
             "memory": { "type": "string" }
           }
         },
@@ -473,7 +473,9 @@
           "type": "object",
           "additionalProperties": false,
           "properties": {
-            "cpu": { "$ref": "#/$defs/stringOrNumber" },
+            "cpu": {
+              "comment": "don't use type field, because it breaks backward compatibility"
+            },
             "memory": { "type": "string" }
           }
         },
