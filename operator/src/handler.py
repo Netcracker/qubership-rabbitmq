@@ -377,6 +377,78 @@ class KubernetesHelper:
         return self._v1_apps_api.list_namespaced_persistent_volume_claim(namespace=self._workspace,
                                                                          label_selector=label_selector).items
 
+    def get_pvc_annotations(self) -> dict:
+        pvc_spec = self._spec.get('pvc') or {}
+        metadata = pvc_spec.get('metadata') or {}
+        annotations = metadata.get('annotations')
+        if not annotations:
+            return {}
+        return dict(annotations)
+
+    def get_expected_rmq_pvc_names(self) -> list:
+        replicas = self._spec['rabbitmq']['replicas']
+        if self.is_hostpath():
+            if self._selectors is not None:
+                return [f'rabbitmq-{idx}-rmq-pvc' for idx in range(replicas)]
+            return [f'{pv_name}-rmq-pvc' for pv_name in (self._pvs or [])]
+        return [f'{vct_name}-rmqlocal-{idx}' for idx in range(replicas)]
+
+    @staticmethod
+    def get_previously_managed_pvc_annotations(cr_object: dict) -> dict:
+        if not cr_object:
+            return {}
+        pvc_status = (cr_object.get('status') or {}).get('pvcStatus') or {}
+        annotations = pvc_status.get('annotations')
+        if not annotations:
+            return {}
+        return dict(annotations)
+
+    @staticmethod
+    def _compute_managed_pvc_annotations(current: dict, desired: dict, previously_managed: dict) -> dict:
+        updated = dict(current or {})
+        for key, value in desired.items():
+            updated[key] = value
+        for key in previously_managed:
+            if key not in desired:
+                updated.pop(key, None)
+        return updated
+
+    def _ensure_pvc_annotations(self, pvc_name: str, desired: dict, previously_managed: dict) -> None:
+        try:
+            pvc = self._v1_apps_api.read_namespaced_persistent_volume_claim(pvc_name, self._workspace)
+        except ApiException as exception:
+            if exception.status == 404:
+                logger.debug(f'PVC {pvc_name} not found, skipping annotation sync')
+                return
+            raise
+
+        current = pvc.metadata.annotations or {}
+        updated = self._compute_managed_pvc_annotations(current, desired, previously_managed)
+        if updated == current:
+            return
+
+        pvc.metadata.annotations = updated
+        try:
+            self._v1_apps_api.replace_namespaced_persistent_volume_claim(pvc_name, self._workspace, pvc)
+            logger.info(f'Updated annotations on PVC {pvc_name}')
+        except ApiException as exception:
+            logger.error(f'Failed to update annotations on PVC {pvc_name}: {exception}')
+
+    def reconcile_pvc_annotations(self, previously_managed: dict = None) -> None:
+        previously_managed = dict(previously_managed or {})
+        desired = self.get_pvc_annotations()
+        for pvc_name in self.get_expected_rmq_pvc_names():
+            self._ensure_pvc_annotations(pvc_name, desired, previously_managed)
+        if desired != previously_managed:
+            self.update_pvc_status(desired)
+
+    def update_pvc_status(self, annotations: dict) -> None:
+        cr_status = self.get_custom_resource_status()
+        status = cr_status.get('status') or {}
+        status['pvcStatus'] = {'annotations': dict(annotations or {})}
+        cr_status['status'] = status
+        self.update_custom_resource_status(cr_status)
+
     def list_stateful_sets(self, label_selector='app=rmqlocal'):
         return self._apps_v1_api.list_namespaced_stateful_set(namespace=self._workspace, label_selector=label_selector)
 
@@ -502,9 +574,11 @@ class KubernetesHelper:
         pvc_labels["app"] = "rmqlocal"
         pvc_labels["rabbitmq-app"] = "rmqlocal"
         pvc_labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
+        pvc_annotations = self.get_pvc_annotations() or None
         pvc = V1PersistentVolumeClaim(api_version='v1', kind='PersistentVolumeClaim',
                                       metadata=V1ObjectMeta(name=f'{pvc_prefix}-rmq-pvc',
-                                                            labels=pvc_labels),
+                                                            labels=pvc_labels,
+                                                            annotations=pvc_annotations),
                                       spec=V1PersistentVolumeClaimSpec(access_modes=['ReadWriteOnce'],
                                                                        resources=V1ResourceRequirements(
                                                                            requests={'storage': self._res['storage']}),
@@ -634,10 +708,11 @@ class KubernetesHelper:
         else:
             labels = self.get_default_labels()
             labels["cloud-backuper.netcracker.com/exclude-from-physical-backup"] = "true"
+            vct_annotations = join_maps({
+                'volume.beta.kubernetes.io/storage-class': self._res['storageclass'],
+            }, self.get_pvc_annotations())
             return [V1PersistentVolumeClaim(api_version='v1',
-                                            metadata=V1ObjectMeta(annotations={
-                                                'volume.beta.kubernetes.io/storage-class': self._res[
-                                                    'storageclass']},
+                                            metadata=V1ObjectMeta(annotations=vct_annotations,
                                                 name=vct_name,
                                                 labels=labels),
                                             spec=V1PersistentVolumeClaimSpec(
@@ -1542,15 +1617,29 @@ class KubernetesHelper:
     def initiate_status(self):
         cr_status = self.get_custom_resource_status()
         logger.info(cr_status)
-        conditions = []
+        existing_status = cr_status.get('status') or {}
+        if not isinstance(existing_status, dict):
+            existing_status = existing_status.to_dict() if hasattr(existing_status, 'to_dict') else {}
+        preserved_pvc_status = existing_status.get('pvcStatus')
+        preserved_disaster_recovery_status = existing_status.get('disasterRecoveryStatus')
         in_progress = V1ComponentCondition(
             type=IN_PROGRESS,
             status=True,
             message="RabbitMQ operator started deploy process",
         )
-        conditions.append(in_progress)
-        status = V1ComponentStatus(conditions=conditions)
-        cr_status['status'] = status
+        status = V1ComponentStatus(conditions=[in_progress])
+        if preserved_pvc_status is not None:
+            status_dict = status.to_dict()
+            status_dict['pvcStatus'] = preserved_pvc_status
+            if preserved_disaster_recovery_status is not None:
+                status_dict['disasterRecoveryStatus'] = preserved_disaster_recovery_status
+            cr_status['status'] = status_dict
+        elif preserved_disaster_recovery_status is not None:
+            status_dict = status.to_dict()
+            status_dict['disasterRecoveryStatus'] = preserved_disaster_recovery_status
+            cr_status['status'] = status_dict
+        else:
+            cr_status['status'] = status
         self.update_custom_resource_status(cr_status)
 
     def update_status(self, status_type, error, message):
@@ -1834,6 +1923,7 @@ def on_create(body, meta, spec, status, **kwargs):
         raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
 
     kub_helper.update_config()
+    kub_helper.reconcile_pvc_annotations({})
     kub_helper.update_services()
     if kub_helper.is_nodeport_required():
         kub_helper.configure_nodeport_service()
@@ -1848,6 +1938,8 @@ def on_create(body, meta, spec, status, **kwargs):
         kub_helper.reboot_pods()
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
+    kub_helper.reconcile_pvc_annotations(
+        kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
@@ -2098,6 +2190,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         time.sleep(5)
         raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
     kub_helper.update_config()
+    kub_helper.reconcile_pvc_annotations(kub_helper.get_previously_managed_pvc_annotations(old))
     kub_helper.update_services()
     if kub_helper.is_nodeport_required():
         kub_helper.configure_nodeport_service()
@@ -2113,6 +2206,8 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         kub_helper.reboot_pods(old_pods_count)
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
+    kub_helper.reconcile_pvc_annotations(
+        kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
