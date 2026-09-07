@@ -293,7 +293,7 @@
     },
     "global": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
       "properties": {
         "tls": { "$ref": "#/$defs/globalTls" },
         "podReadinessTimeout": {
