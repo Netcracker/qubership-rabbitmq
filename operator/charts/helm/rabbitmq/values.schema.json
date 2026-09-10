@@ -776,7 +776,10 @@
       "type": "object",
       "additionalProperties": false,
       "properties": {
-        "annotations": { "$ref": "#/$defs/stringStringMap" }
+        "annotations": {
+          "type": ["object", "null"],
+          "additionalProperties": { "type": "string" }
+        }
       }
     },
     "pvc": {
