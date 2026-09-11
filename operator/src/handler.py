@@ -312,8 +312,14 @@ class KubernetesHelper:
         else:
             return None
 
+    def _core_v1_api_for_exec(self):
+        # stream() temporarily replaces ApiClient.request with a websocket
+        # transport. A dedicated client keeps that monkey-patch off the shared
+        # REST client used by concurrent kopf handlers/timers.
+        return client.CoreV1Api(client.ApiClient(configuration=self._api_client.configuration))
+
     def exec_command_in_pod(self, pod_name, exec_command):
-        v1api = self._v1_apps_api
+        v1api = self._core_v1_api_for_exec()
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=False,
@@ -336,7 +342,7 @@ class KubernetesHelper:
     
     def exec_command_in_pod_interactive(self, pod_name, commands):
         exec_command = ['/bin/sh']
-        v1api = self._v1_apps_api
+        v1api = self._core_v1_api_for_exec()
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=True,
