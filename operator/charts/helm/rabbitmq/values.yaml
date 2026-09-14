@@ -5,7 +5,7 @@
 
 # name: rabbitmq-service
 #
-operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main
+operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:2.4.0
 #
 # loglevel: INFO
 
@@ -79,7 +79,7 @@ externalRabbitmq:
   enableSsl: false
 
 disasterRecovery:
-  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main
+  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:v0.4.19
   tls:
     enabled: true
     certificates:
@@ -151,8 +151,8 @@ rabbitmq:
 #    - paas-infra311-master-2
 #    - paas-infra311-master-3
   replicas: 3
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main
-  dockerImage3: ghcr.io/netcracker/qubership-rabbitmq-image-3:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:2.4.0
+  dockerImage3: ghcr.io/netcracker/qubership-rabbitmq-image-3:2.4.0
   resources:
     requests:
       cpu: 1
@@ -255,7 +255,7 @@ rabbitmq:
 
 tests:
   runTests: false
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:2.4.0
   statusWritingEnabled: true
   isShortStatusMessage: true
   runTestsOnly: false
@@ -310,7 +310,7 @@ backupDaemon:
       additionalIpAddresses: []
   # Enable Rabbitmq Backup Daemon installation.
   enabled: false
-  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main
+  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:2.4.0
 
   # storage and storageClass are the settings for configuring stateful
   # storage for the server pods. storage should be set to the disk size of
@@ -427,7 +427,7 @@ telegraf:
     requests:
       cpu: 150m
       memory: 150Mi
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-monitoring:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-monitoring:2.4.0
   install: false
   customLabels: {}
   securityContext: {}
@@ -436,7 +436,7 @@ telegraf:
 
 statusProvisioner:
   enabled: true
-  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main
+  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:0.2.9
   lifetimeAfterCompletion: 600
   podReadinessTimeout: 300
   resources:
