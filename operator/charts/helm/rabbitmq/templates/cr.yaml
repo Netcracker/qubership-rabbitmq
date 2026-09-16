@@ -19,9 +19,11 @@ spec:
     customLabels:
       {{- toYaml . | nindent 6 -}}
   {{- end }}
-  {{- with .Values.pvc }}
+  {{- with ((.Values.pvc).metadata).annotations }}
   pvc:
-    {{- toYaml . | nindent 4 }}
+    metadata:
+      annotations:
+        {{- toYaml . | nindent 8 }}
   {{- end }}
   {{- if (eq (include "rabbitmq.enableDisasterRecovery" .) "true") }}
   disasterRecovery:
