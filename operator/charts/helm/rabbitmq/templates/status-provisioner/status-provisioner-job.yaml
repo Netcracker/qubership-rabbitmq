@@ -10,6 +10,10 @@ metadata:
     app.kubernetes.io/name: rabbitmq-status-provisioner
     app.kubernetes.io/instance: rabbitmq-status-provisioner{{ .Values.DELIMITER }}{{ .Release.Namespace }}
     name: rabbitmq-status-provisioner
+  annotations:
+    "argocd.argoproj.io/hook": PostSync
+    "argocd.argoproj.io/sync-wave": "1"
+    "argocd.argoproj.io/hook-delete-policy": HookSucceeded,BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: {{ .Values.statusProvisioner.lifetimeAfterCompletion | default 600 }}
   template:
