@@ -11,9 +11,9 @@ metadata:
     app.kubernetes.io/instance: rabbitmq-status-provisioner{{ .Values.DELIMITER }}{{ .Release.Namespace }}
     name: rabbitmq-status-provisioner
   annotations:
-    "argocd.argoproj.io/hook": PostSync
+    "argocd.argoproj.io/hook": Sync
     "argocd.argoproj.io/sync-wave": "1"
-    "argocd.argoproj.io/hook-delete-policy": HookSucceeded,BeforeHookCreation
+    "argocd.argoproj.io/hook-delete-policy": BeforeHookCreation
 spec:
   ttlSecondsAfterFinished: {{ .Values.statusProvisioner.lifetimeAfterCompletion | default 600 }}
   template:
