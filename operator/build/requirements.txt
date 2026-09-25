@@ -1,4 +1,4 @@
-kopf
+kopf=1.44.6
 kubernetes==21.7.0
 pykube-ng
 pyyaml
