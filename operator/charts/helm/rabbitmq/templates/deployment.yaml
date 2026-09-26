@@ -10,7 +10,6 @@ metadata:
     app.kubernetes.io/instance: rabbitmq-operator{{ .Values.DELIMITER }}{{ .Release.Namespace }}
   name: rabbitmq-operator
 spec:
-  terminationGracePeriodSeconds: 120
   replicas: 1
   strategy:
     type: Recreate
@@ -33,6 +32,7 @@ spec:
         post.hook.restore.velero.io/command: '["python3", "/opt/operator/velero_delete_pods_rmqlocal.py"]'
         {{ .Values.operator.apiGroup }}/cr-checksum: {{ include (print .Template.BasePath "/cr.yaml") . | sha256sum | trunc 63 }}
     spec:
+      terminationGracePeriodSeconds: 120
       securityContext:
         {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
         {{- with .Values.operator.securityContext }}
