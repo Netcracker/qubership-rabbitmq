@@ -895,10 +895,10 @@ class KubernetesHelper:
         replicas_count = self._spec['rabbitmq']['replicas']
         pods = []
         for i in range(0, 30):
-            time.sleep(30)
             pods = (self.get_rabbit_pods()).items
             if len(pods) == replicas_count:
                 break
+            time.sleep(30)
         if len(pods) != replicas_count:
             logger.info(f'There is not enough rabbit pods. Specified: '
                         f'{replicas_count}, presented: {len(pods)}')
@@ -1355,9 +1355,9 @@ class KubernetesHelper:
             rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
                                          'http://rabbitmq.' + self._workspace + '.svc:15672')
         for i in range(0, 30):
-            time.sleep(30)
             if rabbit_helper.is_cluster_alive(self._spec['rabbitmq']['replicas']):
                 return
+            time.sleep(30)
         self.update_status(
             FAILED,
             "Error",
@@ -1365,7 +1365,7 @@ class KubernetesHelper:
         )
         time.sleep(5)
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
-    
+
     def check_shovel_state(self, alive_percentage=0.8):
         if self.is_ssl_enabled():
             rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
