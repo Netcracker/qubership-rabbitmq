@@ -89,6 +89,8 @@ secret_name = 'rabbitmq-default-secret'
 vct_name = 'default-vct-name'
 telegraf_name = 'telegraf'
 username_change_attr = ('data', 'user')
+password_change_attr = ('data', 'password')
+credential_change_attrs = (username_change_attr, password_change_attr)
 tests_name = 'rabbitmq-integration-tests'
 nodeport_service_name = 'rabbitmq-nodeport'
 cr_version = "v2"
@@ -2006,8 +2008,10 @@ def change_rabbitmq_config(meta, **kwargs):
     return meta['name'] == configmap_name
 
 
-def change_rabbitmq_secret(meta, **kwargs):
-    return meta['name'] == secret_name
+def change_rabbitmq_secret(meta, diff, **kwargs):
+    if meta.get('name') != secret_name:
+        return False
+    return any(len(change) > 1 and change[1] in credential_change_attrs for change in diff)
 
 
 def check_cluster_state(spec, v1_apps_api, namespace):
