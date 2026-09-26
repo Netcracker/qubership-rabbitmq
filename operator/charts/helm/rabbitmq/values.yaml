@@ -5,7 +5,7 @@
 
 # name: rabbitmq-service
 #
-operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main
+operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main@sha256:c1434e19501a2ca6b5b1a7de36dc388f8a88e3ee63ea8477763230410323cff1
 #
 # loglevel: INFO
 
@@ -51,7 +51,7 @@ operator:
   enableClusterRestart: false
   clusterRestartThreshold: 10800
   restartScheduler:
-    dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main
+    dockerImage: ghcr.io/netcracker/qubership-docker-kubectl:main@sha256:ccc732b35d900f2c5506659dc9e8f3e1756b475755bc7d8901e1767ae2bcf7bd
     enabled: true
     schedule: "0 0 * * *"
     affinity: {}
@@ -79,7 +79,7 @@ externalRabbitmq:
   enableSsl: false
 
 disasterRecovery:
-  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main
+  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main@sha256:42d513e6eeed98013b02515c1ad3e274db7fb2893878d8260b4072f9295d91f1
   tls:
     enabled: true
     certificates:
@@ -151,7 +151,7 @@ rabbitmq:
 #    - paas-infra311-master-2
 #    - paas-infra311-master-3
   replicas: 3
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main@sha256:5a848eadd7f8dbc5b48036530163bc3a8a256a63dcd82d8688f984667526a3e8
   dockerImage3: ghcr.io/netcracker/qubership-rabbitmq-image-3:main
   resources:
     requests:
@@ -255,7 +255,7 @@ rabbitmq:
 
 tests:
   runTests: false
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-integration-tests:main@sha256:b0b276d369e665983bb301ff78bd9bb1a558d071214ba8858dd20b113ae103bb
   statusWritingEnabled: true
   isShortStatusMessage: true
   runTestsOnly: false
@@ -310,7 +310,7 @@ backupDaemon:
       additionalIpAddresses: []
   # Enable Rabbitmq Backup Daemon installation.
   enabled: false
-  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main
+  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main@sha256:30d88e24cd4b5249eff7ef26df03639abc7f3db7f0fbcba82d91ac9a7ab03025
 
   # storage and storageClass are the settings for configuring stateful
   # storage for the server pods. storage should be set to the disk size of
@@ -427,7 +427,7 @@ telegraf:
     requests:
       cpu: 150m
       memory: 150Mi
-  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-monitoring:main
+  dockerImage: ghcr.io/netcracker/qubership-rabbitmq-monitoring:main@sha256:3de38627359e101d7faf829448ad540b3cc56f8bedc998a2968f97797066256d
   install: false
   customLabels: {}
   securityContext: {}
@@ -436,7 +436,7 @@ telegraf:
 
 statusProvisioner:
   enabled: true
-  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main
+  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main@sha256:4dd40c825f14e59717689ea2a98ec64ebeeb90ce8e3d4afcf25e54ff84f6690e
   lifetimeAfterCompletion: 600
   podReadinessTimeout: 300
   resources:
