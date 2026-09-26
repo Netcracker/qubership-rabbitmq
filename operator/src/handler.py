@@ -546,6 +546,7 @@ class KubernetesHelper:
             logger.info(f'apply stateful set with name: {name}')
             statefulsetbody = self.generate_stateful_set_body(name, pv_name=pv_name, node_name=node_name)
             self._apps_v1_api.create_namespaced_stateful_set(self._workspace, statefulsetbody)
+            kopf.adopt(statefulsetbody)
 
     def _update_already_presented_rmq_statefulset(self, name, pv_name=None, node_name=None):
         logger.info(f'update stateful set with name: {name}')
@@ -565,6 +566,7 @@ class KubernetesHelper:
             sleep(5)
             logger.info('Upload generated statefulset')
             self._apps_v1_api.create_namespaced_stateful_set(self._workspace, statefulset_body)
+        kopf.adopt(statefulset_body)
 
     def apply_pvc(self, pv_name=None, number=None):
         # todo app and rabbitmq-app - params
