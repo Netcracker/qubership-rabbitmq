@@ -10,6 +10,7 @@ metadata:
     app.kubernetes.io/instance: rabbitmq-operator{{ .Values.DELIMITER }}{{ .Release.Namespace }}
   name: rabbitmq-operator
 spec:
+  terminationGracePeriodSeconds: 120
   replicas: 1
   strategy:
     type: Recreate
