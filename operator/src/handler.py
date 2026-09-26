@@ -2325,3 +2325,26 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
+
+@kopf.on.cleanup()
+def on_operator_cleanup(memo, **kwargs):
+    if k8s_client is None:
+        return
+    watch_namespace = KubernetesHelper.get_namespace()
+    v1 = client.CoreV1Api(k8s_client)
+    custom_api = client.CustomObjectsApi(k8s_client)
+    try:
+        ns = v1.read_namespace(watch_namespace)
+        if ns.metadata.deletion_timestamp is None:
+            return
+    except Exception as e:
+        logger.warning(f"Could not read namespace during cleanup: {e}")
+        return
+    logger.info(f"Namespace {watch_namespace} is terminating — removing finalizers for RabbitMQ Service custom resource")
+    custom_api.patch_custom_object(
+        group=api_group,
+        version=cr_version,
+        namespace=watch_namespace,
+        name="rabbitmqservices",
+        body={"metadata": {"finalizers": []}}
+    )
