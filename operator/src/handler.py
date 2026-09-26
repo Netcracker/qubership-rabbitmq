@@ -1849,13 +1849,9 @@ if os.environ.get('RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC', 'true').lower() in 
 def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
-    settings.scanning.disabled = False
+    settings.scanning.disabled = True
     settings.posting.enabled = False
-    if optional_delete:
-        # on_delete is not registered — disable kopf's persistence finalizer so
-        # 'kopf.zalando.org/KopfFinalizerMarker' is never added to CRs.
-        # Without this the finalizer blocks CR deletion if the operator is not running.
-        settings.persistence.finalizer = None
+    
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
@@ -2269,14 +2265,6 @@ def perform_rabbit_pods_readiness_check(kub_helper: KubernetesHelper):
 
 @kopf.on.delete(api_group, cr_version, 'rabbitmqservices', optional=optional_delete)
 def on_delete(spec, namespace, **kwargs):
-    v1 = client.CoreV1Api(k8s_client)
-    try:
-        ns = v1.read_namespace(namespace)
-        if ns.metadata.deletion_timestamp is not None:
-            logger.info("Namespace is being deleted — skipping resource cleanup, Kubernetes will handle it")
-            return
-    except Exception as e:
-        logger.warning(f"Could not read namespace status in on_delete: {e}")
     kub_helper = KubernetesHelper(spec)
     logger.info("Deleting crd")
     kub_helper.delete_resources()
@@ -2338,40 +2326,3 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
-
-@kopf.on.cleanup()
-def on_operator_cleanup(memo, **kwargs):
-    if k8s_client is None:
-        return
-    watch_namespace = KubernetesHelper.get_namespace()
-    v1 = client.CoreV1Api(k8s_client)
-    custom_api = client.CustomObjectsApi(k8s_client)
-    try:
-        ns = v1.read_namespace(watch_namespace)
-        if ns.metadata.deletion_timestamp is None:
-            return
-    except Exception as e:
-        logger.warning(f"Could not read namespace during cleanup: {e}")
-        return
-    logger.info(f"Namespace {watch_namespace} is terminating — removing finalizers for RabbitMQ Service custom resource")
-    try:
-        crs = custom_api.list_namespaced_custom_object(
-            api_group, cr_version, watch_namespace, 'rabbitmqservices'
-        )
-    except Exception as e:
-        logger.warning(f"Could not list CRs during cleanup: {e}")
-        return
-    for cr in crs.get('items', []):
-        cr_name = cr['metadata']['name']
-        try:
-            custom_api.patch_namespaced_custom_object(
-                group=api_group,
-                version=cr_version,
-                namespace=watch_namespace,
-                plural='rabbitmqservices',
-                name=cr_name,
-                body={"metadata": {"finalizers": []}}
-            )
-            logger.info(f"Finalizer removed from CR {cr_name}")
-        except Exception as e:
-            logger.warning(f"Could not remove finalizer from CR {cr_name}: {e}")
