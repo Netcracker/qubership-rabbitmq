@@ -1620,6 +1620,13 @@ class KubernetesHelper:
             body=body
         )
 
+    def update_finalizers(self, finalizers):
+        cr = self.get_custom_resource()
+        metadata = cr.get('metadata', {})
+        metadata['finalizers'] = finalizers
+        body = {'metadata': metadata}
+        self.update_custom_resource(body)
+
     def initiate_status(self):
         cr_status = self.get_custom_resource_status()
         logger.info(cr_status)
@@ -2133,6 +2140,10 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
+    if meta.get('deletionTimestamp'):
+        logger.info("CR is being deleted, skipping update handling.")
+        if not optional_delete:
+             kub_helper.update_finalizers([])
     rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
     if rabbit_exist_before:
@@ -2326,30 +2337,3 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
-
-@kopf.daemon(api_group, cr_version, 'rabbitmqservices')
-async def namespace_deletion_watcher(spec, name, namespace, stopped, logger, **kwargs):
-    v1 = client.CoreV1Api()
-    custom_api = client.CustomObjectsApi()
-    
-    while not stopped:
-        ns_info = v1.read_namespace(namespace)
-        
-        if ns_info.metadata.deletion_timestamp:
-            logger.info(f"Namespace {namespace} is terminating! Stripping finalizers from {name}")
-            try:
-                # Экстренно снимаем финалайзер с CR
-                custom_api.patch_namespaced_custom_object(
-                    group=api_group,
-                    version=cr_version,
-                    namespace=namespace,
-                    plural='rabbitmqservices',
-                    name=name,
-                    body={"metadata": {"finalizers": []}}
-                )
-            except Exception as e:
-                logger.error(f"Failed to strip finalizer: {e}")
-            
-            break 
-            
-        await kopf.sleep(3, stopped=stopped)
