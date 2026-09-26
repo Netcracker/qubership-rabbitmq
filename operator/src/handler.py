@@ -2263,7 +2263,15 @@ def perform_rabbit_pods_readiness_check(kub_helper: KubernetesHelper):
 
 
 @kopf.on.delete(api_group, cr_version, 'rabbitmqservices', optional=optional_delete)
-def on_delete(spec, **kwargs):
+def on_delete(spec, namespace, **kwargs):
+    v1 = client.CoreV1Api(k8s_client)
+    try:
+        ns = v1.read_namespace(namespace)
+        if ns.metadata.deletion_timestamp is not None:
+            logger.info("Namespace is being deleted — skipping resource cleanup, Kubernetes will handle it")
+            return
+    except Exception as e:
+        logger.warning(f"Could not read namespace status in on_delete: {e}")
     kub_helper = KubernetesHelper(spec)
     logger.info("Deleting crd")
     kub_helper.delete_resources()
