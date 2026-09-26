@@ -1849,7 +1849,7 @@ if os.environ.get('RABBITMQ_SET_DEFAULT_QUEUE_TYPE_CLASSIC', 'true').lower() in 
 def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.server_timeout = KOPFTIMEOUT
     settings.watching.client_timeout = KOPFTIMEOUT + 60
-    settings.scanning.disabled = True
+    settings.scanning.disabled = False
     settings.posting.enabled = False
     if optional_delete:
         # on_delete is not registered — disable kopf's persistence finalizer so
