@@ -1851,6 +1851,11 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
     settings.posting.enabled = False
+    if optional_delete:
+        # on_delete is not registered — disable kopf's persistence finalizer so
+        # 'kopf.zalando.org/KopfFinalizerMarker' is never added to CRs.
+        # Without this the finalizer blocks CR deletion if the operator is not running.
+        settings.persistence.finalizer = None
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
