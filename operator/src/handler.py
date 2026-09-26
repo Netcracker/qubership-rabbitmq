@@ -2326,3 +2326,30 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
+
+@kopf.daemon(api_group, cr_version, 'rabbitmqservices')
+async def namespace_deletion_watcher(spec, name, namespace, stopped, logger, **kwargs):
+    v1 = client.CoreV1Api()
+    custom_api = client.CustomObjectsApi()
+    
+    while not stopped:
+        ns_info = v1.read_namespace(namespace)
+        
+        if ns_info.metadata.deletion_timestamp:
+            logger.info(f"Namespace {namespace} is terminating! Stripping finalizers from {name}")
+            try:
+                # Экстренно снимаем финалайзер с CR
+                custom_api.patch_namespaced_custom_object(
+                    group=api_group,
+                    version=cr_version,
+                    namespace=namespace,
+                    plural='rabbitmqservices',
+                    name=name,
+                    body={"metadata": {"finalizers": []}}
+                )
+            except Exception as e:
+                logger.error(f"Failed to strip finalizer: {e}")
+            
+            break 
+            
+        await kopf.sleep(3, stopped=stopped)
