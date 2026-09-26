@@ -2341,10 +2341,24 @@ def on_operator_cleanup(memo, **kwargs):
         logger.warning(f"Could not read namespace during cleanup: {e}")
         return
     logger.info(f"Namespace {watch_namespace} is terminating — removing finalizers for RabbitMQ Service custom resource")
-    custom_api.patch_custom_object(
-        group=api_group,
-        version=cr_version,
-        namespace=watch_namespace,
-        name="rabbitmqservices",
-        body={"metadata": {"finalizers": []}}
-    )
+    try:
+        crs = custom_api.list_namespaced_custom_object(
+            api_group, cr_version, watch_namespace, 'rabbitmqservices'
+        )
+    except Exception as e:
+        logger.warning(f"Could not list CRs during cleanup: {e}")
+        return
+    for cr in crs.get('items', []):
+        cr_name = cr['metadata']['name']
+        try:
+            custom_api.patch_namespaced_custom_object(
+                group=api_group,
+                version=cr_version,
+                namespace=watch_namespace,
+                plural='rabbitmqservices',
+                name=cr_name,
+                body={"metadata": {"finalizers": []}}
+            )
+            logger.info(f"Finalizer removed from CR {cr_name}")
+        except Exception as e:
+            logger.warning(f"Could not remove finalizer from CR {cr_name}: {e}")
