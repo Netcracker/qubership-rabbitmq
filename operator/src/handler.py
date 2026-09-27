@@ -1620,12 +1620,6 @@ class KubernetesHelper:
             body=body
         )
 
-    def update_finalizers(self, finalizers):
-        cr = self.get_custom_resource()
-        metadata = cr.get('metadata', {})
-        metadata['finalizers'] = finalizers
-        body = {'metadata': metadata}
-        self.update_custom_resource(body)
 
     def initiate_status(self):
         cr_status = self.get_custom_resource_status()
