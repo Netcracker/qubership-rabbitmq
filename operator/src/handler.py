@@ -2140,10 +2140,6 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
     kub_helper.initiate_status()
-    if meta.get('deletionTimestamp'):
-        logger.info("CR is being deleted, skipping update handling.")
-        if not optional_delete:
-             kub_helper.update_finalizers([])
     rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
     if rabbit_exist_before:
@@ -2275,10 +2271,50 @@ def perform_rabbit_pods_readiness_check(kub_helper: KubernetesHelper):
 
 
 @kopf.on.delete(api_group, cr_version, 'rabbitmqservices', optional=optional_delete)
-def on_delete(spec, namespace, **kwargs):
+def on_delete(spec, **kwargs):
     kub_helper = KubernetesHelper(spec)
     logger.info("Deleting crd")
     kub_helper.delete_resources()
+
+
+def force_remove_finalizers_on_shutdown():
+    watch_namespace = KubernetesHelper.get_namespace()
+    custom_api = client.CustomObjectsApi(k8s_client)
+    try:
+        cr = custom_api.get_namespaced_custom_object(
+            group=api_group, version=cr_version, namespace=watch_namespace,
+            plural='rabbitmqservices', name='rabbitmq-service'
+        )
+    except ApiException as e:
+        if e.status == 404:
+            logger.info("RabbitMQ Service CR not found during shutdown, nothing to clean up")
+        else:
+            logger.warning(f"Could not read RabbitMQ Service CR during shutdown: {e}")
+        return
+    if not cr.get('metadata', {}).get('finalizers'):
+        logger.info("No finalizers present on RabbitMQ Service CR, nothing to remove on shutdown")
+        return
+    logger.info("Operator is shutting down — removing finalizers from RabbitMQ Service CR")
+    try:
+        custom_api.patch_namespaced_custom_object(
+            group=api_group, version=cr_version, namespace=watch_namespace,
+            plural='rabbitmqservices', name='rabbitmq-service',
+            body={'metadata': {'finalizers': []}}
+        )
+        logger.info("Finalizers removed from RabbitMQ Service CR")
+    except Exception as e:
+        logger.warning(f"Could not remove finalizers during shutdown: {e}")
+
+
+@kopf.on.cleanup()
+def on_operator_cleanup(logger,**kwargs):
+    # On operator pod shutdown, strip finalizers from the CR so it is not left stuck
+    # in Terminating when the operator is gone. The operator re-adds the finalizer on
+    # the next startup, so this is safe for normal restarts.
+    if k8s_client is None:
+        logger.warning("Kubernetes client is not initialized, cannot remove finalizers on shutdown")
+        return
+    force_remove_finalizers_on_shutdown()
 
 
 def switchover_annotation_changed(diff, logger, **kwargs):
@@ -2337,3 +2373,4 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
+
