@@ -77,6 +77,51 @@ class RabbitHelper:
             logger.warning("rabbit is not ready yet:" + str(e))
             return False
     
+    def list_ha_policies(self) -> list:
+        """Return names of policies that configure classic queue mirroring (ha-*).
+
+        Returns a list of "vhost/name" strings for policies whose definition
+        contains any ha-mode / ha-params / ha-sync-mode key.
+        """
+        ha_keys = ('ha-mode', 'ha-params', 'ha-sync-mode')
+        try:
+            r = requests.get(url=f'{self._rabbitmq_url}/api/policies', auth=(self._user, self._password), verify=self._ssl)
+            if r.status_code != 200:
+                logger.warning("Fetching rabbit policies failed, status code = :" + str(r.status_code))
+                return []
+            offenders = []
+            for policy in r.json():
+                definition = policy.get('definition') or {}
+                if any(key in definition for key in ha_keys):
+                    offenders.append(f"{policy.get('vhost', '/')}/{policy.get('name', '')}")
+            return offenders
+        except Exception as e:
+            logger.warning("Failed to fetch rabbit policies:" + str(e))
+            return []
+
+    def list_classic_mirrored_queues(self) -> list:
+        """Return names of classic queues that are mirrored.
+
+        A classic queue is considered mirrored when it reports slave/mirror nodes.
+        Returns a list of "vhost/name" strings.
+        """
+        try:
+            r = requests.get(url=f'{self._rabbitmq_url}/api/queues', auth=(self._user, self._password), verify=self._ssl)
+            if r.status_code != 200:
+                logger.warning("Fetching rabbit queues failed, status code = :" + str(r.status_code))
+                return []
+            offenders = []
+            for queue in r.json():
+                queue_type = queue.get('type') or queue.get('arguments', {}).get('x-queue-type', 'classic')
+                if queue_type != 'classic':
+                    continue
+                if queue.get('slave_nodes') or queue.get('synchronised_slave_nodes') or queue.get('mirror_nodes'):
+                    offenders.append(f"{queue.get('vhost', '/')}/{queue.get('name', '')}")
+            return offenders
+        except Exception as e:
+            logger.warning("Failed to fetch rabbit queues:" + str(e))
+            return []
+
     def shovel_list(self) -> list[ShovelInfo]:
         try:
             logger.debug("Fetching shovel list from RabbitMQ")

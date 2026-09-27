@@ -102,6 +102,16 @@ FAILED = "Failed"
 TIME_TO_WAIT_SECRET_HANDLER = 20
 TIME_TO_WAIT_CONFIGMAP_HANDLER = 45
 
+# Enabling all feature flags triggers the Mnesia -> Khepri metadata migration on
+# RabbitMQ 4.0+. On clusters with a lot of metadata this can take much longer than
+# the default 30s exec timeout, so it gets its own generous, configurable timeout.
+FEATURE_FLAG_EXEC_TIMEOUT = int(os.getenv("FEATURE_FLAG_EXEC_TIMEOUT", "600"))
+# Kill-switch for the migration validation / pre-upgrade guard checks.
+ENABLE_MIGRATION_CHECKS = os.getenv("ENABLE_MIGRATION_CHECKS", "true")
+# Target-version thresholds (major, minor) that gate the new checks.
+KHEPRI_MIN_VERSION = (4, 0)
+MIRRORING_CHECK_MIN_VERSION = (4, 2)
+
 forbidden_statefulset_fields_update_error = "Forbidden: updates to statefulset spec for fields"
 
 positive_values = ('true', 'True', 'yes', 'Yes', True)
@@ -320,15 +330,15 @@ class KubernetesHelper:
         # REST client used by concurrent kopf handlers/timers.
         return client.CoreV1Api(client.ApiClient(configuration=self._api_client.configuration))
 
-    def exec_command_in_pod(self, pod_name, exec_command):
+    def exec_command_in_pod(self, pod_name, exec_command, request_timeout=30, read_timeout=30):
         v1api = self._core_v1_api_for_exec()
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=False,
-                      stdout=True, tty=False, _preload_content=False, _request_timeout=30)
+                      stdout=True, tty=False, _preload_content=False, _request_timeout=request_timeout)
         result = ''
         while resp.is_open():
-            resp.update(timeout=30)
+            resp.update(timeout=read_timeout)
             if resp.peek_stdout():
                 recv_text = resp.read_stdout()
                 logger.info("STDOUT: %s" % recv_text)
@@ -1348,12 +1358,7 @@ class KubernetesHelper:
             self.update_stateful_set("rmqlocal")
 
     def check_cluster_state(self):
-        if self.is_ssl_enabled():
-            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
-                                         'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
-        else:
-            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
-                                         'http://rabbitmq.' + self._workspace + '.svc:15672')
+        rabbit_helper = self._build_rabbit_helper()
         for i in range(0, 30):
             time.sleep(30)
             if rabbit_helper.is_cluster_alive(self._spec['rabbitmq']['replicas']):
@@ -1367,13 +1372,7 @@ class KubernetesHelper:
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
     
     def check_shovel_state(self, alive_percentage=0.8):
-        if self.is_ssl_enabled():
-            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
-                                         'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
-        else:
-            rabbit_helper = RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
-                                         'http://rabbitmq.' + self._workspace + '.svc:15672')
-    
+        rabbit_helper = self._build_rabbit_helper()
         return rabbit_helper.is_shovel_alive(alive_percentage)
 
     
@@ -1458,7 +1457,9 @@ class KubernetesHelper:
                         exit 1
                     fi
                 """
-            ]
+            ],
+            request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
+            read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
         )
         logger.debug("Enable feature flags output: {}".format(output))
         if "failed" in output:
@@ -1483,13 +1484,149 @@ class KubernetesHelper:
         logger.info("Feature flags are enabled successfully")
 
     def enable_feature_flags(self):
-        if self.is_hostpath():
-            self.exec_command_in_pod(pod_name='rmqlocal-0-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
-        else:
-            self.exec_command_in_pod(pod_name='rmqlocal-0',
-                                     exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'])
+        pod_name = 'rmqlocal-0-0' if self.is_hostpath() else 'rmqlocal-0'
+        self.exec_command_in_pod(pod_name=pod_name,
+                                 exec_command=['rabbitmqctl', 'enable_feature_flag', 'all'],
+                                 request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
+                                 read_timeout=FEATURE_FLAG_EXEC_TIMEOUT)
         logger.info("Feature flags are enabled successfully")
+
+    def _migration_checks_enabled(self):
+        return ENABLE_MIGRATION_CHECKS in positive_values
+
+    def get_target_rabbitmq_version(self):
+        """Parse the target RabbitMQ version from spec.rabbitmq.dockerImage.
+
+        Returns a (major, minor, patch) int tuple, or None when the image tag is
+        non-numeric (e.g. 'main'/'latest') and the version cannot be determined.
+        """
+        image = self._spec['rabbitmq'].get('dockerImage', '')
+        tag = image.rsplit(':', 1)[-1] if ':' in image else image
+        match = re.search(r'(\d+)\.(\d+)(?:\.(\d+))?', tag)
+        if not match:
+            return None
+        major, minor, patch = match.group(1), match.group(2), match.group(3)
+        return (int(major), int(minor), int(patch) if patch else 0)
+
+    def _target_version_at_least(self, major, minor):
+        version = self.get_target_rabbitmq_version()
+        if version is None:
+            logger.warning(
+                "Cannot determine target RabbitMQ version from image '%s'; "
+                "skipping version-gated migration checks",
+                self._spec['rabbitmq'].get('dockerImage', '')
+            )
+            return False
+        return version[:2] >= (major, minor)
+
+    def _build_rabbit_helper(self):
+        if self.is_ssl_enabled():
+            return RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                                'https://rabbitmq.' + self._workspace + '.svc:15671', ssl=CA_CERT_PATH)
+        return RabbitHelper(self.get_user_from_secret(), self.get_password_from_secret(),
+                            'http://rabbitmq.' + self._workspace + '.svc:15672')
+
+    def verify_khepri_migration(self):
+        """Validate that the Mnesia -> Khepri metadata migration completed.
+
+        Runs after `enable_feature_flag all`. Confirms the `khepri_db` feature flag
+        is enabled and that `rabbitmqctl khepri_status` reports a healthy Raft
+        cluster. On failure the CR is marked Failed and a PermanentError is raised.
+        """
+        if not self._migration_checks_enabled():
+            logger.info("Migration checks disabled; skipping Khepri validation")
+            return
+        if not self._target_version_at_least(*KHEPRI_MIN_VERSION):
+            logger.info("Target RabbitMQ version is below %s; skipping Khepri validation",
+                        '.'.join(map(str, KHEPRI_MIN_VERSION)))
+            return
+
+        pod_name = get_primary_rabbitmq_pod(self)
+        logger.info("Verifying Khepri metadata migration on pod %s", pod_name)
+
+        flags_output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                "rabbitmqctl list_feature_flags name state 2>&1 | grep '^khepri_db'"
+            ],
+            request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
+            read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
+        )
+        logger.info("khepri_db feature flag state: %s", flags_output.strip())
+        if "enabled" not in flags_output:
+            self.update_status(
+                FAILED,
+                "Error",
+                "Khepri metadata migration did not complete: khepri_db feature flag is not enabled"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError(
+                "Khepri metadata migration did not complete: khepri_db feature flag is not enabled.")
+
+        status_output = self.exec_command_in_pod(
+            pod_name=pod_name,
+            exec_command=[
+                "/bin/sh",
+                "-c",
+                'if rabbitmqctl khepri_status 2>&1; then echo "khepri_ok"; else echo "khepri_error"; fi'
+            ],
+            request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
+            read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
+        )
+        logger.info("khepri_status output: %s", status_output)
+        if "khepri_ok" not in status_output:
+            self.update_status(
+                FAILED,
+                "Error",
+                "Khepri metadata migration did not complete: khepri_status reported an error"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError(
+                "Khepri metadata migration did not complete: khepri_status reported an error.")
+
+        logger.info("Khepri metadata migration verified successfully")
+
+    def ensure_no_mirroring_before_upgrade(self):
+        """Block a RabbitMQ 4.2+ upgrade if classic mirrored queues / HA policies exist.
+
+        Classic queue mirroring is removed in RabbitMQ 4.x; leftover HA policies or
+        mirrored queues must be removed by an admin before upgrading. Runs against
+        the still-running (pre-reboot) cluster.
+        """
+        if not self._migration_checks_enabled():
+            logger.info("Migration checks disabled; skipping mirrored-queue pre-upgrade guard")
+            return
+        if not self._target_version_at_least(*MIRRORING_CHECK_MIN_VERSION):
+            logger.info("Target RabbitMQ version is below %s; skipping mirrored-queue pre-upgrade guard",
+                        '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION)))
+            return
+
+        logger.info("Checking for classic mirrored queues / HA policies before upgrade")
+        rabbit_helper = self._build_rabbit_helper()
+        ha_policies = rabbit_helper.list_ha_policies()
+        mirrored_queues = rabbit_helper.list_classic_mirrored_queues()
+
+        if ha_policies or mirrored_queues:
+            offenders = []
+            if ha_policies:
+                offenders.append("HA policies: " + ", ".join(ha_policies))
+            if mirrored_queues:
+                offenders.append("mirrored queues: " + ", ".join(mirrored_queues))
+            message = ("Classic mirrored queues / HA policies detected (%s). "
+                       "Remove them before upgrading to RabbitMQ 4.2" % "; ".join(offenders))
+            logger.error(message)
+            self.update_status(
+                FAILED,
+                "Error",
+                message
+            )
+            time.sleep(5)
+            raise kopf.PermanentError(
+                "Classic mirrored queues / HA policies must be removed before upgrading to RabbitMQ 4.2.")
+
+        logger.info("No classic mirrored queues or HA policies detected; upgrade may proceed")
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
@@ -1949,6 +2086,7 @@ def on_create(body, meta, spec, status, **kwargs):
     kub_helper.reconcile_pvc_annotations(
         kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
+    kub_helper.verify_khepri_migration()
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
             FAILED,
@@ -2149,6 +2287,9 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 "RabbitMQ upgrade failed: failed to enable all feature flags"
             )
             raise kopf.PermanentError("RabbitMQ upgrade failed.")
+        # Block a 4.2+ upgrade while the old cluster is still running if classic
+        # mirrored queues / HA policies remain (removed in RabbitMQ 4.x).
+        kub_helper.ensure_no_mirroring_before_upgrade()
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
@@ -2219,6 +2360,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     kub_helper.reconcile_pvc_annotations(
         kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
+    kub_helper.verify_khepri_migration()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
