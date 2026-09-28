@@ -146,7 +146,7 @@ Test Change Password Function
 Test Change Password Function With Kill All Pods
     [Tags]  persistence  all
 
-    Wait Until Cluster Is Ready
+    Wait For RabbitMQ Pods Ready
     ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
     ${old_password}=  Get Password From Secret  ${secret}
 
@@ -157,7 +157,7 @@ Test Change Password Function With Kill All Pods
     Change Rabbitmq Password Through Function And Verify  ${pod_name}  ${NEW_PASS}
 
     Force Kill All Pods  ${pod_names}  at_once
-    Wait Until Cluster Is Ready
+    Wait For RabbitMQ Pods Ready
     Wait Until Keyword Succeeds  5 min  15 s  Verify Password Applied  ${NEW_PASS}
     ${pod_name}=  Get First Rabbit Pod
 
