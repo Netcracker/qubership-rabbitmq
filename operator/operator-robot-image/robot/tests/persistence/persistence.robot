@@ -66,11 +66,6 @@ Wait Until Cluster Is Ready
 
 Wait Until Operator Applies Credentials
     [Arguments]  ${previous_uids}  ${password}  ${check_secret}=${TRUE}  ${timeout}=35 min
-    # While the install is still In progress the operator waits 15 minutes,
-    # then changes the password and recreates every broker. Management auth
-    # can succeed on the pods that are still up before that rollout finishes.
-    # Cluster checks keep using the password from test startup, so readiness
-    # here is the pod status, not the management API.
     Wait Until Keyword Succeeds  ${timeout}  15 s  Rabbit Pods Were Recreated  ${previous_uids}
     Run Keyword If  ${check_secret}
     ...  Wait Until Keyword Succeeds  10 min  15 s  Verify Password Applied  ${password}
