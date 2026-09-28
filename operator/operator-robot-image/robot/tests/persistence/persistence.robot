@@ -103,7 +103,11 @@ Change Rabbitmq Password With Operator Teardown
 
 Change Rabbitmq Password With Function Teardown
     [Arguments]  ${pod_name}  ${old_password}
-    Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
+    ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
+    ${current_password}=  Get Password From Secret  ${secret}
+    Run Keyword If  '${current_password}' != '${old_password}'
+    ...  Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
+    ...  ELSE  Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${old_password}
 
 *** Test Cases ***
 Test Change Rabbitmq Password With Operator
