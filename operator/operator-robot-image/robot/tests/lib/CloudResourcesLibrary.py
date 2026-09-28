@@ -14,7 +14,6 @@
 
 import time
 import urllib3
-import hashlib
 from robot.api import logger
 import base64
 import os
@@ -51,14 +50,26 @@ class CloudResourcesLibrary(object):
 
         self._v1_apps_api.patch_namespaced_secret(name=secret_name, namespace=self.namespace, body=secret)
 
-        cr = self.get_custom_resource()
-        secret_change = hashlib.sha256(base64.b64encode(str(secret.data).encode())).hexdigest()
-        if 'spec' not in cr:
-            cr['spec'] = {}
-        if 'rabbitmq' not in cr['spec']:
-            cr['spec']['rabbitmq'] = {}
-        cr['spec']['rabbitmq']['secret_change'] = secret_change
-        self.update_custom_resource(cr)
+    def get_rabbit_pod_uids(self):
+        pods = self._v1_apps_api.list_namespaced_pod(namespace=self.namespace)
+        pairs = []
+        for pod in pods.items:
+            name = pod.metadata.name or ''
+            if 'rmqlocal' in name:
+                pairs.append(f'{name}={pod.metadata.uid}')
+        if not pairs:
+            raise Exception('no rabbitmq pods')
+        return ','.join(sorted(pairs))
+
+    def rabbit_pods_were_recreated(self, previous_uids):
+        previous = dict(item.split('=', 1) for item in str(previous_uids).split(',') if item)
+        current = dict(item.split('=', 1) for item in self.get_rabbit_pod_uids().split(',') if item)
+        if len(current) < len(previous):
+            raise Exception(f'rabbitmq pods are not all back yet: {len(current)} of {len(previous)}')
+        for name, uid in previous.items():
+            if current.get(name) == uid:
+                raise Exception(f'pod {name} was not recreated yet')
+        return True
 
     def get_custom_resource(self):
         return self.k8s_lib.get_namespaced_custom_object_status(
