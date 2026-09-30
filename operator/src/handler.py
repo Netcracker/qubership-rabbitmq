@@ -1897,6 +1897,14 @@ def cluster_monitoring(spec, **kwargs):
         except Exception as ex:
             logger.warning(f"RabbitMQ cluster monitoring failed: {ex}")
 
+@kopf.on.resume(api_group, cr_version, 'rabbitmqservices')
+def on_resume(spec, **kwargs):
+    kub_helper = KubernetesHelper(spec)
+    if kub_helper.is_any_rmq_statefulset_present():
+        return
+    logger.info("RabbitMQ StatefulSet is absent on resume, installing")
+    on_create(spec=spec, **kwargs)
+
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
     kub_helper = KubernetesHelper(spec)
