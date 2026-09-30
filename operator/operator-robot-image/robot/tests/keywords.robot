@@ -96,8 +96,9 @@ Check Cluster
     Should Be True  ${alive}
 
 Wait For RabbitMQ Pods Ready
+    [Arguments]  ${timeout}=5 min
     ${expected}=  Get Rabbitmq Replicas
-    Wait Until Keyword Succeeds  5 min  15 s  Check Rabbitmq Ready Replicas  ${expected}
+    Wait Until Keyword Succeeds  ${timeout}  15 s  Check Rabbitmq Ready Replicas  ${expected}
 
 Check Rabbitmq Ready Replicas
     [Arguments]  ${expected}
