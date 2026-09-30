@@ -65,33 +65,28 @@ Wait Until Cluster Is Ready
     Wait Until Keyword Succeeds  20 min  20 s  Check Cluster  ${replicas}
 
 Wait Until Operator Applies Credentials
-    [Arguments]  ${previous_uids}  ${password}  ${check_secret}=${TRUE}  ${timeout}=35 min
-    Wait Until Keyword Succeeds  ${timeout}  15 s  Rabbit Pods Were Recreated  ${previous_uids}
+    [Arguments]  ${password}  ${check_secret}=${TRUE}  ${timeout}=35 min
+    Reset Credentials Rollout Watch
+    Wait Until Keyword Succeeds  ${timeout}  15 s  Credentials Rollout Finished
     Run Keyword If  ${check_secret}
     ...  Wait Until Keyword Succeeds  10 min  15 s  Verify Password Applied  ${password}
     ...  ELSE  Wait Until Keyword Succeeds  10 min  15 s  Verify RabbitMQ Accepts Password  ${password}
     Wait For RabbitMQ Pods Ready  20 min
-
+    
 Change Rabbitmq Password Through Operator
     [Arguments]  ${username}  ${password}
-
-    ${uids}=  Get Rabbit Pod Uids
     Change Rabbitmq Password With Operator  ${username}  ${password}
-    Wait Until Operator Applies Credentials  ${uids}  ${password}
+    Wait Until Operator Applies Credentials  ${password}
 
 Change Rabbitmq Password Through Function
     [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
-
-    ${uids}=  Get Rabbit Pod Uids
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Operator Applies Credentials  ${uids}  ${password}  ${FALSE}  ${timeout}
+    Wait Until Operator Applies Credentials  ${password}  ${FALSE}  ${timeout}
 
 Change Rabbitmq Password Through Function And Verify
     [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
-
-    ${uids}=  Get Rabbit Pod Uids
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Operator Applies Credentials  ${uids}  ${password}
+    Wait Until Operator Applies Credentials  ${password}
 
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}

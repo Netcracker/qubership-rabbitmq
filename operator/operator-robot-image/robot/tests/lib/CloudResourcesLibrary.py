@@ -50,25 +50,25 @@ class CloudResourcesLibrary(object):
 
         self._v1_apps_api.patch_namespaced_secret(name=secret_name, namespace=self.namespace, body=secret)
 
-    def get_rabbit_pod_uids(self):
-        pods = self._v1_apps_api.list_namespaced_pod(namespace=self.namespace)
-        pairs = []
-        for pod in pods.items:
-            name = pod.metadata.name or ''
-            if 'rmqlocal' in name:
-                pairs.append(f'{name}={pod.metadata.uid}')
-        if not pairs:
-            raise Exception('no rabbitmq pods')
-        return ','.join(sorted(pairs))
+    _CREDENTIALS_DONE = 'All pods have been rebooted, changing credentials completed'
 
-    def rabbit_pods_were_recreated(self, previous_uids):
-        previous = dict(item.split('=', 1) for item in str(previous_uids).split(',') if item)
-        current = dict(item.split('=', 1) for item in self.get_rabbit_pod_uids().split(',') if item)
-        if len(current) < len(previous):
-            raise Exception(f'rabbitmq pods are not all back yet: {len(current)} of {len(previous)}')
-        for name, uid in previous.items():
-            if current.get(name) == uid:
-                raise Exception(f'pod {name} was not recreated yet')
+    def reset_credentials_rollout_watch(self):
+        self._credentials_rollout_seen_reset = False
+
+    def credentials_rollout_finished(self):
+        conditions = (self.get_custom_resource().get('status') or {}).get('conditions') or []
+        types = [condition.get('type') for condition in conditions if isinstance(condition, dict)]
+        done = any(
+            isinstance(condition, dict) and condition.get('message') == self._CREDENTIALS_DONE
+            for condition in conditions
+        )
+        if not getattr(self, '_credentials_rollout_seen_reset', False):
+            if types == ['In progress']:
+                self._credentials_rollout_seen_reset = True
+            else:
+                raise Exception('operator has not started the credential rollout yet')
+        if not done:
+            raise Exception('operator has not finished rebooting pods')
         return True
 
     def get_custom_resource(self):
