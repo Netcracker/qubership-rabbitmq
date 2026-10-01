@@ -98,6 +98,7 @@ api_group = os.getenv("API_GROUP", "netcracker.com")
 IN_PROGRESS = "In progress"
 SUCCESSFUL = "Successful"
 FAILED = "Failed"
+TESTS_IN_PROGRESS_MESSAGE = "RabbitMQ operator is waiting for integration tests"
 
 TIME_TO_WAIT_SECRET_HANDLER = 20
 TIME_TO_WAIT_CONFIGMAP_HANDLER = 45
@@ -1976,6 +1977,7 @@ def on_create(body, meta, spec, status, **kwargs):
     if kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if kub_helper.wait_test_result():
+            kub_helper.update_status(IN_PROGRESS, "None", TESTS_IN_PROGRESS_MESSAGE)
             if kub_helper.wait_test_deployment_result():
                 kub_helper.update_status(
                     SUCCESSFUL,
@@ -2080,6 +2082,13 @@ def on_update_configmap(diff, **kwargs):
         logger.info("all pods have been rebooted")
 
 
+def credential_change_waits_for_rabbit(status) -> bool:
+    conditions = (status or {}).get('conditions') or []
+    if any(condition.get('message') == TESTS_IN_PROGRESS_MESSAGE for condition in conditions):
+        return False
+    return not any(condition.get('type') in (SUCCESSFUL, FAILED) for condition in conditions)
+
+
 @kopf.on.update('v1', "secret", when=change_rabbitmq_secret)
 def on_update_secret(diff, **kwargs):
     sleep(TIME_TO_WAIT_SECRET_HANDLER)
@@ -2093,6 +2102,24 @@ def on_update_secret(diff, **kwargs):
         plural='rabbitmqservices',
         name='rabbitmq-service'
     )
+    status = cr.get('status') or {}
+    wait_time = 0
+    if credential_change_waits_for_rabbit(status):
+        logger.info("waiting until RabbitMQ deploy or upgrade finishes before changing credentials")
+    while credential_change_waits_for_rabbit(status) and wait_time < 900:
+        wait_time = wait_time + 15
+        sleep(15)
+        cr = custom_objects_api.get_namespaced_custom_object(
+            group=api_group,
+            version=cr_version,
+            namespace=namespace,
+            plural='rabbitmqservices',
+            name='rabbitmq-service'
+        )
+        status = cr.get('status') or {}
+    if credential_change_waits_for_rabbit(status):
+        logger.error("RabbitMQ deploy or upgrade is still in progress, skip changing credentials")
+        return
     spec = cr.get('spec')
     kub_helper = KubernetesHelper(spec)
     if not kub_helper.check_rabbit_pods_readiness():
@@ -2157,6 +2184,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 "RabbitMQ service updated successfully"
             )
         else:
+            kub_helper.update_status(IN_PROGRESS, "None", TESTS_IN_PROGRESS_MESSAGE)
             if kub_helper.wait_test_deployment_result():
                 kub_helper.update_status(
                     SUCCESSFUL,
@@ -2236,6 +2264,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     if kub_helper.is_run_tests():
         logger.info("running tests...")
         if kub_helper.wait_test_result():
+            kub_helper.update_status(IN_PROGRESS, "None", TESTS_IN_PROGRESS_MESSAGE)
             if kub_helper.wait_test_deployment_result():
                 kub_helper.update_status(
                     SUCCESSFUL,
