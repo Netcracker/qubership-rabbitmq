@@ -2018,9 +2018,11 @@ def change_rabbitmq_config(meta, **kwargs):
     return meta['name'] == configmap_name
 
 
-def change_rabbitmq_secret(meta, diff, **kwargs):
+def change_rabbitmq_secret(meta, diff, old, **kwargs):
     if meta.get('name') != secret_name:
         return False
+    if old is None:
+        return True
     return any(len(change) > 1 and change[1] in credential_change_attrs for change in diff)
 
 
