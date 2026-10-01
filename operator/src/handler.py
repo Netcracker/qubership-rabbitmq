@@ -2095,23 +2095,10 @@ def on_update_secret(diff, **kwargs):
     )
     spec = cr.get('spec')
     kub_helper = KubernetesHelper(spec)
-    status = cr.get('status')
-    is_in_progress = not any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
-    logger.info("waiting for rmq CR to proceed")
-    wait_time = 0
-    while is_in_progress and wait_time < 900:
-        wait_time = wait_time + 15
-        sleep(15)
-        cr = custom_objects_api.get_namespaced_custom_object(
-            group=api_group,
-            version=cr_version,
-            namespace=namespace,
-            plural='rabbitmqservices',
-            name='rabbitmq-service'
-        )
-        status = cr.get('status')
-        is_in_progress = not any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
-    logger.info("rmq CR processing is completed. Rabbitmq secret changes: %s" % diff)
+    if not kub_helper.check_rabbit_pods_readiness():
+        logger.error("RabbitMQ pods are not ready, skip changing credentials")
+        return
+    logger.info("Rabbitmq secret changes: %s" % diff)
     kub_helper.initiate_status()
     old_username = None
     new_username = None
