@@ -103,7 +103,6 @@ FAILED = "Failed"
 
 TIME_TO_WAIT_SECRET_HANDLER = 20
 TIME_TO_WAIT_CONFIGMAP_HANDLER = 45
-TIME_TO_WAIT_RABBIT_OPERATION = 900
 rabbit_operation_lock = threading.Lock()
 
 
@@ -120,14 +119,8 @@ def rabbit_operation():
 def wait_rabbit_operation(action):
     if rabbit_operation_lock.locked():
         logger.info("waiting until the current RabbitMQ operation finishes before %s" % action)
-    if not rabbit_operation_lock.acquire(timeout=TIME_TO_WAIT_RABBIT_OPERATION):
-        logger.error("RabbitMQ operation is still in progress, skip %s" % action)
-        yield False
-        return
-    try:
-        yield True
-    finally:
-        rabbit_operation_lock.release()
+    with rabbit_operation():
+        yield
 
 forbidden_statefulset_fields_update_error = "Forbidden: updates to statefulset spec for fields"
 
@@ -2082,9 +2075,7 @@ def get_password_from_secret(v1_apps_api, namespace):
 @kopf.on.update('v1', "configmap", when=change_rabbitmq_config)
 def on_update_configmap(diff, **kwargs):
     sleep(TIME_TO_WAIT_CONFIGMAP_HANDLER)
-    with wait_rabbit_operation("applying configmap changes") as ready:
-        if not ready:
-            return
+    with wait_rabbit_operation("applying configmap changes"):
         custom_objects_api = client.CustomObjectsApi()
         namespace = KubernetesHelper.get_namespace()
         cr = custom_objects_api.get_namespaced_custom_object(
@@ -2115,9 +2106,7 @@ def on_update_configmap(diff, **kwargs):
 def on_update_secret(diff, **kwargs):
     sleep(TIME_TO_WAIT_SECRET_HANDLER)
     logger.info("starting changing credentials procedure")
-    with wait_rabbit_operation("changing credentials") as ready:
-        if not ready:
-            return
+    with wait_rabbit_operation("changing credentials"):
         custom_objects_api = client.CustomObjectsApi()
         namespace = KubernetesHelper.get_namespace()
         cr = custom_objects_api.get_namespaced_custom_object(
