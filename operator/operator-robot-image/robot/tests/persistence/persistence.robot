@@ -79,14 +79,14 @@ Change Rabbitmq Password Through Operator
     Wait Until Operator Applies Credentials  ${password}
 
 Change Rabbitmq Password Through Function
-    [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
+    [Arguments]  ${pod_name}  ${password}  ${timeout}=120s
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Operator Applies Credentials  ${password}  ${FALSE}  ${timeout}
+    Wait Until Keyword Succeeds  ${timeout}  5s  Verify RabbitMQ Accepts Password  ${password}
 
 Change Rabbitmq Password Through Function And Verify
-    [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
+    [Arguments]  ${pod_name}  ${password}  ${timeout}=5 min
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Operator Applies Credentials  ${password}
+    Wait Until Keyword Succeeds  ${timeout}  15 s  Verify Password Applied  ${password}
 
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
