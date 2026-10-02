@@ -1,4 +1,4 @@
-FROM python:3.10.20-alpine3.24
+FROM python:3.10.20-alpine3.24@sha256:8c185ae01d7a7e910453af189efbf76251740d9b6a149ab68e26e426540fd294
 
 ENV WORKDIR=/opt/operator/ \
     USER_UID=1000 \
