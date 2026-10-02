@@ -114,7 +114,7 @@ MIRRORING_CHECK_MIN_VERSION = (4, 2)
 
 forbidden_statefulset_fields_update_error = "Forbidden: updates to statefulset spec for fields"
 
-positive_values = ('true', 'True', 'yes', 'Yes', True)
+positive_values = ('true', 'True', 'yes', 'Yes', '1', 'on', 'On', 'ON', True)
 operator_need_to_delete_resources = os.getenv("OPERATOR_DELETE_RESOURCES", "False")
 logger.info(f'OPERATOR_DELETE_RESOURCES is set to {operator_need_to_delete_resources}')
 optional_delete = True
@@ -1502,11 +1502,10 @@ class KubernetesHelper:
         """
         image = self._spec['rabbitmq'].get('dockerImage', '')
         tag = image.rsplit(':', 1)[-1] if ':' in image else image
-        match = re.search(r'(\d+)\.(\d+)(?:\.(\d+))?', tag)
+        match = re.search(r'(\d+)\.(\d+)', tag)
         if not match:
             return None
-        major, minor, patch = match.group(1), match.group(2), match.group(3)
-        return (int(major), int(minor), int(patch) if patch else 0)
+        return (int(match.group(1)), int(match.group(2)), 0)
 
     def _target_version_at_least(self, major, minor):
         version = self.get_target_rabbitmq_version()
@@ -1555,7 +1554,7 @@ class KubernetesHelper:
             read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
         )
         logger.info("khepri_db feature flag state: %s", flags_output.strip())
-        if "enabled" not in flags_output:
+        if not re.search(r'\benabled\b', flags_output):
             self.update_status(
                 FAILED,
                 "Error",
@@ -2277,6 +2276,9 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
     old_pods_count = kub_helper.get_rabbit_pods_count()
     if rabbit_exist_before:
+        # Block a 4.2+ upgrade while the old cluster is still running if classic
+        # mirrored queues / HA policies remain (removed in RabbitMQ 4.x).
+        kub_helper.ensure_no_mirroring_before_upgrade()
         try:
             logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
             kub_helper.nodes_enable_feature_flags()
@@ -2287,9 +2289,6 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 "RabbitMQ upgrade failed: failed to enable all feature flags"
             )
             raise kopf.PermanentError("RabbitMQ upgrade failed.")
-        # Block a 4.2+ upgrade while the old cluster is still running if classic
-        # mirrored queues / HA policies remain (removed in RabbitMQ 4.x).
-        kub_helper.ensure_no_mirroring_before_upgrade()
     if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
@@ -2360,7 +2359,9 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     kub_helper.reconcile_pvc_annotations(
         kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
-    kub_helper.verify_khepri_migration()
+    old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
+    if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
+        kub_helper.verify_khepri_migration()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(

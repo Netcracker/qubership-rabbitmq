@@ -85,7 +85,7 @@ class RabbitHelper:
         """
         ha_keys = ('ha-mode', 'ha-params', 'ha-sync-mode')
         try:
-            r = requests.get(url=f'{self._rabbitmq_url}/api/policies', auth=(self._user, self._password), verify=self._ssl)
+            r = requests.get(url=f'{self._rabbitmq_url}/api/policies', auth=(self._user, self._password), verify=self._ssl, timeout=60)
             if r.status_code != 200:
                 logger.warning("Fetching rabbit policies failed, status code = :" + str(r.status_code))
                 return []
@@ -97,7 +97,7 @@ class RabbitHelper:
             return offenders
         except Exception as e:
             logger.warning("Failed to fetch rabbit policies:" + str(e))
-            return []
+            raise
 
     def list_classic_mirrored_queues(self) -> list:
         """Return names of classic queues that are mirrored.
@@ -106,7 +106,7 @@ class RabbitHelper:
         Returns a list of "vhost/name" strings.
         """
         try:
-            r = requests.get(url=f'{self._rabbitmq_url}/api/queues', auth=(self._user, self._password), verify=self._ssl)
+            r = requests.get(url=f'{self._rabbitmq_url}/api/queues', auth=(self._user, self._password), verify=self._ssl, timeout=60)
             if r.status_code != 200:
                 logger.warning("Fetching rabbit queues failed, status code = :" + str(r.status_code))
                 return []
@@ -120,7 +120,7 @@ class RabbitHelper:
             return offenders
         except Exception as e:
             logger.warning("Failed to fetch rabbit queues:" + str(e))
-            return []
+            raise
 
     def shovel_list(self) -> list[ShovelInfo]:
         try:
