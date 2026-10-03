@@ -1613,8 +1613,9 @@ class KubernetesHelper:
                 offenders.append("HA policies: " + ", ".join(ha_policies))
             if mirrored_queues:
                 offenders.append("mirrored queues: " + ", ".join(mirrored_queues))
+            ver = '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION))
             message = ("Classic mirrored queues / HA policies detected (%s). "
-                       "Remove them before upgrading to RabbitMQ 4.2" % "; ".join(offenders))
+                       "Remove them before upgrading to RabbitMQ %s" % (ver, "; ".join(offenders)))
             logger.error(message)
             self.update_status(
                 FAILED,
@@ -1623,7 +1624,7 @@ class KubernetesHelper:
             )
             time.sleep(5)
             raise kopf.PermanentError(
-                "Classic mirrored queues / HA policies must be removed before upgrading to RabbitMQ 4.2.")
+                "Classic mirrored queues / HA policies must be removed before upgrading to RabbitMQ %s." % ver)
 
         logger.info("No classic mirrored queues or HA policies detected; upgrade may proceed")
 
