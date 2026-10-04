@@ -958,3 +958,42 @@ Service Account for Site Manager depending on smSecureAuth
     {{- end -}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Extract the major-version variant from a RabbitMQ docker image name.
+Images ending with "-3" (e.g. qubership-rabbitmq-image-3:main) → "3"
+All others (e.g. qubership-rabbitmq-image:main)               → "4"
+*/}}
+{{- define "rabbitmq.imageVariant" -}}
+  {{- $name := regexReplaceAll ":.*$" . "" -}}
+  {{- if regexMatch "-3$" $name -}}3{{- else -}}4{{- end -}}
+{{- end -}}
+
+{{/*
+Validate that upgrading to RabbitMQ 4.x is safe.
+Reads the 'requireManualMigration' annotation written by the operator
+during the previous 3.x reconcile cycle.
+
+Returns:
+  "true"          – upgrade allowed (annotation is "false")
+  "has-mirroring" – blocked: HA policies or mirrored queues still present
+  "no-annotation" – blocked: 3.x was never installed / annotation absent
+*/}}
+{{- define "validateRabbitMQUpgrade" -}}
+  {{- $desired := include "rabbitmq.image" . -}}
+  {{- if eq (include "rabbitmq.imageVariant" $desired) "4" -}}
+    {{- $apiVersion := printf "%s/v2" .Values.operator.apiGroup -}}
+    {{- $name := default "rabbitmq-service" .Values.name -}}
+    {{- $cr := lookup $apiVersion "RabbitMQService" .Release.Namespace $name -}}
+    {{- if $cr -}}
+      {{- $ann := ($cr.metadata.annotations) | default dict -}}
+      {{- $val := index $ann "requireManualMigration" -}}
+      {{- if eq $val "true" -}}has-mirroring
+      {{- else if not $val -}}no-annotation
+      {{- else -}}true
+      {{- end -}}
+    {{- else -}}true
+    {{- end -}}
+  {{- else -}}true
+  {{- end -}}
+{{- end -}}

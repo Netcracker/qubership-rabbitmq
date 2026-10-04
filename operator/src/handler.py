@@ -1497,15 +1497,26 @@ class KubernetesHelper:
     def get_target_rabbitmq_version(self):
         """Parse the target RabbitMQ version from spec.rabbitmq.dockerImage.
 
-        Returns a (major, minor, patch) int tuple, or None when the image tag is
-        non-numeric (e.g. 'main'/'latest') and the version cannot be determined.
+        Returns a (major, 99, 0) tuple when the tag is non-numeric but the major
+        version can be inferred from the image name convention: names ending with
+        "-<N>" (e.g. qubership-rabbitmq-image-3:main) encode major version N.
+        Images without a numeric suffix (e.g. qubership-rabbitmq-image:main) are
+        treated as the latest 4.x release.
+        Returns None only when the version cannot be determined at all.
         """
         image = self._spec['rabbitmq'].get('dockerImage', '')
         tag = image.rsplit(':', 1)[-1] if ':' in image else image
+        # Prefer an explicit version in the tag (e.g. "3.12-build", "4.0.1")
         match = re.search(r'(\d+)\.(\d+)', tag)
-        if not match:
-            return None
-        return (int(match.group(1)), int(match.group(2)), 0)
+        if match:
+            return (int(match.group(1)), int(match.group(2)), 0)
+        # Fall back to the major-version suffix in the image name:
+        # "…-3:main" → (3, 99, 0), "…:main" (no suffix) → (4, 99, 0)
+        image_name = image.rsplit(':', 1)[0] if ':' in image else image
+        name_ver = re.search(r'-(\d+)$', image_name)
+        if name_ver:
+            return (int(name_ver.group(1)), 99, 0)
+        return (4, 99, 0)
 
     def _target_version_at_least(self, major, minor):
         version = self.get_target_rabbitmq_version()
@@ -1627,6 +1638,25 @@ class KubernetesHelper:
                 "Classic mirrored queues / HA policies must be removed before upgrading to RabbitMQ %s." % ver)
 
         logger.info("No classic mirrored queues or HA policies detected; upgrade may proceed")
+
+    def annotate_migration_state(self):
+        """Set requireManualMigration annotation on the CR for 3.x clusters.
+
+        The annotation is read by the Helm upgrade gate when deploying 4.x
+        to verify the cluster is free of classic mirrored queues / HA policies.
+        """
+        if self._target_version_at_least(4, 0):
+            return
+        rabbit_helper = self._build_rabbit_helper()
+        try:
+            ha_policies = rabbit_helper.list_ha_policies()
+            mirrored_queues = rabbit_helper.list_classic_mirrored_queues()
+        except Exception as e:
+            logger.warning("Cannot assess migration state, annotation unchanged: %s", e)
+            return
+        requires = "true" if (ha_policies or mirrored_queues) else "false"
+        self.update_custom_resource({"metadata": {"annotations": {"requireManualMigration": requires}}})
+        logger.info("requireManualMigration=%s annotated on CR", requires)
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
@@ -2087,6 +2117,7 @@ def on_create(body, meta, spec, status, **kwargs):
         kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
     kub_helper.verify_khepri_migration()
+    kub_helper.annotate_migration_state()
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
             FAILED,
@@ -2363,6 +2394,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
     if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
         kub_helper.verify_khepri_migration()
+    kub_helper.annotate_migration_state()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
