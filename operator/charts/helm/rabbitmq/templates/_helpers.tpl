@@ -965,8 +965,7 @@ Images ending with "-3" (e.g. qubership-rabbitmq-image-3:main) → "3"
 All others (e.g. qubership-rabbitmq-image:main)               → "4"
 */}}
 {{- define "rabbitmq.imageVariant" -}}
-  {{- $name := regexReplaceAll ":.*$" . "" -}}
-  {{- if regexMatch "-3$" $name -}}3{{- else -}}4{{- end -}}
+  {{- if contains "rabbitmq-image-3" . -}}3{{- else -}}4{{- end -}}
 {{- end -}}
 
 {{/*
@@ -986,7 +985,8 @@ Returns:
     {{- $name := default "rabbitmq-service" .Values.name -}}
     {{- $cr := lookup $apiVersion "RabbitMQService" .Release.Namespace $name -}}
     {{- if $cr -}}
-      {{- $ann := ($cr.metadata.annotations) | default dict -}}
+      {{- $meta := ($cr.metadata) | default dict -}}
+      {{- $ann := ($meta.annotations) | default dict -}}
       {{- $val := index $ann "requireManualMigration" -}}
       {{- if eq $val "true" -}}has-mirroring
       {{- else if not $val -}}no-annotation

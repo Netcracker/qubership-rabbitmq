@@ -1510,12 +1510,10 @@ class KubernetesHelper:
         match = re.search(r'(\d+)\.(\d+)', tag)
         if match:
             return (int(match.group(1)), int(match.group(2)), 0)
-        # Fall back to the major-version suffix in the image name:
-        # "…-3:main" → (3, 99, 0), "…:main" (no suffix) → (4, 99, 0)
-        image_name = image.rsplit(':', 1)[0] if ':' in image else image
-        name_ver = re.search(r'-(\d+)$', image_name)
-        if name_ver:
-            return (int(name_ver.group(1)), 99, 0)
+        # Fall back to image name convention:
+        # "rabbitmq-image-3" in the name → RabbitMQ 3.x, otherwise → 4.x
+        if 'rabbitmq-image-3' in image:
+            return (3, 99, 0)
         return (4, 99, 0)
 
     def _target_version_at_least(self, major, minor):
