@@ -2387,6 +2387,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         kub_helper.check_cluster_state()
     elif not kub_helper.is_clean_rabbitmq_pvs():
         kub_helper.reboot_pods(old_pods_count)
+        perform_rabbit_pods_readiness_check(kub_helper)
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
     kub_helper.reconcile_pvc_annotations(
