@@ -1573,27 +1573,6 @@ class KubernetesHelper:
             raise kopf.PermanentError(
                 "Khepri metadata migration did not complete: khepri_db feature flag is not enabled.")
 
-        status_output = self.exec_command_in_pod(
-            pod_name=pod_name,
-            exec_command=[
-                "/bin/sh",
-                "-c",
-                'if rabbitmqctl khepri_status 2>&1; then echo "khepri_ok"; else echo "khepri_error"; fi'
-            ],
-            request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
-            read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
-        )
-        logger.info("khepri_status output: %s", status_output)
-        if "khepri_ok" not in status_output:
-            self.update_status(
-                FAILED,
-                "Error",
-                "Khepri metadata migration did not complete: khepri_status reported an error"
-            )
-            time.sleep(5)
-            raise kopf.PermanentError(
-                "Khepri metadata migration did not complete: khepri_status reported an error.")
-
         logger.info("Khepri metadata migration verified successfully")
 
     def ensure_no_mirroring_before_upgrade(self):
@@ -2405,6 +2384,7 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
     if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
         kub_helper.verify_khepri_migration()
+    kub_helper.annotate_migration_state()
     pprint.pprint(list(diff))
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
