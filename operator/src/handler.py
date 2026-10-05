@@ -1535,12 +1535,6 @@ class KubernetesHelper:
                             'http://rabbitmq.' + self._workspace + '.svc:15672')
 
     def verify_khepri_migration(self):
-        """Validate that the Mnesia -> Khepri metadata migration completed.
-
-        Runs after `enable_feature_flag all`. Confirms the `khepri_db` feature flag
-        is enabled and that `rabbitmqctl khepri_status` reports a healthy Raft
-        cluster. On failure the CR is marked Failed and a PermanentError is raised.
-        """
         if not self._migration_checks_enabled():
             logger.info("Migration checks disabled; skipping Khepri validation")
             return
@@ -1552,26 +1546,32 @@ class KubernetesHelper:
         pod_name = get_primary_rabbitmq_pod(self)
         logger.info("Verifying Khepri metadata migration on pod %s", pod_name)
 
-        flags_output = self.exec_command_in_pod(
-            pod_name=pod_name,
-            exec_command=[
-                "/bin/sh",
-                "-c",
-                "rabbitmqctl list_feature_flags name state 2>&1 | grep '^khepri_db'"
-            ],
-            request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
-            read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
-        )
-        logger.info("khepri_db feature flag state: %s", flags_output.strip())
-        if not re.search(r'\benabled\b', flags_output):
-            self.update_status(
-                FAILED,
-                "Error",
-                "Khepri metadata migration did not complete: khepri_db feature flag is not enabled"
+        khepri_check_deadline = time.time() + 20
+        khepri_retry_interval = 2
+        while True:
+            flags_output = self.exec_command_in_pod(
+                pod_name=pod_name,
+                exec_command=[
+                    "/bin/sh",
+                    "-c",
+                    "rabbitmqctl list_feature_flags name state 2>&1 | grep '^khepri_db'"
+                ],
+                request_timeout=FEATURE_FLAG_EXEC_TIMEOUT,
+                read_timeout=FEATURE_FLAG_EXEC_TIMEOUT
             )
-            time.sleep(5)
-            raise kopf.PermanentError(
-                "Khepri metadata migration did not complete: khepri_db feature flag is not enabled.")
+            logger.info("khepri_db feature flag state: %s", flags_output.strip())
+            if re.search(r'\benabled\b', flags_output):
+                break
+            if time.time() >= khepri_check_deadline:
+                self.update_status(
+                    FAILED,
+                    "Error",
+                    "Khepri metadata migration did not complete: khepri_db feature flag is not enabled"
+                )
+                raise kopf.PermanentError(
+                    "Khepri metadata migration did not complete: khepri_db feature flag is not enabled.")
+            logger.info("khepri_db not yet enabled, retrying in %s second(s)...", khepri_retry_interval)
+            time.sleep(khepri_retry_interval)
 
         logger.info("Khepri metadata migration verified successfully")
 
@@ -2111,6 +2111,7 @@ def on_create(body, meta, spec, status, **kwargs):
         kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
     kub_helper.enable_feature_flags()
     kub_helper.verify_khepri_migration()
+    kub_helper.annotate_migration_state()
     if not kub_helper.check_backup_daemon():
         kub_helper.update_status(
             FAILED,
