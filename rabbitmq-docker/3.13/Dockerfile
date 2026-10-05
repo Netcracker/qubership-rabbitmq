@@ -38,7 +38,7 @@ RUN set -x \
     && python3 -m ensurepip \
     && rm -r /usr/lib/python*/ensurepip \
     && apk add --update --no-cache curl \
-    && pip3 install --upgrade pip "setuptools==80.10.1" \
+    && pip3 install --no-cache-dir --upgrade pip "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && rm -rf /var/cache/apk/*
 
 COPY logging_definitions.json /usr/share/rabbitmq/logging_definitions.json
