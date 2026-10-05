@@ -1,4 +1,4 @@
-FROM telegraf:1.39.1-alpine@sha256:4ab2541742661448a279287f41e3660e528b2083a7a46cccdf559a3094b8fd8f
+FROM telegraf:1.40.1-alpine@sha256:6606553b5019151de171984e9ce938eac859d6987aa5329c420597737bf1a9a0
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
     MONITORING_LOGS=/tmp/monitoring/logs \
@@ -30,8 +30,8 @@ RUN set -x \
     && apk add --upgrade --no-cache curl tini python3 apk-tools \
     && python3 -m ensurepip \
     && rm -r /usr/lib/python*/ensurepip \
-    && pip3 install --upgrade pip setuptools==80.9.0 \
-    && pip3 install -r ${RABBITMQ_MONITORING_HOME}/requirements.txt \
+    && pip3 install --no-cache-dir --upgrade pip "setuptools==80.10.1" "jaraco.context>=6.1.0" \
+    && pip3 install --no-cache-dir -r ${RABBITMQ_MONITORING_HOME}/requirements.txt \
     && chmod -R 777 ${RABBITMQ_MONITORING_HOME}/exec-scripts
 
 # Upgrade all tools to avoid vulnerabilities
