@@ -905,10 +905,10 @@ class KubernetesHelper:
         replicas_count = self._spec['rabbitmq']['replicas']
         pods = []
         for i in range(0, 30):
-            time.sleep(30)
             pods = (self.get_rabbit_pods()).items
             if len(pods) == replicas_count:
                 break
+            time.sleep(30)
         if len(pods) != replicas_count:
             logger.info(f'There is not enough rabbit pods. Specified: '
                         f'{replicas_count}, presented: {len(pods)}')
@@ -1360,9 +1360,9 @@ class KubernetesHelper:
     def check_cluster_state(self):
         rabbit_helper = self._build_rabbit_helper()
         for i in range(0, 30):
-            time.sleep(30)
             if rabbit_helper.is_cluster_alive(self._spec['rabbitmq']['replicas']):
                 return
+            time.sleep(30)
         self.update_status(
             FAILED,
             "Error",
@@ -1370,7 +1370,7 @@ class KubernetesHelper:
         )
         time.sleep(5)
         raise kopf.PermanentError("RabbitMQ cluster fails to come up.")
-    
+
     def check_shovel_state(self, alive_percentage=0.8):
         rabbit_helper = self._build_rabbit_helper()
         return rabbit_helper.is_shovel_alive(alive_percentage)
@@ -1766,6 +1766,7 @@ class KubernetesHelper:
             body=body
         )
 
+
     def initiate_status(self):
         cr_status = self.get_custom_resource_status()
         logger.info(cr_status)
@@ -1997,6 +1998,7 @@ def configure(settings: kopf.OperatorSettings, **_):
     settings.watching.client_timeout = KOPFTIMEOUT + 60
     settings.scanning.disabled = True
     settings.posting.enabled = False
+    
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=900, initial_delay=900)
@@ -2038,6 +2040,14 @@ def cluster_monitoring(spec, **kwargs):
                 CLUSTER_DOWN_SINCE = 0
         except Exception as ex:
             logger.warning(f"RabbitMQ cluster monitoring failed: {ex}")
+
+@kopf.on.resume(api_group, cr_version, 'rabbitmqservices')
+def on_resume(spec, **kwargs):
+    kub_helper = KubernetesHelper(spec)
+    if kub_helper.is_any_rmq_statefulset_present():
+        return
+    logger.info("RabbitMQ StatefulSet is absent on resume, installing")
+    on_create(spec=spec, **kwargs)
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=300, initial_delay=60)
@@ -2440,6 +2450,46 @@ def on_delete(spec, **kwargs):
     kub_helper.delete_resources()
 
 
+def force_remove_finalizers_on_shutdown():
+    watch_namespace = KubernetesHelper.get_namespace()
+    custom_api = client.CustomObjectsApi(k8s_client)
+    try:
+        cr = custom_api.get_namespaced_custom_object(
+            group=api_group, version=cr_version, namespace=watch_namespace,
+            plural='rabbitmqservices', name='rabbitmq-service'
+        )
+    except ApiException as e:
+        if e.status == 404:
+            logger.info("RabbitMQ Service CR not found during shutdown, nothing to clean up")
+        else:
+            logger.warning(f"Could not read RabbitMQ Service CR during shutdown: {e}")
+        return
+    if not cr.get('metadata', {}).get('finalizers'):
+        logger.info("No finalizers present on RabbitMQ Service CR, nothing to remove on shutdown")
+        return
+    logger.info("Operator is shutting down — removing finalizers from RabbitMQ Service CR")
+    try:
+        custom_api.patch_namespaced_custom_object(
+            group=api_group, version=cr_version, namespace=watch_namespace,
+            plural='rabbitmqservices', name='rabbitmq-service',
+            body={'metadata': {'finalizers': []}}
+        )
+        logger.info("Finalizers removed from RabbitMQ Service CR")
+    except Exception as e:
+        logger.warning(f"Could not remove finalizers during shutdown: {e}")
+
+
+@kopf.on.cleanup()
+def on_operator_cleanup(logger,**kwargs):
+    # On operator pod shutdown, strip finalizers from the CR so it is not left stuck
+    # in Terminating when the operator is gone. The operator re-adds the finalizer on
+    # the next startup, so this is safe for normal restarts.
+    if k8s_client is None:
+        logger.warning("Kubernetes client is not initialized, cannot remove finalizers on shutdown")
+        return
+    force_remove_finalizers_on_shutdown()
+
+
 def switchover_annotation_changed(diff, logger, **kwargs):
     for event in diff:
         if event[0] == 'change' \
@@ -2496,3 +2546,4 @@ def set_disaster_recovery_state(spec, status, namespace, diff, **kwargs):
         message = e.__str__()
         logger.error(f"Switchover failed: {message}")
     kub_helper.update_disaster_recovery_status(mode=mode, status=status, message=message)
+

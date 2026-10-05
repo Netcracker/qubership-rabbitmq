@@ -14,7 +14,6 @@
 
 import time
 import urllib3
-import hashlib
 from robot.api import logger
 import base64
 import os
@@ -51,14 +50,26 @@ class CloudResourcesLibrary(object):
 
         self._v1_apps_api.patch_namespaced_secret(name=secret_name, namespace=self.namespace, body=secret)
 
-        cr = self.get_custom_resource()
-        secret_change = hashlib.sha256(base64.b64encode(str(secret.data).encode())).hexdigest()
-        if 'spec' not in cr:
-            cr['spec'] = {}
-        if 'rabbitmq' not in cr['spec']:
-            cr['spec']['rabbitmq'] = {}
-        cr['spec']['rabbitmq']['secret_change'] = secret_change
-        self.update_custom_resource(cr)
+    _CREDENTIALS_DONE = 'All pods have been rebooted, changing credentials completed'
+
+    def reset_credentials_rollout_watch(self):
+        self._credentials_rollout_seen_reset = False
+
+    def credentials_rollout_finished(self):
+        conditions = (self.get_custom_resource().get('status') or {}).get('conditions') or []
+        types = [condition.get('type') for condition in conditions if isinstance(condition, dict)]
+        done = any(
+            isinstance(condition, dict) and condition.get('message') == self._CREDENTIALS_DONE
+            for condition in conditions
+        )
+        if not getattr(self, '_credentials_rollout_seen_reset', False):
+            if types == ['In progress']:
+                self._credentials_rollout_seen_reset = True
+            else:
+                raise Exception('operator has not started the credential rollout yet')
+        if not done:
+            raise Exception('operator has not finished rebooting pods')
+        return True
 
     def get_custom_resource(self):
         return self.k8s_lib.get_namespaced_custom_object_status(

@@ -14,6 +14,8 @@ Preparation Test Persistence Data
 Kill All Pods
     [Arguments]  ${pod_names}  ${order}
 
+    Wait Until Cluster Is Ready
+
     ${alive}    Is Rabbit Alive
     Should Be True   ${alive}
 
@@ -31,11 +33,10 @@ Kill All Pods
 
     Force Kill All Pods  ${pod_names}  ${order}
 
-    ${replicas}=  Get Rabbitmq Replicas
-    Check Cluster  ${replicas}
+    Wait Until Cluster Is Ready
 
-    Check User
-    Check Vhost
+    Wait Until Keyword Succeeds  5 min  10 s  Check User
+    Wait Until Keyword Succeeds  5 min  10 s  Check Vhost
     Create Rabbitmq Connection  ${RABBITMQ_HOST}  ${RABBITMQ_PORT}  ${AMQP_PORT}  ${TEST_USER}
     ...  ${TEST_PASSWORD}  alias=rmq  vhost=${TEST_VHOST}
 
@@ -59,23 +60,33 @@ Verify RabbitMQ Accepts Password
     ${alive}=  Check Management Auth With Password  ${password}
     Should Be True  ${alive}
 
+Wait Until Cluster Is Ready
+    ${replicas}=  Get Rabbitmq Replicas
+    Wait Until Keyword Succeeds  20 min  20 s  Check Cluster  ${replicas}
+
+Wait Until Operator Applies Credentials
+    [Arguments]  ${password}  ${check_secret}=${TRUE}  ${timeout}=35 min
+    Reset Credentials Rollout Watch
+    Wait Until Keyword Succeeds  ${timeout}  15 s  Credentials Rollout Finished
+    Run Keyword If  ${check_secret}
+    ...  Wait Until Keyword Succeeds  10 min  15 s  Verify Password Applied  ${password}
+    ...  ELSE  Wait Until Keyword Succeeds  10 min  15 s  Verify RabbitMQ Accepts Password  ${password}
+    Wait For RabbitMQ Pods Ready  20 min
+    
 Change Rabbitmq Password Through Operator
     [Arguments]  ${username}  ${password}
-
     Change Rabbitmq Password With Operator  ${username}  ${password}
-    Wait Until Keyword Succeeds  20 min  15 s  Verify Password Applied  ${password}
+    Wait Until Operator Applies Credentials  ${password}
 
 Change Rabbitmq Password Through Function
-    [Arguments]  ${pod_name}  ${password}  ${timeout}=120s
-
+    [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Keyword Succeeds  ${timeout}  5s  Verify RabbitMQ Accepts Password  ${password}
+    Wait Until Operator Applies Credentials  ${password}  ${FALSE}  ${timeout}
 
 Change Rabbitmq Password Through Function And Verify
-    [Arguments]  ${pod_name}  ${password}  ${timeout}=5 min
-
+    [Arguments]  ${pod_name}  ${password}  ${timeout}=35 min
     Change Rabbitmq Password With Function  ${pod_name}  ${password}
-    Wait Until Keyword Succeeds  ${timeout}  15 s  Verify Password Applied  ${password}
+    Wait Until Operator Applies Credentials  ${password}
 
 Change Rabbitmq Password With Operator Teardown
     [Arguments]  ${pod_name}  ${old_password}  ${secret_change}
@@ -87,8 +98,11 @@ Change Rabbitmq Password With Operator Teardown
 
 Change Rabbitmq Password With Function Teardown
     [Arguments]  ${pod_name}  ${old_password}
-    Change Rabbitmq Password With Function  ${pod_name}  ${old_password}
-    Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${old_password}
+    ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
+    ${current_password}=  Get Password From Secret  ${secret}
+    Run Keyword If  '${current_password}' != '${old_password}'
+    ...  Change Rabbitmq Password Through Function  ${pod_name}  ${old_password}
+    ...  ELSE  Wait Until Keyword Succeeds  120s  5s  Verify RabbitMQ Accepts Password  ${old_password}
 
 *** Test Cases ***
 Test Change Rabbitmq Password With Operator
