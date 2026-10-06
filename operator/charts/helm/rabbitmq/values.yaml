@@ -5,7 +5,7 @@
 
 # name: rabbitmq-service
 #
-operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main@sha256:43a99b5103d8a80eeedf1fb44c93ff077f8d28ad465387fa84ca8f5c423f133f
+operatorImage: ghcr.io/netcracker/qubership-rabbitmq-operator:main@sha256:b9d397ec0ab50449f98baef8e501d032a8190eeab911879cbeaa7ba4c2f53ab9
 #
 # loglevel: INFO
 
