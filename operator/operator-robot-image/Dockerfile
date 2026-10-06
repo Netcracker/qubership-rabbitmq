@@ -24,7 +24,7 @@ COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
 COPY robot ${ROBOT_HOME}
 
 RUN set -x \
-    && pip3 install "setuptools==80.10.1" \
+    && pip3 install "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && pip3 install pbr \
     && pip3 install -r ${ROBOT_HOME}/requirements.txt \
     && apk add --no-cache curl \
