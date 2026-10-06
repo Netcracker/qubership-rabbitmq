@@ -436,7 +436,7 @@ telegraf:
 
 statusProvisioner:
   enabled: true
-  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main@sha256:4dd40c825f14e59717689ea2a98ec64ebeeb90ce8e3d4afcf25e54ff84f6690e
+  dockerImage: ghcr.io/netcracker/qubership-deployment-status-provisioner:main@sha256:db58cce3e8e8eb00a7d74840d58d2379640aaeecab39fbb760efcf754eb20a9a
   lifetimeAfterCompletion: 600
   podReadinessTimeout: 300
   resources:
