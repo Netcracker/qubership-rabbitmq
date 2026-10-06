@@ -79,7 +79,7 @@ externalRabbitmq:
   enableSsl: false
 
 disasterRecovery:
-  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:main@sha256:d48aca04886f6d3b37fec8e43c88578e490e7cda7ba8666acec99d3d051ebfba
+  image: ghcr.io/netcracker/qubership-disaster-recovery-daemon:v0.4.21
   tls:
     enabled: true
     certificates:
