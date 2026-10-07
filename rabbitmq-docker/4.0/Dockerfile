@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=library/rabbitmq:4.2.5-management-alpine@sha256:5554af48743bc2a5fc8735f345c918edd4bfde19863f4fbbc905d3b6dd2fe91f
+ARG BASE_IMAGE=library/rabbitmq:4.2.9-management-alpine@sha256:2b5d3d29f4dde853995aac1bfbdd71c7efc764dea6409c14e2f355a79a946998
 
 FROM ${BASE_IMAGE}
 
