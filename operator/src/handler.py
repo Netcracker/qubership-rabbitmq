@@ -122,7 +122,10 @@ def wait_rabbit_operation(action):
     with rabbit_operation():
         yield
 
-forbidden_statefulset_fields_update_error = "Forbidden: updates to statefulset spec for fields"
+immutable_statefulset_update_markers = (
+    "Forbidden: updates to statefulset spec for fields",  # Kubernetes < 1.37
+    "field is immutable",  # Kubernetes >= 1.37
+)
 
 positive_values = ('true', 'True', 'yes', 'Yes', True)
 operator_need_to_delete_resources = os.getenv("OPERATOR_DELETE_RESOURCES", "False")
@@ -577,7 +580,8 @@ class KubernetesHelper:
             logger.info('Replace already presented statefulset')
             self._apps_v1_api.replace_namespaced_stateful_set(name, self._workspace, statefulset_body)
         except ApiException as exception:
-            if handle_forbidden_update and forbidden_statefulset_fields_update_error in exception.body:
+            exception_body = exception.body or ""
+            if handle_forbidden_update and any(marker in exception_body for marker in immutable_statefulset_update_markers):
                 need_to_process_forbidden_field_update = True
             else:
                 raise exception
