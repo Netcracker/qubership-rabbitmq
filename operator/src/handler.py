@@ -1590,31 +1590,18 @@ class KubernetesHelper:
                         '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION)))
             return
 
-        logger.info("Checking for classic mirrored queues / HA policies before upgrade")
+        logger.info("Checking for classic queue mirroring before upgrade")
         rabbit_helper = self._build_rabbit_helper()
-        ha_policies = rabbit_helper.list_ha_policies()
-        mirrored_queues = rabbit_helper.list_classic_mirrored_queues()
-
-        if ha_policies or mirrored_queues:
-            offenders = []
-            if ha_policies:
-                offenders.append("HA policies: " + ", ".join(ha_policies))
-            if mirrored_queues:
-                offenders.append("mirrored queues: " + ", ".join(mirrored_queues))
+        if rabbit_helper.is_classic_mirroring_in_use():
             ver = '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION))
-            message = ("Classic mirrored queues / HA policies detected (%s). "
-                       "Remove them before upgrading to RabbitMQ %s" % (ver, "; ".join(offenders)))
+            message = ("Classic queue mirroring is in use. "
+                       "Remove all HA policies and mirrored queues before upgrading to RabbitMQ %s." % ver)
             logger.error(message)
-            self.update_status(
-                FAILED,
-                "Error",
-                message
-            )
+            self.update_status(FAILED, "Error", message)
             time.sleep(5)
-            raise kopf.PermanentError(
-                "Classic mirrored queues / HA policies must be removed before upgrading to RabbitMQ %s." % ver)
+            raise kopf.PermanentError(message)
 
-        logger.info("No classic mirrored queues or HA policies detected; upgrade may proceed")
+        logger.info("No classic queue mirroring detected; upgrade may proceed")
 
     def annotate_migration_state(self):
         """Set requireManualMigration annotation on the CR for 3.x clusters.
@@ -1626,12 +1613,10 @@ class KubernetesHelper:
             return
         rabbit_helper = self._build_rabbit_helper()
         try:
-            ha_policies = rabbit_helper.list_ha_policies()
-            mirrored_queues = rabbit_helper.list_classic_mirrored_queues()
+            requires = "true" if rabbit_helper.is_classic_mirroring_in_use() else "false"
         except Exception as e:
             logger.warning("Cannot assess migration state, annotation unchanged: %s", e)
             return
-        requires = "true" if (ha_policies or mirrored_queues) else "false"
         self.update_custom_resource({"metadata": {"annotations": {"requireManualMigration": requires}}})
         logger.info("requireManualMigration=%s annotated on CR", requires)
 
@@ -2115,6 +2100,7 @@ def on_create(body, meta, spec, status, **kwargs):
         kub_helper.check_cluster_state()
     elif rabbit_exist_before and not kub_helper.is_clean_rabbitmq_pvs():
         kub_helper.reboot_pods()
+        perform_rabbit_pods_readiness_check(kub_helper)
     else:
         perform_rabbit_pods_readiness_check(kub_helper)
     kub_helper.reconcile_pvc_annotations(
