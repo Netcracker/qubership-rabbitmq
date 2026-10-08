@@ -130,7 +130,7 @@ jobs:
 
   rabbit-mq-pipeline:
     needs: [update-image-reference, multiplatform_build]
-    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@e1905f040398e9ae733b0cefa7e7793b6204ecfe # v1.16.0
+    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@df5060a6cd932b5560c285d00307d7792f056c0d # v1.17.1
     with:
       service_branch: "${{ needs.update-image-reference.outputs.TARGET_BRANCH }}"
       versions_file: ".github/versions.yaml"
