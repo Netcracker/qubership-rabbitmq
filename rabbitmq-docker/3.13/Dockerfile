@@ -1,4 +1,4 @@
-FROM library/rabbitmq:3.13.7-management-alpine
+FROM library/rabbitmq:3.13.7-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
 
 COPY docker-entrypoint.sh /usr/local/bin/
 COPY scripts/get_user /bin/
@@ -38,7 +38,7 @@ RUN set -x \
     && python3 -m ensurepip \
     && rm -r /usr/lib/python*/ensurepip \
     && apk add --update --no-cache curl \
-    && pip3 install --upgrade pip "setuptools==80.10.1" \
+    && pip3 install --no-cache-dir --upgrade pip "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && rm -rf /var/cache/apk/*
 
 COPY logging_definitions.json /usr/share/rabbitmq/logging_definitions.json
