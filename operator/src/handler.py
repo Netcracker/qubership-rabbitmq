@@ -1575,34 +1575,6 @@ class KubernetesHelper:
 
         logger.info("Khepri metadata migration verified successfully")
 
-    def ensure_no_mirroring_before_upgrade(self):
-        """Block a RabbitMQ 4.2+ upgrade if classic mirrored queues / HA policies exist.
-
-        Classic queue mirroring is removed in RabbitMQ 4.x; leftover HA policies or
-        mirrored queues must be removed by an admin before upgrading. Runs against
-        the still-running (pre-reboot) cluster.
-        """
-        if not self._migration_checks_enabled():
-            logger.info("Migration checks disabled; skipping mirrored-queue pre-upgrade guard")
-            return
-        if not self._target_version_at_least(*MIRRORING_CHECK_MIN_VERSION):
-            logger.info("Target RabbitMQ version is below %s; skipping mirrored-queue pre-upgrade guard",
-                        '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION)))
-            return
-
-        logger.info("Checking for classic queue mirroring before upgrade")
-        rabbit_helper = self._build_rabbit_helper()
-        if rabbit_helper.is_classic_mirroring_in_use():
-            ver = '.'.join(map(str, MIRRORING_CHECK_MIN_VERSION))
-            message = ("Classic queue mirroring is in use. "
-                       "Remove all HA policies and mirrored queues before upgrading to RabbitMQ %s." % ver)
-            logger.error(message)
-            self.update_status(FAILED, "Error", message)
-            time.sleep(5)
-            raise kopf.PermanentError(message)
-
-        logger.info("No classic queue mirroring detected; upgrade may proceed")
-
     def annotate_migration_state(self):
         """Set requireManualMigration annotation on the CR for 3.x clusters.
 
