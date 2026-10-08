@@ -1,4 +1,4 @@
-FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.6.1
+FROM ghcr.io/netcracker/qubership-docker-integration-tests:0.6.1@sha256:3e120933e6d5b516b8c85c58fdad7319915a7c33a9f9c3f9c90ccbacdc7b5fab
 
 USER root
 
@@ -24,7 +24,7 @@ COPY rabbitmq_pod_checker.py ${ROBOT_HOME}/rabbitmq_pod_checker.py
 COPY robot ${ROBOT_HOME}
 
 RUN set -x \
-    && pip3 install "setuptools==80.10.1" \
+    && pip3 install "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && pip3 install pbr \
     && pip3 install -r ${ROBOT_HOME}/requirements.txt \
     && apk add --no-cache curl \

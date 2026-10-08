@@ -1,4 +1,4 @@
-FROM python:3.10.20-alpine3.24
+FROM python:3.10.22-alpine3.24@sha256:c3a48015ed1daf66afcafa7a02b7a24af8a51b8037964c03de578032556ec5b3
 
 ENV WORKDIR=/opt/operator/ \
     USER_UID=1000 \
@@ -16,7 +16,7 @@ COPY build/entrypoint /usr/local/bin
 
 RUN apk add --update --no-cache bash build-base apk-tools \
     && apk upgrade --no-cache --available \
-    && apk add --no-cache binutils 
+    && apk add --no-cache binutils
 
 RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && pip install --no-cache-dir -r requirements.txt

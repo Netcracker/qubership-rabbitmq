@@ -1,4 +1,4 @@
-# Copyright 2024-2025 NetCracker Technology Corporation
+﻿# Copyright 2024-2025 NetCracker Technology Corporation
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@ import math
 import os
 import pprint
 import re
+import threading
 import time
+from contextlib import contextmanager
 from time import sleep
 from unittest import result
 
@@ -113,6 +115,29 @@ KHEPRI_MIN_VERSION = (4, 0)
 MIRRORING_CHECK_MIN_VERSION = (4, 2)
 
 forbidden_statefulset_fields_update_error = "Forbidden: updates to statefulset spec for fields"
+rabbit_operation_lock = threading.Lock()
+
+
+@contextmanager
+def rabbit_operation():
+    rabbit_operation_lock.acquire()
+    try:
+        yield
+    finally:
+        rabbit_operation_lock.release()
+
+
+@contextmanager
+def wait_rabbit_operation(action):
+    if rabbit_operation_lock.locked():
+        logger.info("waiting until the current RabbitMQ operation finishes before %s" % action)
+    with rabbit_operation():
+        yield
+
+immutable_statefulset_update_markers = (
+    "Forbidden: updates to statefulset spec for fields",  # Kubernetes < 1.37
+    "field is immutable",  # Kubernetes >= 1.37
+)
 
 positive_values = ('true', 'True', 'yes', 'Yes', '1', 'on', 'On', 'ON', True)
 operator_need_to_delete_resources = os.getenv("OPERATOR_DELETE_RESOURCES", "False")
@@ -567,7 +592,8 @@ class KubernetesHelper:
             logger.info('Replace already presented statefulset')
             self._apps_v1_api.replace_namespaced_stateful_set(name, self._workspace, statefulset_body)
         except ApiException as exception:
-            if handle_forbidden_update and forbidden_statefulset_fields_update_error in exception.body:
+            exception_body = exception.body or ""
+            if handle_forbidden_update and any(marker in exception_body for marker in immutable_statefulset_update_markers):
                 need_to_process_forbidden_field_update = True
             else:
                 raise exception
@@ -2026,74 +2052,75 @@ def mirroring_state_monitor(spec, **kwargs):
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
     kub_helper = KubernetesHelper(spec)
-    logger.info("New CRD is created")
-    validate_spec(spec)
-    kub_helper.initiate_status()
-    # kopf.event(body, type='Warning', reason='SomeReason', message="Cannot do something")
-    # todo create config map only when it doesn't exist or remove previous one
-    # we do not need to create secret - it should be already present
-    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
-    if kub_helper.is_ipv6_enabled() and kub_helper.is_hostpath():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "Hostpath configuration in IPv6 environment is not supported"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("Hostpath configuration in IPv6 environment is not supported.")
-    if not kub_helper.is_rmq_secret_present():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "please create RabbitMQ secret"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("please create RabbitMQ secret.")
-    if not kub_helper.is_hostpath() and (kub_helper._pvs or kub_helper._nodes or kub_helper._selectors):
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
+    with rabbit_operation():
+        logger.info("New CRD is created")
+        validate_spec(spec)
+        kub_helper.initiate_status()
+        # kopf.event(body, type='Warning', reason='SomeReason', message="Cannot do something")
+        # todo create config map only when it doesn't exist or remove previous one
+        # we do not need to create secret - it should be already present
+        rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
+        if kub_helper.is_ipv6_enabled() and kub_helper.is_hostpath():
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "Hostpath configuration in IPv6 environment is not supported"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError("Hostpath configuration in IPv6 environment is not supported.")
+        if not kub_helper.is_rmq_secret_present():
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "please create RabbitMQ secret"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError("please create RabbitMQ secret.")
+        if not kub_helper.is_hostpath() and (kub_helper._pvs or kub_helper._nodes or kub_helper._selectors):
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
 
-    kub_helper.update_config()
-    kub_helper.reconcile_pvc_annotations({})
-    kub_helper.update_services()
-    if kub_helper.is_nodeport_required():
-        kub_helper.configure_nodeport_service()
-    if kub_helper.is_telegraf_enabled():
-        kub_helper.update_telegraf_deployment()
-    if kub_helper.is_clean_rabbitmq_pvs() and rabbit_exist_before:
-        kub_helper.set_clean_pv_flag_and_delete_pods()
-    if not kub_helper.is_auto_reboot():
-        perform_rabbit_pods_readiness_check(kub_helper)
-        kub_helper.check_cluster_state()
-    elif rabbit_exist_before and not kub_helper.is_clean_rabbitmq_pvs():
-        kub_helper.reboot_pods()
-        perform_rabbit_pods_readiness_check(kub_helper)
-    else:
-        perform_rabbit_pods_readiness_check(kub_helper)
-    kub_helper.reconcile_pvc_annotations(
-        kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
-    kub_helper.enable_feature_flags()
-    kub_helper.verify_khepri_migration()
-    kub_helper.annotate_migration_state()
-    if not kub_helper.check_backup_daemon():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "RabbitMQ backup daemon is not ready"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("RabbitMQ backup daemon is not ready.")
-    if not kub_helper.wait_test_result() or not kub_helper.is_run_tests():
-        kub_helper.update_status(
-            SUCCESSFUL,
-            "None",
-            "RabbitMQ service installed successfully"
-        )
+        kub_helper.update_config()
+        kub_helper.reconcile_pvc_annotations({})
+        kub_helper.update_services()
+        if kub_helper.is_nodeport_required():
+            kub_helper.configure_nodeport_service()
+        if kub_helper.is_telegraf_enabled():
+            kub_helper.update_telegraf_deployment()
+        if kub_helper.is_clean_rabbitmq_pvs() and rabbit_exist_before:
+            kub_helper.set_clean_pv_flag_and_delete_pods()
+        if not kub_helper.is_auto_reboot():
+            perform_rabbit_pods_readiness_check(kub_helper)
+            kub_helper.check_cluster_state()
+        elif rabbit_exist_before and not kub_helper.is_clean_rabbitmq_pvs():
+            kub_helper.reboot_pods()
+            perform_rabbit_pods_readiness_check(kub_helper)
+        else:
+            perform_rabbit_pods_readiness_check(kub_helper)
+        kub_helper.reconcile_pvc_annotations(
+            kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
+        kub_helper.enable_feature_flags()
+        kub_helper.verify_khepri_migration()
+        kub_helper.annotate_migration_state()
+        if not kub_helper.check_backup_daemon():
+            kub_helper.update_status(
+                FAILED,
+                "Error",
+                "RabbitMQ backup daemon is not ready"
+            )
+            time.sleep(5)
+            raise kopf.PermanentError("RabbitMQ backup daemon is not ready.")
+        if not kub_helper.wait_test_result() or not kub_helper.is_run_tests():
+            kub_helper.update_status(
+                SUCCESSFUL,
+                "None",
+                "RabbitMQ service installed successfully"
+            )
     if kub_helper.is_run_tests():
         logger.info("Wait running tests...")
         if kub_helper.wait_test_result():
@@ -2139,9 +2166,11 @@ def change_rabbitmq_config(meta, **kwargs):
     return meta['name'] == configmap_name
 
 
-def change_rabbitmq_secret(meta, diff, **kwargs):
+def change_rabbitmq_secret(meta, diff, old, **kwargs):
     if meta.get('name') != secret_name:
         return False
+    if old is None:
+        return True
     return any(len(change) > 1 and change[1] in credential_change_attrs for change in diff)
 
 
@@ -2173,54 +2202,9 @@ def get_password_from_secret(v1_apps_api, namespace):
 @kopf.on.update('v1', "configmap", when=change_rabbitmq_config)
 def on_update_configmap(diff, **kwargs):
     sleep(TIME_TO_WAIT_CONFIGMAP_HANDLER)
-    custom_objects_api = client.CustomObjectsApi()
-    namespace = KubernetesHelper.get_namespace()
-    cr = custom_objects_api.get_namespaced_custom_object(
-        group=api_group,
-        version=cr_version,
-        namespace=namespace,
-        plural='rabbitmqservices',
-        name='rabbitmq-service'
-    )
-
-    status = cr.get('status')
-    is_not_in_progress = len(status['conditions']) > 1 and any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
-
-    if is_not_in_progress:
-        logger.info("rabbitmq configmap changes: %s" % diff)
-        spec = cr.get('spec')
-        if 'auto_reboot' in spec['rabbitmq'] and spec['rabbitmq']['auto_reboot'] is True:
-            v1_apps_api = client.CoreV1Api()
-            pods = v1_apps_api.list_namespaced_pod(namespace)
-            for pod in pods.items:
-                if "rmqlocal" in pod.metadata.name:
-                    v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
-                    check_cluster_state(spec, v1_apps_api, namespace)
-        logger.info("all pods have been rebooted")
-
-
-@kopf.on.update('v1', "secret", when=change_rabbitmq_secret)
-def on_update_secret(diff, **kwargs):
-    sleep(TIME_TO_WAIT_SECRET_HANDLER)
-    logger.info("starting changing credentials procedure")
-    custom_objects_api = client.CustomObjectsApi()
-    namespace = KubernetesHelper.get_namespace()
-    cr = custom_objects_api.get_namespaced_custom_object(
-        group=api_group,
-        version=cr_version,
-        namespace=namespace,
-        plural='rabbitmqservices',
-        name='rabbitmq-service'
-    )
-    spec = cr.get('spec')
-    kub_helper = KubernetesHelper(spec)
-    status = cr.get('status')
-    is_in_progress = not any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
-    logger.info("waiting for rmq CR to proceed")
-    wait_time = 0
-    while is_in_progress and wait_time < 900:
-        wait_time = wait_time + 15
-        sleep(15)
+    with wait_rabbit_operation("applying configmap changes"):
+        custom_objects_api = client.CustomObjectsApi()
+        namespace = KubernetesHelper.get_namespace()
         cr = custom_objects_api.get_namespaced_custom_object(
             group=api_group,
             version=cr_version,
@@ -2228,37 +2212,71 @@ def on_update_secret(diff, **kwargs):
             plural='rabbitmqservices',
             name='rabbitmq-service'
         )
+
         status = cr.get('status')
-        is_in_progress = not any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
-    logger.info("rmq CR processing is completed. Rabbitmq secret changes: %s" % diff)
-    kub_helper.initiate_status()
-    old_username = None
-    new_username = None
-    for df in diff:
-        if len(df) > 1 and df[1] == username_change_attr:
-            old_username = base64.b64decode(df[2]).decode()
-            new_username = base64.b64decode(df[3]).decode()
-    if old_username != new_username and old_username is not None:
-        kub_helper.deactivate_old_user(old_username)
-    else:
-        logger.info("changing password...")
-        kub_helper.change_password()
-    sleep(30)
-    logger.info("rebooting all pods in rabbitmq namespace")
-    v1_apps_api = client.CoreV1Api()
-    pods = v1_apps_api.list_namespaced_pod(namespace)
-    for pod in pods.items:
-        if "rmqlocal" in pod.metadata.name:
-            v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
-            kub_helper.check_cluster_state()
-    pods = v1_apps_api.list_namespaced_pod(namespace)
-    for pod in pods.items:
-        if "rabbitmq-backup-daemon" in pod.metadata.name:
-            v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
-    logger.info("all pods have been rebooted, changing credentials completed")
-    kub_helper.update_status(SUCCESSFUL,
-                             "None",
-                             "All pods have been rebooted, changing credentials completed")
+        is_not_in_progress = len(status['conditions']) > 1 and any(condition.get('type') in [SUCCESSFUL, FAILED] for condition in status['conditions'])
+
+        if is_not_in_progress:
+            logger.info("rabbitmq configmap changes: %s" % diff)
+            spec = cr.get('spec')
+            if 'auto_reboot' in spec['rabbitmq'] and spec['rabbitmq']['auto_reboot'] is True:
+                v1_apps_api = client.CoreV1Api()
+                pods = v1_apps_api.list_namespaced_pod(namespace)
+                for pod in pods.items:
+                    if "rmqlocal" in pod.metadata.name:
+                        v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
+                        check_cluster_state(spec, v1_apps_api, namespace)
+            logger.info("all pods have been rebooted")
+
+
+@kopf.on.update('v1', "secret", when=change_rabbitmq_secret)
+def on_update_secret(diff, **kwargs):
+    sleep(TIME_TO_WAIT_SECRET_HANDLER)
+    logger.info("starting changing credentials procedure")
+    with wait_rabbit_operation("changing credentials"):
+        custom_objects_api = client.CustomObjectsApi()
+        namespace = KubernetesHelper.get_namespace()
+        cr = custom_objects_api.get_namespaced_custom_object(
+            group=api_group,
+            version=cr_version,
+            namespace=namespace,
+            plural='rabbitmqservices',
+            name='rabbitmq-service'
+        )
+        spec = cr.get('spec')
+        kub_helper = KubernetesHelper(spec)
+        if not kub_helper.check_rabbit_pods_readiness():
+            logger.error("RabbitMQ pods are not ready, skip changing credentials")
+            return
+        logger.info("Rabbitmq secret changes: %s" % diff)
+        kub_helper.initiate_status()
+        old_username = None
+        new_username = None
+        for df in diff:
+            if len(df) > 1 and df[1] == username_change_attr:
+                old_username = base64.b64decode(df[2]).decode()
+                new_username = base64.b64decode(df[3]).decode()
+        if old_username != new_username and old_username is not None:
+            kub_helper.deactivate_old_user(old_username)
+        else:
+            logger.info("changing password...")
+            kub_helper.change_password()
+        sleep(30)
+        logger.info("rebooting all pods in rabbitmq namespace")
+        v1_apps_api = client.CoreV1Api()
+        pods = v1_apps_api.list_namespaced_pod(namespace)
+        for pod in pods.items:
+            if "rmqlocal" in pod.metadata.name:
+                v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
+                kub_helper.check_cluster_state()
+        pods = v1_apps_api.list_namespaced_pod(namespace)
+        for pod in pods.items:
+            if "rabbitmq-backup-daemon" in pod.metadata.name:
+                v1_apps_api.delete_namespaced_pod(pod.metadata.name, namespace)
+        logger.info("all pods have been rebooted, changing credentials completed")
+        kub_helper.update_status(SUCCESSFUL,
+                                 "None",
+                                 "All pods have been rebooted, changing credentials completed")
 
 
 @kopf.on.update(api_group, cr_version, 'rabbitmqservices', when=exclude_disaster_recovery_field)
@@ -2266,21 +2284,91 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
     logger.info("cr changes:" + str(diff))
     print('Handling the diff')
     kub_helper = KubernetesHelper(spec)
-    kub_helper.initiate_status()
-    rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
-    old_pods_count = kub_helper.get_rabbit_pods_count()
-    if rabbit_exist_before:
-        try:
-            logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
-            kub_helper.nodes_enable_feature_flags()
-        except RuntimeError:
-            kub_helper.update_status(
-                FAILED,
-                "Error",
-                "RabbitMQ upgrade failed: failed to enable all feature flags"
-            )
-            raise kopf.PermanentError("RabbitMQ upgrade failed.")
-    if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
+    tests_only = False
+    with rabbit_operation():
+        kub_helper.initiate_status()
+        rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
+        old_pods_count = kub_helper.get_rabbit_pods_count()
+        if rabbit_exist_before:
+            try:
+                logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+                kub_helper.nodes_enable_feature_flags()
+            except RuntimeError:
+                kub_helper.update_status(
+                    FAILED,
+                    "Error",
+                    "RabbitMQ upgrade failed: failed to enable all feature flags"
+                )
+                raise kopf.PermanentError("RabbitMQ upgrade failed.")
+        if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
+            tests_only = True
+        else:
+            if kub_helper.is_ipv6_enabled() and kub_helper.is_hostpath():
+                kub_helper.update_status(
+                    FAILED,
+                    "Error",
+                    "Hostpath configuration in IPv6 environment is not supported"
+                )
+                time.sleep(5)
+                raise kopf.PermanentError("Hostpath configuration in IPv6 environment is not supported.")
+            if kub_helper.is_hostpath_installed() != kub_helper.is_hostpath():
+                kub_helper.update_status(
+                    FAILED,
+                    "Error",
+                    "Changing storage configuration is not allowed"
+                )
+                time.sleep(5)
+                raise kopf.PermanentError("Changing storage configuration is not allowed.")
+            # TODO validate that user or secret cookie weren't changed
+            if not kub_helper.is_hostpath() and (kub_helper._pvs or kub_helper._nodes or kub_helper._selectors):
+                kub_helper.update_status(
+                    FAILED,
+                    "Error",
+                    "Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration"
+                )
+                time.sleep(5)
+                raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
+            kub_helper.update_config()
+            kub_helper.reconcile_pvc_annotations(kub_helper.get_previously_managed_pvc_annotations(old))
+            kub_helper.update_services()
+            if kub_helper.is_nodeport_required():
+                kub_helper.configure_nodeport_service()
+            # kub_helper.check_cluster_state()
+            if kub_helper.is_telegraf_enabled():
+                kub_helper.update_telegraf_deployment()
+            if kub_helper.is_clean_rabbitmq_pvs():
+                kub_helper.set_clean_pv_flag_and_delete_pods()
+            if not kub_helper.is_auto_reboot():
+                perform_rabbit_pods_readiness_check(kub_helper)
+                kub_helper.check_cluster_state()
+            elif not kub_helper.is_clean_rabbitmq_pvs():
+                kub_helper.reboot_pods(old_pods_count)
+                perform_rabbit_pods_readiness_check(kub_helper)
+            else:
+                perform_rabbit_pods_readiness_check(kub_helper)
+            kub_helper.reconcile_pvc_annotations(
+                kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
+            kub_helper.enable_feature_flags()
+            old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
+            if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
+                kub_helper.verify_khepri_migration()
+            kub_helper.annotate_migration_state()
+            pprint.pprint(list(diff))
+            if not kub_helper.check_backup_daemon():
+                kub_helper.update_status(
+                    FAILED,
+                    "Error",
+                    "RabbitMQ backup daemon is not ready"
+                )
+                time.sleep(5)
+                raise kopf.PermanentError("RabbitMQ backup daemon is not ready.")
+            if not kub_helper.wait_test_result() or not kub_helper.is_run_tests():
+                kub_helper.update_status(
+                    SUCCESSFUL,
+                    "None",
+                    "RabbitMQ service updated successfully"
+                )
+    if tests_only:
         logger.info("Wait running tests...")
         if not kub_helper.wait_test_result():
             kub_helper.update_status(
@@ -2305,71 +2393,6 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 raise kopf.PermanentError(
                     "RabbitMQ tests failed.")
         return
-    if kub_helper.is_ipv6_enabled() and kub_helper.is_hostpath():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "Hostpath configuration in IPv6 environment is not supported"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("Hostpath configuration in IPv6 environment is not supported.")
-    if kub_helper.is_hostpath_installed() != kub_helper.is_hostpath():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "Changing storage configuration is not allowed"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("Changing storage configuration is not allowed.")
-    # TODO validate that user or secret cookie weren't changed
-    if not kub_helper.is_hostpath() and (kub_helper._pvs or kub_helper._nodes or kub_helper._selectors):
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
-    kub_helper.update_config()
-    kub_helper.reconcile_pvc_annotations(kub_helper.get_previously_managed_pvc_annotations(old))
-    kub_helper.update_services()
-    if kub_helper.is_nodeport_required():
-        kub_helper.configure_nodeport_service()
-    # kub_helper.check_cluster_state()
-    if kub_helper.is_telegraf_enabled():
-        kub_helper.update_telegraf_deployment()
-    if kub_helper.is_clean_rabbitmq_pvs():
-        kub_helper.set_clean_pv_flag_and_delete_pods()
-    if not kub_helper.is_auto_reboot():
-        perform_rabbit_pods_readiness_check(kub_helper)
-        kub_helper.check_cluster_state()
-    elif not kub_helper.is_clean_rabbitmq_pvs():
-        kub_helper.reboot_pods(old_pods_count)
-        perform_rabbit_pods_readiness_check(kub_helper)
-    else:
-        perform_rabbit_pods_readiness_check(kub_helper)
-    kub_helper.reconcile_pvc_annotations(
-        kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
-    kub_helper.enable_feature_flags()
-    old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
-    if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
-        kub_helper.verify_khepri_migration()
-    kub_helper.annotate_migration_state()
-    pprint.pprint(list(diff))
-    if not kub_helper.check_backup_daemon():
-        kub_helper.update_status(
-            FAILED,
-            "Error",
-            "RabbitMQ backup daemon is not ready"
-        )
-        time.sleep(5)
-        raise kopf.PermanentError("RabbitMQ backup daemon is not ready.")
-    if not kub_helper.wait_test_result() or not kub_helper.is_run_tests():
-        kub_helper.update_status(
-            SUCCESSFUL,
-            "None",
-            "RabbitMQ service updated successfully"
-        )
     if kub_helper.is_run_tests():
         logger.info("running tests...")
         if kub_helper.wait_test_result():
