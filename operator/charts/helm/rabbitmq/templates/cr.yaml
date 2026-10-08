@@ -1,3 +1,10 @@
+{{- $upgradeCheck := include "validateRabbitMQUpgrade" . -}}
+{{- if eq $upgradeCheck "has-mirroring" -}}
+{{ fail "Cannot upgrade to RabbitMQ 4.x: classic mirrored queues or HA policies are still present.\nRemove them in the current RabbitMQ 3.x installation, then retry the upgrade.\nSee the migration guide for instructions." }}
+{{- end -}}
+{{- if eq $upgradeCheck "no-annotation" -}}
+{{ fail "Cannot upgrade to RabbitMQ 4.x: no pre-upgrade readiness check found.\nFirst deploy RabbitMQ using the 3.x image (qubership-rabbitmq-image-3) to run the pre-upgrade checks, then upgrade to 4.x." }}
+{{- end -}}
 apiVersion: {{ .Values.operator.apiGroup }}/v2
 kind: RabbitMQService
 metadata:

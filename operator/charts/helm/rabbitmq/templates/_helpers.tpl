@@ -958,3 +958,50 @@ Service Account for Site Manager depending on smSecureAuth
     {{- end -}}
   {{- end -}}
 {{- end -}}
+
+{{/*
+Extract the major-version variant from a RabbitMQ docker image name.
+Images ending with "-3" (e.g. qubership-rabbitmq-image-3:main) → "3"
+All others (e.g. qubership-rabbitmq-image:main)               → "4"
+*/}}
+{{- define "rabbitmq.imageVariant" -}}
+  {{- if contains "rabbitmq-image-3" . -}}3{{- else -}}4{{- end -}}
+{{- end -}}
+
+{{/*
+Validate that upgrading to RabbitMQ 4.x is safe.
+Reads the 'requireManualMigration' annotation written by the operator
+during the previous 3.x reconcile cycle.
+
+Only applies when the currently installed image is 3.x and the desired
+image is 4.x (a true 3→4 major upgrade). 4.x→4.x upgrades are always
+allowed without the annotation check.
+
+Returns:
+  "true"          – upgrade allowed (annotation is "false", or not a 3→4 upgrade)
+  "has-mirroring" – blocked: HA policies or mirrored queues still present
+  "no-annotation" – blocked: 3.x was installed but annotation is absent
+*/}}
+{{- define "validateRabbitMQUpgrade" -}}
+  {{- $desired := include "rabbitmq.image" . -}}
+  {{- if eq (include "rabbitmq.imageVariant" $desired) "4" -}}
+    {{- $apiVersion := printf "%s/v2" .Values.operator.apiGroup -}}
+    {{- $name := default "rabbitmq-service" .Values.name -}}
+    {{- $cr := lookup $apiVersion "RabbitMQService" .Release.Namespace $name -}}
+    {{- if $cr -}}
+      {{- $currentImage := (($cr.spec).rabbitmq).dockerImage | default "" -}}
+      {{- if eq (include "rabbitmq.imageVariant" $currentImage) "3" -}}
+        {{- $meta := ($cr.metadata) | default dict -}}
+        {{- $ann := ($meta.annotations) | default dict -}}
+        {{- $val := index $ann "requireManualMigration" -}}
+        {{- if eq $val "true" -}}has-mirroring
+        {{- else if not $val -}}no-annotation
+        {{- else -}}true
+        {{- end -}}
+      {{- else -}}true
+      {{- end -}}
+    {{- else -}}true
+    {{- end -}}
+  {{- else -}}true
+  {{- end -}}
+{{- end -}}

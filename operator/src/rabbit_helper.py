@@ -77,6 +77,26 @@ class RabbitHelper:
             logger.warning("rabbit is not ready yet:" + str(e))
             return False
     
+    def is_classic_mirroring_in_use(self) -> bool:
+        """Return True if classic queue mirroring is currently in use.
+
+        Uses /api/deprecated-features/used which reports deprecated features
+        that are actively used — a single request, no pagination needed.
+        """
+        try:
+            r = requests.get(
+                url=f'{self._rabbitmq_url}/api/deprecated-features/used',
+                auth=(self._user, self._password),
+                verify=self._ssl,
+                timeout=60,
+            )
+            if r.status_code != 200:
+                raise RuntimeError(f"Fetching deprecated-features/used failed, status code = {r.status_code}")
+            return any(f.get('name') == 'classic_queue_mirroring' for f in r.json())
+        except Exception as e:
+            logger.error("Failed to fetch deprecated features: %s", e)
+            raise
+
     def shovel_list(self) -> list[ShovelInfo]:
         try:
             logger.debug("Fetching shovel list from RabbitMQ")
