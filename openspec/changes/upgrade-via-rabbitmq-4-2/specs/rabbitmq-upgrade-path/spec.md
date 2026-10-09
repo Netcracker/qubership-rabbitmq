@@ -79,14 +79,14 @@ On an existing cluster, the operator SHALL read the RabbitMQ version reported by
 - **THEN** the operator rejects the upgrade before it enables feature flags or updates a StatefulSet
 - **AND** the error states that the running version could not be determined
 
-### Requirement: The image for a step is the manifest entry of that version
+### Requirement: The image for a step comes from the manifest list
 
-The operator SHALL resolve the image for a step from the custom resource entry named by that step's major.minor. It SHALL NOT take an image reference from the version file. A missing target version or a missing image for a selected version SHALL reject the upgrade before feature flags and before a StatefulSet update.
+The operator SHALL resolve an intermediate step from the custom resource list `intermediateImages` by the repository name suffix `rabbitmq-image-<major.minor>`. It SHALL ignore the tag and digest. The target step SHALL use `dockerImage`. It SHALL NOT take an image reference from the version file. A missing target version or a missing image for a selected version SHALL reject the upgrade before feature flags and before a StatefulSet update.
 
 #### Scenario: A required image was removed
 
 - **WHEN** the chain selects version 4.2
-- **AND** the custom resource has no image named 4.2
+- **AND** the custom resource list has no image whose repository name ends with `rabbitmq-image-4.2`
 - **THEN** the operator does not enable feature flags and does not change the cluster
 - **AND** the error names the running version, the target version, and the missing image
 
@@ -121,7 +121,7 @@ The operator SHALL apply each step of an accepted chain before the next step. Be
 
 ### Requirement: Only manifest images for selected versions are used
 
-During an upgrade the operator SHALL write only the custom resource image named by the current step's major.minor. It SHALL leave the target image reference on the custom resource unchanged while an intermediate step is in progress.
+During an upgrade the operator SHALL write only the image for the current step: an intermediate image from `intermediateImages`, or `dockerImage` for the target step. It SHALL leave `dockerImage` on the custom resource unchanged while an intermediate step is in progress.
 
 #### Scenario: An intermediate image is not stored as the target
 
