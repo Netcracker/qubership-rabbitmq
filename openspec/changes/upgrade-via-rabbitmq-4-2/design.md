@@ -29,11 +29,11 @@ Today Helm writes one `spec.rabbitmq.dockerImage`, and `on_update` applies it in
 
 ### 1. One version file, images in the manifest
 
-**Chosen:** `rabbitmq-docker/rabbitmq.properties` is the only hand-written source of versions. The file shipped with this change is `rabbitmq.3.version=3.13`, `rabbitmq.4.version=4.2`, and `intermediateVersions=4.2`. A line value's major must equal the key. `5.1` is declared as `rabbitmq.5.version`, never as the value of `rabbitmq.4.version`. The file is copied into the operator image, and the operator parses that copy for the target line and the intermediate list.
+**Chosen:** `operator/rabbitmq.properties` is the only hand-written source of versions. It sits in the operator image build context and is copied into the image. The file shipped with this change is `rabbitmq.3.version=3.13`, `rabbitmq.4.version=4.2`, and `intermediateVersions=4.2`. A line value's major must equal the key. `5.1` is declared as `rabbitmq.5.version`, never as the value of `rabbitmq.4.version`. The file is copied into the operator image, and the operator parses that copy for the target line and the intermediate list.
 
-Each intermediate version has its own Dockerfile at `rabbitmq-docker/intermediate-versions/<major.minor>`. This change adds `rabbitmq-docker/intermediate-versions/4.2`. That build is not the line image: the line image stays `rabbitmq-docker/4.0/Dockerfile` and `dockerImage`. The intermediate image is rendered onto the custom resource under its version and is the image used only for an intermediate step. The operator does not read a registry reference from the properties file.
+Each intermediate version has its own Dockerfile at `rabbitmq-docker/intermediate-versions/<major.minor>`. This change adds `rabbitmq-docker/intermediate-versions/4.2`. That build is not the line image: the line image stays `rabbitmq-docker/4.0/Dockerfile` and `dockerImage`. The intermediate image reference is a list entry whose repository name ends with that `major.minor`. The operator reads the version from that name and ignores the tag and digest. The image is used only for an intermediate step. The operator does not read a registry reference from the properties file.
 
-The broker Dockerfile receives its line version as a build argument and does not publish that version as a runtime environment variable. The upstream image digest stays in the Dockerfile. The `major.minor` of that upstream tag must equal the line version in the file.
+The upstream image and its digest stay written in each broker Dockerfile. The properties file is not read by those builds.
 
 **Alternative considered:** `from` / `until` rules with an image field on each rule. Rejected. The stop list is a single ordered array, and the image name is the version, so a second image field repeats the same value.
 
@@ -72,8 +72,7 @@ Intermediate images are not added to `rabbitmq.monitoredImages`. After a success
 
 ## Risks / Trade-offs
 
-- [The properties file and the chart values diverge] → a unit check fails when `rabbitmqVersion` or `intermediateVersions` in `values.yaml` differ from the file.
-- [The Dockerfile base tag and the line version diverge] → the image build fails when the upstream tag's major.minor differs from the build argument.
+- [A second copy of the versions is written into chart values] → `values.yaml` does not carry `rabbitmqVersion` or `intermediateVersions`. The operator reads both from the properties file. Chart values hold only the promoted image references.
 - [The line image and the intermediate image share a version] → an intermediate step uses only `intermediate-versions/<version>`. A step skipped because it equals the target uses `dockerImage`.
 - [Crash between steps] → the next reconcile reads the oldest node and rebuilds the chain, so completed landings are skipped.
 - [The previous-release operator handles the custom resource first] → it still writes `dockerImage` in one step. This change does not roll the operator Deployment ahead of the custom resource. Resume on the new binary continues only if that write has not already moved the pods.
