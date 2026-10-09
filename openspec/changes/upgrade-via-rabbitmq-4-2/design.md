@@ -60,7 +60,7 @@ With the shipped file the list is `4.2` and the target is `4.2`, so the intermed
 
 A failed flag enablement stops the chain. The cluster stays on the version that is already up. A version-changing step restarts pods even when `auto_reboot` is false. A reconcile that does not change the RabbitMQ image still honors `auto_reboot`.
 
-`on.resume` currently returns when a StatefulSet exists. Resume must continue a chain whose StatefulSet image is not yet the image of the current step, and must return without a restart when every node already reports the target major.minor and the pods already use the target image.
+`on.resume` continues a chain when the operator process restarts and pods are not yet on the target. It returns without a restart when every node already reports the target major.minor and the pods already use the target image. If the running version cannot be read yet, it retries without setting `FAILED`. When no StatefulSet exists it installs through `on_create`.
 
 Once an intermediate version has started and enabled its flags, rolling the data directory back below that version is not supported.
 
@@ -74,8 +74,8 @@ Intermediate images are not added to `rabbitmq.monitoredImages`. After a success
 
 - [A second copy of the versions is written into chart values] → `values.yaml` does not carry `rabbitmqVersion` or `intermediateVersions`. The operator reads both from the properties file. Chart values hold only the promoted image references.
 - [The line image and the intermediate image share a version] → an intermediate step uses only `intermediate-versions/<version>`. A step skipped because it equals the target uses `dockerImage`.
-- [Crash between steps] → the next reconcile reads the oldest node and rebuilds the chain, so completed landings are skipped.
-- [The previous-release operator handles the custom resource first] → it still writes `dockerImage` in one step. This change does not roll the operator Deployment ahead of the custom resource. Resume on the new binary continues only if that write has not already moved the pods.
+- [Crash between steps] → the next `on_resume` or `on_update` reads the oldest node and skips completed landings. A version that is not readable yet retries and does not mark the custom resource `FAILED`.
+- [The previous-release operator handles the custom resource first] → it still writes `dockerImage` in one step. This change does not roll the operator Deployment ahead of the custom resource.
 - [Hostpath deletes every pod before the cluster check] → accepted. That path keeps its current restart behavior for every step.
 - [3.x to 4.x is not in the intermediate list] → the Helm mirrored-queue gate remains the control for that jump.
 
