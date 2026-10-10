@@ -76,7 +76,18 @@ class RabbitHelper:
         except Exception as e:
             logger.warning("rabbit is not ready yet:" + str(e))
             return False
-    
+
+    def overview_version(self):
+        r = requests.get(
+            url=f'{self._rabbitmq_url}/api/overview',
+            auth=(self._user, self._password),
+            verify=self._ssl,
+            timeout=30,
+        )
+        if r.status_code != 200:
+            raise RuntimeError(f"Fetching overview failed, status code = {r.status_code}")
+        return r.json().get('rabbitmq_version')
+
     def is_classic_mirroring_in_use(self) -> bool:
         """Return True if classic queue mirroring is currently in use.
 

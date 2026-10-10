@@ -645,6 +645,10 @@ spec:
                       type: integer
                     dockerImage:
                       type: string
+                    intermediateImages:
+                      items:
+                        type: string
+                      type: array
                     perQueueMetrics:
                       type: boolean
                     enabledPlugins:
