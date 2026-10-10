@@ -59,21 +59,34 @@ def _oldest_running(core, namespace):
     return str(min(versions)), None
 
 
+def _json_pointer(key):
+    return key.replace("~", "~0").replace("/", "~1")
+
+
 def _roll_deployment(apps, namespace, operator_image):
+    deployment = apps.read_namespaced_deployment(DEPLOYMENT, namespace)
+    containers = deployment.spec.template.spec.containers
+    index = next(i for i, container in enumerate(containers) if container.name == DEPLOYMENT)
     apps.patch_namespaced_deployment(
         DEPLOYMENT,
         namespace,
-        {
-            "spec": {
-                "template": {
-                    "spec": {
-                        "containers": [
-                            {"name": DEPLOYMENT, "image": operator_image},
-                        ]
-                    }
-                }
-            }
-        },
+        [
+            {
+                "op": "add",
+                "path": "/spec/template/metadata/annotations/" + _json_pointer(os.environ["CR_CHECKSUM_ANNOTATION"]),
+                "value": os.environ["CR_CHECKSUM"],
+            },
+            {
+                "op": "add",
+                "path": "/spec/template/metadata/labels/app.kubernetes.io~1version",
+                "value": os.environ["OPERATOR_VERSION"],
+            },
+            {
+                "op": "replace",
+                "path": f"/spec/template/spec/containers/{index}/image",
+                "value": operator_image,
+            },
+        ],
     )
     deadline = time.time() + ROLLOUT_TIMEOUT_SECONDS
     while time.time() < deadline:

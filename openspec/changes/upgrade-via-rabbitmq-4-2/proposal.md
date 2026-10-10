@@ -20,7 +20,7 @@ intermediateVersions=4.2
 - The operator applies the computed steps itself, in order. For each step it enables stable feature flags on the version that is still running, writes the manifest image for that `major.minor` to the StatefulSet, and waits until every node reports that major and minor before the next step.
 - If a pod version cannot be read, a line version has the wrong major, the target version is absent, or the manifest has no image for a selected version, the operator rejects the upgrade before it enables feature flags and before it changes a StatefulSet. The error names the running version, the target version, and the reason.
 - The existing 3.x to 4.x mirrored-queue gate stays. `3.13` is the 3-line image. It is not inserted into a 4.x chain unless `intermediateVersions` lists it.
-- A pre-upgrade hook reads the new `rabbitmq.properties` from the chart operator image and `rabbitmqctl version` from the RabbitMQ pods. When that plan contains an intermediate step, the hook writes the chart operator image into the `rabbitmq-operator` Deployment and waits until a pod with that image is Ready. Helm changes the custom resource only after that. The hook does not restart the previous operator pod in place. When the plan has no intermediate step, the hook leaves the Deployment unchanged and the operator image moves with the rest of the chart.
+- A pre-upgrade hook reads the new `rabbitmq.properties` from the chart operator image and `rabbitmqctl version` from the RabbitMQ pods. When that plan contains an intermediate step, the hook writes the chart operator image, the custom-resource checksum, and the release version label in one update and waits until that pod is Ready. Helm then applies the same values, so the operator pod is not created a second time. Helm changes the custom resource only after the hook. When the plan has no intermediate step, the hook leaves the Deployment unchanged.
 
 ## Capabilities
 
@@ -38,6 +38,6 @@ intermediateVersions=4.2
 - Version file copied into the operator image. Broker Dockerfiles keep their upstream image written in the file.
 - Helm chart: `values.yaml`, `values.schema.json`, `templates/cr.yaml`, and the `v2` schema of the `RabbitMQService` CRD. Chart values hold `intermediateImages`, not the version numbers. The manifest must list an image whose repository name ends with each intermediate version, and `additionalProperties` is false.
 - `rabbitmq-docker/intermediate-versions/4.2` is registered in `.qubership/docker-build-config.cfg` and `.github/charts-values-update-config.yaml`. Each later entry of `intermediateVersions` gets the same kind of directory and registration.
-- Pre-upgrade hook under `templates/pre-deploy/`: it updates the operator Deployment to the chart image before the custom resource only when the new plan has an intermediate step.
+- Pre-upgrade hook under `templates/pre-deploy/`: when the new plan has an intermediate step, it writes the chart operator image, the custom-resource checksum, and the release version label once and waits until that pod is Ready. The chart apply after the hook does not recreate the pod.
 - Upgrade documentation in `docs/public/installation.md`.
 - Automated tests for a direct upgrade, a multi-step list, a skipped prefix, a patch that does not change the step, and a rejected upgrade.
