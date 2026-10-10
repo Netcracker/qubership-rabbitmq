@@ -1,0 +1,20 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: rabbitmq-operator-rollout
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "0"
+    "helm.sh/hook-delete-policy": before-hook-creation
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: rabbitmq-operator-rollout
+subjects:
+  - kind: ServiceAccount
+    name: rabbitmq-operator-rollout
+    namespace: {{ .Release.Namespace }}
+{{- end }}

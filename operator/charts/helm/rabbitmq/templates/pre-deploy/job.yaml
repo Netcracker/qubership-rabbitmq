@@ -1,0 +1,57 @@
+{{ if not .Values.externalRabbitmq.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: rabbitmq-operator-rollout
+  labels:
+    {{- include "rabbitmq.defaultLabels" . | nindent 4 }}
+    app.kubernetes.io/name: rabbitmq-operator-rollout
+  annotations:
+    "helm.sh/hook": pre-upgrade
+    "helm.sh/hook-weight": "5"
+    "helm.sh/hook-delete-policy": before-hook-creation,hook-succeeded,hook-failed
+spec:
+  backoffLimit: 1
+  activeDeadlineSeconds: 400
+  template:
+    metadata:
+      labels:
+        {{- include "rabbitmq.defaultLabels" . | nindent 8 }}
+        app.kubernetes.io/name: rabbitmq-operator-rollout
+        name: rabbitmq-operator-rollout
+    spec:
+      restartPolicy: Never
+      serviceAccountName: rabbitmq-operator-rollout
+      securityContext:
+        {{- include "rabbitmq.globalPodSecurityContext" . | nindent 8 }}
+        {{- with .Values.operator.securityContext }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      containers:
+        - name: rollout
+          image: {{ include "operator.image" . }}
+          imagePullPolicy: {{ default "IfNotPresent" .Values.operator.pullPolicy }}
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: OPERATOR_IMAGE
+              value: {{ include "operator.image" . | quote }}
+            - name: DOCKER_IMAGE
+              value: {{ include "rabbitmq.image" . | quote }}
+            - name: INTERMEDIATE_IMAGES
+              value: {{ join "," .Values.rabbitmq.intermediateImages | quote }}
+          command:
+            - python
+            - /opt/operator/rollout_gate.py
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 100m
+              memory: 128Mi
+          securityContext:
+            {{- include "rabbitmq.globalContainerSecurityContextRWRootFs" . | nindent 12 }}
+{{- end }}

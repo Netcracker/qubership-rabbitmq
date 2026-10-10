@@ -127,3 +127,22 @@ During an upgrade the operator SHALL write only the image for the current step: 
 
 - **WHEN** the operator applies an intermediate version
 - **THEN** the target image reference on the custom resource stays the final image
+
+### Requirement: The previous operator is replaced before an intermediate step
+
+On an upgrade, a pre-upgrade hook SHALL build the plan from the new properties file and the oldest running major.minor. When that plan contains an intermediate step, the hook SHALL roll the operator Deployment to the chart image and wait until it is Ready before the custom resource changes. When the plan has no intermediate step, the hook SHALL NOT roll the Deployment.
+
+#### Scenario: A later target still has a stop in between
+
+- **WHEN** the oldest running major.minor is 4.0
+- **AND** the new target is 5.1
+- **AND** the new intermediate list is 4.2, then 4.7, then 5.0
+- **THEN** the hook rolls the operator and waits until the new pod is Ready
+- **AND** the custom resource is unchanged until that pod is Ready
+
+#### Scenario: The only stop equals the target
+
+- **WHEN** the oldest running major.minor is 4.0
+- **AND** the new target is 4.2
+- **AND** the new intermediate list contains only 4.2
+- **THEN** the hook does not roll the operator Deployment

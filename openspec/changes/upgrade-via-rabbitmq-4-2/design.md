@@ -23,7 +23,6 @@ Today Helm writes one `spec.rabbitmq.dockerImage`, and `on_update` applies it in
 - Detecting a downgrade by inspecting image bytes.
 - Replacing the Helm 3.x mirrored-queue gate.
 - Renaming the `rabbitmq-docker/4.0` directory.
-- Rolling the operator Deployment before the custom resource update.
 
 ## Decisions
 
@@ -64,6 +63,12 @@ A failed flag enablement stops the chain. The cluster stays on the version that 
 
 Once an intermediate version has started and enabled its flags, rolling the data directory back below that version is not supported.
 
+### 6. Roll the operator only when an intermediate step remains
+
+**Chosen:** the pre-upgrade hook runs the chart operator image, which carries `rabbitmq.properties`. It reads `rabbitmqctl version` from the RabbitMQ pods and builds the same plan as the operator. It patches the operator Deployment to that image and waits until the pod is Ready only when the plan contains an intermediate step. A direct step to the target image, or no step at all, leaves the running operator in place. Helm applies the custom resource after the hook. The next release that adds a stop between the running version and the new target rolls the operator again, because the decision is the plan in the new image, not a marker left on the pod.
+
+**Alternative considered:** roll whenever a pod annotation is absent. Rejected. The annotation stays after the first upgrade, so a later target above the current one would still be applied by the previous binary and its old properties file.
+
 ### 5. Tests cover the chain function
 
 **Chosen:** unit-test the pure chain function for the shipped file (`4.0.1` and `4.1.2` with list `4.2` and target `4.2` skip the intermediate and use the line image), initial `4.2` with target `5.1` and list `4.2,4.7,5.0` starting at `4.7`, the `4.0` → `5.1` walk through those intermediate images, a source of `4.7` skipping `4.2`, a direct last hop, equal major.minor of `4.2.1` and `4.2.9`, a fresh install, a missing image for a selected step, an unreadable version, a line major mismatch, and a removed intermediate. Robot image tests compare steady-state images and do not drive a multi-step upgrade.
@@ -75,7 +80,7 @@ Intermediate images are not added to `rabbitmq.monitoredImages`. After a success
 - [A second copy of the versions is written into chart values] → `values.yaml` does not carry `rabbitmqVersion` or `intermediateVersions`. The operator reads both from the properties file. Chart values hold only the promoted image references.
 - [The line image and the intermediate image share a version] → an intermediate step uses only `intermediate-versions/<version>`. A step skipped because it equals the target uses `dockerImage`.
 - [Crash between steps] → the next `on_resume` or `on_update` reads the oldest node and skips completed landings. A version that is not readable yet retries and does not mark the custom resource `FAILED`.
-- [The previous-release operator handles the custom resource first] → it still writes `dockerImage` in one step. This change does not roll the operator Deployment ahead of the custom resource.
+- [The previous-release operator handles the custom resource first] → the pre-upgrade hook rolls that Deployment only when the new properties file puts an intermediate step between the running version and the target. A direct upgrade does not roll it.
 - [Hostpath deletes every pod before the cluster check] → accepted. That path keeps its current restart behavior for every step.
 - [3.x to 4.x is not in the intermediate list] → the Helm mirrored-queue gate remains the control for that jump.
 

@@ -21,6 +21,10 @@
 
 - [x] 4.1 Add `rabbitmq-docker/intermediate-versions/4.2/Dockerfile` for the shipped intermediate, pinned to RabbitMQ 4.2 and independent of `rabbitmq-docker/4.0/Dockerfile`. Leave the upstream image written directly in each broker Dockerfile. Register `qubership-rabbitmq-image-4.2` in `.qubership/docker-build-config.cfg` and `.github/charts-values-update-config.yaml`. Keep `.github/workflows/push.yml` in sync if it still lists RabbitMQ images. Verify a listed version without a directory under `rabbitmq-docker/intermediate-versions/` fails the directory check.
 
+## 5. Previous operator
+
+- [x] 5.1 Add a pre-upgrade hook that rolls `rabbitmq-operator` to the chart image and waits until the pod is Ready only when the plan from the new properties file has an intermediate step between the running version and the target. A direct target step does not roll the operator. Skip the hook when `externalRabbitmq` is enabled. Verify `helm template` renders the hook and does not render it for an external RabbitMQ install.
+
 ## Workflow follow-up
 
 - Archive the change after review with `/opsx-archive`.

@@ -48,6 +48,19 @@ from kubernetes.stream import stream
 import rabbitconstants
 from rabbit_helper import RabbitHelper
 from rabbit_helper import join_maps
+from upgrade_path import (
+    UpgradePlan,
+    load_properties,
+    plan_upgrade,
+    images_by_version,
+    target_from_properties,
+    validate_line_versions,
+    resolve_pod_version,
+    nodes_reached,
+    default_properties_path,
+    parse_major_minor,
+    VERSION_UNREADABLE,
+)
 from backup_helper import BackupHelper
 from exceptions import DisasterRecoveryException
 
@@ -176,6 +189,7 @@ class KubernetesHelper:
         self._pvs = self._spec['rabbitmq'].get('volumes')
         self._nodes = self._spec['rabbitmq'].get('nodes')
         self._selectors = self._spec['rabbitmq'].get('selectors')
+        self._image_override = None
         logger.info("configuration is: " + str(spec))
 
     @staticmethod
@@ -1015,7 +1029,7 @@ class KubernetesHelper:
         sts_labels["app.kubernetes.io/instance"] = f'rabbitmq-{self._workspace}'
         sts_labels["velero.io/exclude-from-backup"] = "true"
         meta = V1ObjectMeta(labels=sts_labels, name=name, namespace=self._workspace)
-        rabbitmq_image = self._spec['rabbitmq']['dockerImage']
+        rabbitmq_image = self._image_override or self._spec['rabbitmq']['dockerImage']
         image_pull_policy = 'Always' if 'main' in rabbitmq_image.lower() else 'IfNotPresent'
         if self.is_ipv6_enabled():
             volumes = self.get_volumes(pv_name)
@@ -1519,6 +1533,130 @@ class KubernetesHelper:
 
     def _migration_checks_enabled(self):
         return ENABLE_MIGRATION_CHECKS in positive_values
+
+    def prepare_version_plan(self):
+        try:
+            properties = load_properties(default_properties_path())
+        except Exception as exc:
+            return UpgradePlan(error=f"running , version file is unreadable: {exc}")
+        line_error = validate_line_versions(properties["lines"])
+        if line_error:
+            return UpgradePlan(error=line_error)
+        target = target_from_properties(properties["lines"], self._spec['rabbitmq'].get('dockerImage'))
+        target_mm = parse_major_minor(target)
+        if target_mm is None:
+            versions, read_error = self._read_pod_versions()
+            running = "" if read_error or not versions else str(min(versions))
+            return UpgradePlan(
+                error=f"running {running}, target version is absent",
+                running=running,
+                target=target,
+            )
+        versions, read_error = self._read_pod_versions()
+        if read_error:
+            return UpgradePlan(error=read_error, target=str(target_mm))
+        oldest = min(versions)
+        images = images_by_version(self._spec['rabbitmq'].get('intermediateImages') or [])
+        return plan_upgrade(
+            str(oldest),
+            str(target_mm),
+            properties["intermediateVersions"],
+            images,
+            self._spec['rabbitmq'].get('dockerImage'),
+            pods_use_target_image=self._pods_use_target_image(),
+        )
+
+    def apply_version_chain(self, plan):
+        try:
+            for index, step in enumerate(plan.steps):
+                if index > 0:
+                    versions, read_error = self._read_pod_versions()
+                    if read_error or not nodes_reached(versions, plan.steps[index - 1].version):
+                        message = (
+                            f"running {plan.running}, target {plan.target}, "
+                            f"nodes have not reached {plan.steps[index - 1].version}"
+                        )
+                        self.update_status(FAILED, "Error", message)
+                        raise kopf.PermanentError(message)
+                try:
+                    self.nodes_enable_feature_flags()
+                except RuntimeError as exc:
+                    message = (
+                        f"running {plan.running}, target {plan.target}, "
+                        f"failed to enable feature flags at {step.version}: {exc}"
+                    )
+                    self.update_status(FAILED, "Error", message)
+                    raise kopf.PermanentError(message)
+                self._image_override = step.image if step.intermediate else None
+                self.update_config()
+                self.reboot_pods()
+                self._wait_until_nodes_report(step.version)
+        finally:
+            self._image_override = None
+
+    def _pods_use_target_image(self):
+        target_image = self._spec['rabbitmq'].get('dockerImage')
+        try:
+            name = 'rmqlocal-0' if self.is_hostpath() else 'rmqlocal'
+            statefulset = self.get_stateful_set(name)
+            containers = statefulset['spec']['template']['spec']['containers']
+            return containers[0]['image'] == target_image
+        except Exception:
+            return False
+
+    def _read_one_pod_version(self, pod_name):
+        exec_output = ""
+        try:
+            exec_output = self.exec_command_in_pod(pod_name, ['rabbitmqctl', 'version']) or ""
+        except Exception:
+            exec_output = ""
+        if parse_major_minor(exec_output):
+            return resolve_pod_version(exec_output, None)
+        overview_body = ""
+        try:
+            user = self.get_user_from_secret()
+            password = self.get_password_from_secret()
+            port = "15671" if self.is_ssl_enabled() else "15672"
+            scheme = "https" if self.is_ssl_enabled() else "http"
+            overview_body = self.exec_command_in_pod(
+                pod_name,
+                ['curl', '-sf', '-k', '-u', f'{user}:{password}', f'{scheme}://127.0.0.1:{port}/api/overview'],
+            ) or ""
+        except Exception:
+            overview_body = ""
+        parsed = resolve_pod_version(exec_output, overview_body)
+        if parsed:
+            return parsed
+        try:
+            return parse_major_minor(self._build_rabbit_helper().overview_version())
+        except Exception:
+            return None
+
+    def _read_pod_versions(self):
+        try:
+            pods = self.get_rabbit_pods().items
+        except Exception:
+            return [], VERSION_UNREADABLE
+        if not pods:
+            return [], VERSION_UNREADABLE
+        versions = []
+        for pod in pods:
+            version = self._read_one_pod_version(pod.metadata.name)
+            if version is None:
+                return [], VERSION_UNREADABLE
+            versions.append(version)
+        return versions, None
+
+    def _wait_until_nodes_report(self, step_version):
+        self.check_cluster_state()
+        for _ in range(10):
+            versions, read_error = self._read_pod_versions()
+            if not read_error and nodes_reached(versions, step_version):
+                return
+            time.sleep(15)
+        message = f"nodes did not report {step_version}"
+        self.update_status(FAILED, "Error", message)
+        raise kopf.PermanentError(message)
 
     def get_target_rabbitmq_version(self):
         """Parse the target RabbitMQ version from spec.rabbitmq.dockerImage.
@@ -2027,10 +2165,21 @@ def cluster_monitoring(spec, **kwargs):
 @kopf.on.resume(api_group, cr_version, 'rabbitmqservices')
 def on_resume(spec, **kwargs):
     kub_helper = KubernetesHelper(spec)
-    if kub_helper.is_any_rmq_statefulset_present():
+    if not kub_helper.is_any_rmq_statefulset_present():
+        logger.info("RabbitMQ StatefulSet is absent on resume, installing")
+        on_create(spec=spec, **kwargs)
         return
-    logger.info("RabbitMQ StatefulSet is absent on resume, installing")
-    on_create(spec=spec, **kwargs)
+    plan = kub_helper.prepare_version_plan()
+    if plan.error == VERSION_UNREADABLE:
+        logger.info("RabbitMQ version is not readable yet on resume, will retry")
+        raise kopf.TemporaryError(plan.error, delay=30)
+    if plan.error:
+        kub_helper.update_status(FAILED, "Error", plan.error)
+        raise kopf.PermanentError(plan.error)
+    if not plan.steps:
+        return
+    with rabbit_operation():
+        kub_helper.apply_version_chain(plan)
 
 
 @kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=300, initial_delay=60)
@@ -2289,17 +2438,14 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
         kub_helper.initiate_status()
         rabbit_exist_before = kub_helper.is_any_rmq_statefulset_present()
         old_pods_count = kub_helper.get_rabbit_pods_count()
+        version_chain_applied = False
+        plan = None
         if rabbit_exist_before:
-            try:
-                logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
-                kub_helper.nodes_enable_feature_flags()
-            except RuntimeError:
-                kub_helper.update_status(
-                    FAILED,
-                    "Error",
-                    "RabbitMQ upgrade failed: failed to enable all feature flags"
-                )
-                raise kopf.PermanentError("RabbitMQ upgrade failed.")
+            plan = kub_helper.prepare_version_plan()
+            if plan.error:
+                kub_helper.update_status(FAILED, "Error", plan.error)
+                time.sleep(5)
+                raise kopf.PermanentError(plan.error)
         if kub_helper.is_run_tests_only() and kub_helper.is_run_tests():
             tests_only = True
         else:
@@ -2328,6 +2474,20 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 )
                 time.sleep(5)
                 raise kopf.PermanentError("Rabbitmq nodes, pvs or selectors must be specified only in hostpath configuration.")
+            if plan and plan.steps:
+                kub_helper.apply_version_chain(plan)
+                version_chain_applied = True
+            elif rabbit_exist_before:
+                try:
+                    logger.info("Existing RabbitMQ detected – enabling feature flags before upgrade")
+                    kub_helper.nodes_enable_feature_flags()
+                except RuntimeError:
+                    kub_helper.update_status(
+                        FAILED,
+                        "Error",
+                        "RabbitMQ upgrade failed: failed to enable all feature flags"
+                    )
+                    raise kopf.PermanentError("RabbitMQ upgrade failed.")
             kub_helper.update_config()
             kub_helper.reconcile_pvc_annotations(kub_helper.get_previously_managed_pvc_annotations(old))
             kub_helper.update_services()
@@ -2338,7 +2498,9 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
                 kub_helper.update_telegraf_deployment()
             if kub_helper.is_clean_rabbitmq_pvs():
                 kub_helper.set_clean_pv_flag_and_delete_pods()
-            if not kub_helper.is_auto_reboot():
+            if version_chain_applied:
+                perform_rabbit_pods_readiness_check(kub_helper)
+            elif not kub_helper.is_auto_reboot():
                 perform_rabbit_pods_readiness_check(kub_helper)
                 kub_helper.check_cluster_state()
             elif not kub_helper.is_clean_rabbitmq_pvs():

@@ -6,11 +6,14 @@ ENV WORKDIR=/opt/operator/ \
 
 COPY build/requirements.txt requirements.txt
 COPY src/handler.py ${WORKDIR}
+COPY src/upgrade_path.py ${WORKDIR}
+COPY src/rollout_gate.py ${WORKDIR}
 COPY src/rabbitconstants.py ${WORKDIR}
 COPY src/rabbit_helper.py ${WORKDIR}
 COPY src/backup_helper.py ${WORKDIR}
 COPY src/exceptions.py ${WORKDIR}
 COPY src/velero_delete_pods_rmqlocal.py ${WORKDIR}
+COPY rabbitmq.properties ${WORKDIR}rabbitmq.properties
 COPY build/user_setup /usr/local/bin
 COPY build/entrypoint /usr/local/bin
 
@@ -26,6 +29,9 @@ chmod 777 /usr/local/bin/entrypoint && \
 chmod 777 /opt/operator/rabbitconstants.py && \
 chmod 777 /opt/operator/rabbit_helper.py && \
 chmod 777 /opt/operator/handler.py && \
+chmod 777 /opt/operator/upgrade_path.py && \
+chmod 777 /opt/operator/rollout_gate.py && \
+chmod 777 /opt/operator/rabbitmq.properties && \
 chmod 777 /opt/operator/velero_delete_pods_rmqlocal.py
 RUN /usr/local/bin/user_setup
 

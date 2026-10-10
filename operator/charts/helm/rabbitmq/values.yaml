@@ -153,6 +153,8 @@ rabbitmq:
   replicas: 3
   dockerImage: ghcr.io/netcracker/qubership-rabbitmq-image:main@sha256:7dc4aa532f260dc5d6d21cad0ca899a4d4f07ff3d29e8ef87e148f5f0701daa2
   dockerImage3: ghcr.io/netcracker/qubership-rabbitmq-image-3:main
+  intermediateImages:
+    - ghcr.io/netcracker/qubership-rabbitmq-image-4.2:main
   resources:
     requests:
       cpu: 1
