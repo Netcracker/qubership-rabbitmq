@@ -310,7 +310,7 @@ backupDaemon:
       additionalIpAddresses: []
   # Enable Rabbitmq Backup Daemon installation.
   enabled: false
-  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main@sha256:8cc8883e706559facee29676e8a1c3e455c147666c8827217b3c15a2f1f571e8
+  image: ghcr.io/netcracker/qubership-rabbitmq-backup-daemon:main@sha256:d4c7f6b01bc1dd2a5f196fb9b1c11dbb16a0919ed77be10a88ad6efdca71ecb2
 
   # storage and storageClass are the settings for configuring stateful
   # storage for the server pods. storage should be set to the disk size of
