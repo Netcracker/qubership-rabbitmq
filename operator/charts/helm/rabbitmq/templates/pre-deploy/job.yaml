@@ -36,12 +36,12 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
-            - name: OPERATOR_IMAGE
-              value: {{ include "operator.image" . | quote }}
             - name: DOCKER_IMAGE
               value: {{ include "rabbitmq.image" . | quote }}
             - name: INTERMEDIATE_IMAGES
               value: {{ join "," .Values.rabbitmq.intermediateImages | quote }}
+            - name: RABBITMQ_URL
+              value: {{ printf "%s://rabbitmq.%s:%s" (include "rabbitmq.protocol" .) .Release.Namespace (include "rabbitmq.port" .) | quote }}
           command:
             - python
             - /opt/operator/rollout_gate.py

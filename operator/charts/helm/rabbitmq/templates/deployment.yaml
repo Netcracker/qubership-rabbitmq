@@ -30,7 +30,7 @@ spec:
         name: rabbitmq-operator
       annotations:
         post.hook.restore.velero.io/command: '["python3", "/opt/operator/velero_delete_pods_rmqlocal.py"]'
-        {{ .Values.operator.apiGroup }}/cr-checksum: {{ include (print .Template.BasePath "/cr.yaml") . | sha256sum | trunc 63 }}
+        {{ .Values.operator.apiGroup }}/cr-checksum: {{ include (printf "%s/templates/cr.yaml" .Chart.Name) . | sha256sum | trunc 63 }}
     spec:
       terminationGracePeriodSeconds: 45
       securityContext:

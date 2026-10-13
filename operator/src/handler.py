@@ -1659,34 +1659,32 @@ class KubernetesHelper:
         self._mark_version_chain(True)
         try:
             for index, step in enumerate(plan.steps):
-                # Temporary: do not block the next step on the reported version.
-                # Fake images keep answering the previous rabbitmqctl version.
-                # if index > 0:
-                #     versions, read_error = self._read_pod_versions()
-                #     if read_error or not nodes_reached(versions, plan.steps[index - 1].version):
-                #         message = (
-                #             f"running {plan.running}, target {plan.target}, "
-                #             f"nodes have not reached {plan.steps[index - 1].version}"
-                #         )
-                #         self.update_status(FAILED, "Error", message)
-                #         raise kopf.PermanentError(message)
+                if index > 0:
+                    versions, read_error = self._read_pod_versions()
+                    if read_error or not nodes_reached(versions, plan.steps[index - 1].version):
+                        message = (
+                            f"running {plan.running}, target {plan.target}, "
+                            f"nodes have not reached {plan.steps[index - 1].version}"
+                        )
+                        self.update_status(FAILED, "Error", message)
+                        raise kopf.PermanentError(message)
                 step_image = step.image if step.intermediate else self._spec['rabbitmq'].get('dockerImage')
                 if self._pods_ready_on_image(step_image):
                     logger.info("RabbitMQ pods already run %s, not restarting", step_image)
-                    continue
-                try:
-                    self.nodes_enable_feature_flags()
-                except RuntimeError as exc:
-                    message = (
-                        f"running {plan.running}, target {plan.target}, "
-                        f"failed to enable feature flags at {step.version}: {exc}"
-                    )
-                    self.update_status(FAILED, "Error", message)
-                    raise kopf.PermanentError(message)
-                self._image_override = step.image if step.intermediate else None
-                self.update_config()
-                self._reboot_onto_image(step_image)
-                # self._wait_until_nodes_report(step.version)
+                else:
+                    try:
+                        self.nodes_enable_feature_flags()
+                    except RuntimeError as exc:
+                        message = (
+                            f"running {plan.running}, target {plan.target}, "
+                            f"failed to enable feature flags at {step.version}: {exc}"
+                        )
+                        self.update_status(FAILED, "Error", message)
+                        raise kopf.PermanentError(message)
+                    self._image_override = step.image if step.intermediate else None
+                    self.update_config()
+                    self._reboot_onto_image(step_image)
+                self._wait_until_nodes_report(step.version)
         finally:
             self._image_override = None
         self._mark_version_chain(False)
@@ -1701,8 +1699,9 @@ class KubernetesHelper:
             exec_output = self.exec_command_in_pod(pod_name, ['rabbitmqctl', 'version']) or ""
         except Exception:
             exec_output = ""
-        if parse_major_minor(exec_output):
-            return resolve_pod_version(exec_output, None)
+        parsed = resolve_pod_version(exec_output, None)
+        if parsed:
+            return parsed
         overview_body = ""
         try:
             user = self.get_user_from_secret()

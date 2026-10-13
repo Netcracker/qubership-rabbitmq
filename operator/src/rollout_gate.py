@@ -12,9 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import json
 import os
+import ssl
 import sys
 import time
+import urllib.error
+import urllib.request
 
 from kubernetes import client, config
 from kubernetes.stream import stream
@@ -31,9 +36,11 @@ from upgrade_path import (
 )
 
 DEPLOYMENT = "rabbitmq-operator"
+SECRET = "rabbitmq-default-secret"
 POLL_SECONDS = 5
 VERSION_ATTEMPTS = 6
 ROLLOUT_TIMEOUT_SECONDS = 300
+_MIN_LINE_3 = (3, 13)
 
 
 def _oldest_running(core, namespace):
@@ -56,64 +63,80 @@ def _oldest_running(core, namespace):
         if parsed is None:
             return None, VERSION_UNREADABLE
         versions.append(parsed)
-    return str(min(versions)), None
+    return min(versions), None
 
 
-def _json_pointer(key):
-    return key.replace("~", "~0").replace("/", "~1")
+def _deprecated_features_url():
+    return os.environ["RABBITMQ_URL"].rstrip("/") + "/api/deprecated-features/used"
 
 
-def _roll_deployment(apps, namespace, operator_image):
-    deployment = apps.read_namespaced_deployment(DEPLOYMENT, namespace)
-    containers = deployment.spec.template.spec.containers
-    index = next(i for i, container in enumerate(containers) if container.name == DEPLOYMENT)
+def _classic_mirroring_in_use(core, namespace):
+    secret = core.read_namespaced_secret(SECRET, namespace)
+    user = base64.b64decode(secret.data["user"]).decode()
+    password = base64.b64decode(secret.data["password"]).decode()
+    url = _deprecated_features_url()
+    token = base64.b64encode(f"{user}:{password}".encode()).decode()
+    request = urllib.request.Request(url, headers={"Authorization": f"Basic {token}"})
+    context = ssl.create_default_context()
+    if url.startswith("https://"):
+        context.check_hostname = False
+        context.verify_mode = ssl.CERT_NONE
+    print(f"checking deprecated features at {url}", flush=True)
+    try:
+        with urllib.request.urlopen(request, context=context, timeout=60) as response:
+            payload = json.loads(response.read().decode())
+    except urllib.error.HTTPError as exc:
+        sys.exit(f"deprecated-features/used returned {exc.code}")
+    except Exception as exc:
+        sys.exit(f"deprecated-features/used failed: {exc}")
+    if not isinstance(payload, list):
+        sys.exit("deprecated-features/used did not return a list")
+    names = [item.get("name") for item in payload if isinstance(item, dict)]
+    print(f"deprecated features in use: {names}", flush=True)
+    return "classic_queue_mirroring" in names
+
+
+def _reject_unsafe_major_upgrade(core, namespace, running, target):
+    if running is None or target is None or target.major < 4 or running.major >= 4:
+        return
+    if (running.major, running.minor) < _MIN_LINE_3:
+        sys.exit(
+            f"running {running}, target {target}, "
+            f"upgrade to 4.x requires RabbitMQ 3.13 or newer"
+        )
+    if (running.major, running.minor) != _MIN_LINE_3:
+        return
+    if _classic_mirroring_in_use(core, namespace):
+        sys.exit(
+            f"running {running}, target {target}, "
+            f"classic mirrored queues are still in use"
+        )
+
+
+def _scale_operator_to_zero(apps, namespace):
     apps.patch_namespaced_deployment(
         DEPLOYMENT,
         namespace,
-        [
-            {
-                "op": "add",
-                "path": "/spec/template/metadata/annotations/" + _json_pointer(os.environ["CR_CHECKSUM_ANNOTATION"]),
-                "value": os.environ["CR_CHECKSUM"],
-            },
-            {
-                "op": "add",
-                "path": "/spec/template/metadata/labels/app.kubernetes.io~1version",
-                "value": os.environ["OPERATOR_VERSION"],
-            },
-            {
-                "op": "replace",
-                "path": f"/spec/template/spec/containers/{index}/image",
-                "value": operator_image,
-            },
-        ],
+        [{"op": "replace", "path": "/spec/replicas", "value": 0}],
     )
     deadline = time.time() + ROLLOUT_TIMEOUT_SECONDS
     while time.time() < deadline:
         deployment = apps.read_namespaced_deployment(DEPLOYMENT, namespace)
         status = deployment.status
-        desired = deployment.spec.replicas or 1
-        image = next(
-            (container.image for container in deployment.spec.template.spec.containers if container.name == DEPLOYMENT),
-            None,
+        scaled = (
+            (deployment.spec.replicas or 0) == 0
+            and not (status.replicas or 0)
+            and not (status.ready_replicas or 0)
         )
-        ready = (
-            image == operator_image
-            and (status.observed_generation or 0) >= deployment.metadata.generation
-            and (status.updated_replicas or 0) >= desired
-            and (status.ready_replicas or 0) >= desired
-            and not status.unavailable_replicas
-        )
-        if ready:
-            print("operator rolled to the chart image", flush=True)
+        if scaled:
+            print("operator scaled to 0", flush=True)
             return
         time.sleep(POLL_SECONDS)
-    sys.exit("operator rollout did not become Ready")
+    sys.exit("operator did not scale to 0")
 
 
 def main():
     namespace = os.environ["NAMESPACE"]
-    operator_image = os.environ["OPERATOR_IMAGE"]
     docker_image = os.environ.get("DOCKER_IMAGE", "")
     intermediate_images = [
         item.strip() for item in os.environ.get("INTERMEDIATE_IMAGES", "").split(",") if item.strip()
@@ -130,7 +153,8 @@ def main():
         raise
 
     properties = load_properties(default_properties_path())
-    target = target_from_properties(properties["lines"], docker_image)
+    target_text = target_from_properties(properties["lines"], docker_image)
+    target = parse_major_minor(target_text)
     running = None
     read_error = VERSION_UNREADABLE
     for _ in range(VERSION_ATTEMPTS):
@@ -144,9 +168,10 @@ def main():
     if read_error:
         sys.exit(read_error)
 
+    _reject_unsafe_major_upgrade(core, namespace, running, target)
     plan = plan_upgrade(
-        running,
-        target,
+        str(running),
+        target_text or "",
         properties["intermediateVersions"],
         images_by_version(intermediate_images),
         docker_image,
@@ -154,8 +179,8 @@ def main():
     if not has_intermediate_step(plan):
         print(f"running {running}, target {plan.target}, no intermediate step, leaving the operator", flush=True)
         return
-    print(f"running {running}, target {plan.target}, rolling the operator before the custom resource changes", flush=True)
-    _roll_deployment(apps, namespace, operator_image)
+    print(f"running {running}, target {plan.target}, scaling the operator to 0 before the custom resource changes", flush=True)
+    _scale_operator_to_zero(apps, namespace)
 
 
 if __name__ == "__main__":

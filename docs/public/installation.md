@@ -1177,7 +1177,7 @@ Scale In (decreasing) replicas are not supported out of the box. You need to be 
 
 ## Version Upgrade and Feature Flags
 
-Upgrades from RabbitMQ 3.13.x are supported to both RabbitMQ 4.0.x and RabbitMQ 4.1.x.
+The 4.x line image is RabbitMQ 4.3.6. RabbitMQ allows 4.3.x only from 4.2.x, so `intermediateVersions=4.2` is the stop before it. 3.13.x, 4.0.x, and 4.1.x go to that 4.2 image first. A cluster that is already 4.2.x skips it and moves to the line image. Use the latest 4.2 patch before that hop: 4.2.5 and 4.2.9 are the same step for the operator.
 To upgrade RabbitMQ version you need to make sure that all feature flags not marked as experimental are enabled.
 
 To check that, execute the following command in any RabbitMQ pod:
@@ -1205,7 +1205,9 @@ For example to upgrade from `3.10.x` to `3.12.x` you need to upgrade from `3.10.
 
 The operator follows `intermediateVersions` from `operator/rabbitmq.properties`. Comparison uses only major and minor, so the patch does not change the step. A stop equal to the running major.minor or equal to the target is skipped. When a selected stop has no image in the custom resource, the upgrade fails before feature flags are enabled and before the cluster changes.
 
-A pre-upgrade hook rolls the operator Deployment and waits until the new pod is Ready only when the new `rabbitmq.properties` puts an intermediate stop between the running RabbitMQ version and the target. A direct upgrade to the target image does not roll the operator. The custom resource changes after that hook.
+A pre-upgrade hook scales the operator Deployment to 0 and waits until it has no pods only when the new `rabbitmq.properties` puts an intermediate stop between the running RabbitMQ version and the target. Helm then starts the new operator. A direct upgrade to the target image leaves the operator running. The custom resource changes after that hook.
+
+The same hook rejects an upgrade to 4.x when the running RabbitMQ is older than 3.13. From 3.13 it calls the RabbitMQ management API `/api/deprecated-features/used` and stops the upgrade while classic queue mirroring is still in use. If the hook Job fails, its logs are described in [Pre-upgrade Job Failed](troubleshooting.md#pre-upgrade-job-failed).
 
 ## CRD Upgrade
 

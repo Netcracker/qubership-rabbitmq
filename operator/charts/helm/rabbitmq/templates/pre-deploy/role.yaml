@@ -22,4 +22,8 @@ rules:
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["create", "get"]
+  - apiGroups: [""]
+    resources: ["secrets"]
+    resourceNames: ["rabbitmq-default-secret"]
+    verbs: ["get"]
 {{- end }}

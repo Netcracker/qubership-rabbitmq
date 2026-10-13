@@ -130,19 +130,36 @@ During an upgrade the operator SHALL write only the image for the current step: 
 
 ### Requirement: The previous operator is replaced before an intermediate step
 
-On an upgrade, a pre-upgrade hook SHALL build the plan from the new properties file and the oldest running major.minor. When that plan contains an intermediate step, the hook SHALL set the operator image, the custom-resource checksum, and the release version label to the chart values and wait until that pod is Ready before the custom resource changes. The chart apply that follows SHALL NOT change that pod template again. When the plan has no intermediate step, the hook SHALL NOT roll the Deployment.
+On an upgrade, a pre-upgrade hook SHALL build the plan from the new properties file and the oldest running major.minor. When that plan contains an intermediate step, the hook SHALL scale the operator Deployment to 0 and wait until it has no pods before the custom resource changes. When the plan has no intermediate step, the hook SHALL leave the Deployment unchanged.
 
 #### Scenario: A later target still has a stop in between
 
 - **WHEN** the oldest running major.minor is 4.0
 - **AND** the new target is 5.1
 - **AND** the new intermediate list is 4.2, then 4.7, then 5.0
-- **THEN** the hook rolls the operator and waits until the new pod is Ready
-- **AND** the custom resource is unchanged until that pod is Ready
+- **THEN** the hook scales the operator Deployment to 0 and waits until it has no pods
+- **AND** the custom resource is unchanged until the operator is stopped
 
 #### Scenario: The only stop equals the target
 
 - **WHEN** the oldest running major.minor is 4.0
 - **AND** the new target is 4.2
 - **AND** the new intermediate list contains only 4.2
-- **THEN** the hook does not roll the operator Deployment
+- **THEN** the hook leaves the operator Deployment unchanged
+
+### Requirement: A move to 4.x starts at 3.13 without classic mirroring
+
+The pre-upgrade hook SHALL reject an upgrade whose target major is 4 or newer when the oldest running major.minor is below 3.13. When the oldest running major.minor is 3.13 and the target major is 4 or newer, the hook SHALL read `/api/deprecated-features/used` from the RabbitMQ service and SHALL reject the upgrade while `classic_queue_mirroring` is in use. The custom resource template SHALL NOT fail chart rendering for this check.
+
+#### Scenario: The cluster is older than 3.13
+
+- **WHEN** the oldest running major.minor is below 3.13
+- **AND** the target major is 4 or newer
+- **THEN** the pre-upgrade hook fails before the custom resource changes
+
+#### Scenario: 3.13 still uses classic mirroring
+
+- **WHEN** the oldest running major.minor is 3.13
+- **AND** the target major is 4 or newer
+- **AND** `/api/deprecated-features/used` lists `classic_queue_mirroring`
+- **THEN** the pre-upgrade hook fails before the custom resource changes
