@@ -44,7 +44,7 @@ spec:
               value: {{ printf "%s://rabbitmq.%s:%s" (include "rabbitmq.protocol" .) .Release.Namespace (include "rabbitmq.port" .) | quote }}
           command:
             - python
-            - /opt/operator/rollout_gate.py
+            - /opt/operator/upgrade_gate.py
           resources:
             requests:
               cpu: 50m
