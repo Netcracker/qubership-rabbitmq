@@ -23,6 +23,7 @@ spec:
       name: rabbitmq-integration-tests
   strategy:
     type: Recreate
+  progressDeadlineSeconds: {{ include "tests.timeout" . }}
   replicas: 1
   template:
     metadata:
