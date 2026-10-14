@@ -27,9 +27,9 @@ from kubernetes.stream import stream
 from upgrade_path import (
     VERSION_UNREADABLE,
     default_properties_path,
-    has_intermediate_step,
     images_by_version,
     load_properties,
+    operator_must_stop,
     parse_major_minor,
     plan_upgrade,
     target_from_properties,
@@ -64,6 +64,16 @@ def _oldest_running(core, namespace):
             return None, VERSION_UNREADABLE
         versions.append(parsed)
     return min(versions), None
+
+
+def _statefulset_images(apps, namespace):
+    statefulsets = apps.list_namespaced_stateful_set(namespace, label_selector="app=rmqlocal").items
+    images = []
+    for statefulset in statefulsets:
+        containers = statefulset.spec.template.spec.containers or []
+        if containers and containers[0].image:
+            images.append(containers[0].image)
+    return images
 
 
 def _deprecated_features_url():
@@ -113,26 +123,26 @@ def _reject_unsafe_major_upgrade(core, namespace, running, target):
         )
 
 
-def _scale_operator_to_zero(apps, namespace):
+def _scale_operator(apps, namespace, replicas):
     apps.patch_namespaced_deployment(
         DEPLOYMENT,
         namespace,
-        [{"op": "replace", "path": "/spec/replicas", "value": 0}],
+        [{"op": "replace", "path": "/spec/replicas", "value": replicas}],
     )
     deadline = time.time() + ROLLOUT_TIMEOUT_SECONDS
     while time.time() < deadline:
         deployment = apps.read_namespaced_deployment(DEPLOYMENT, namespace)
         status = deployment.status
-        scaled = (
-            (deployment.spec.replicas or 0) == 0
-            and not (status.replicas or 0)
-            and not (status.ready_replicas or 0)
-        )
-        if scaled:
-            print("operator scaled to 0", flush=True)
+        ready = status.ready_replicas or 0
+        current = status.replicas or 0
+        reached = (deployment.spec.replicas or 0) == replicas and current == ready == (replicas if replicas else 0)
+        if replicas == 0:
+            reached = (deployment.spec.replicas or 0) == 0 and not current and not ready
+        if reached:
+            print(f"operator scaled to {replicas}", flush=True)
             return
         time.sleep(POLL_SECONDS)
-    sys.exit("operator did not scale to 0")
+    raise RuntimeError(f"operator did not scale to {replicas}")
 
 
 def main():
@@ -151,6 +161,11 @@ def main():
             print("operator deployment is absent, nothing to roll", flush=True)
             return
         raise
+
+    images = _statefulset_images(apps, namespace)
+    if docker_image and images and all(image == docker_image for image in images):
+        print("RabbitMQ image is unchanged, leaving the operator", flush=True)
+        return
 
     properties = load_properties(default_properties_path())
     target_text = target_from_properties(properties["lines"], docker_image)
@@ -176,11 +191,21 @@ def main():
         images_by_version(intermediate_images),
         docker_image,
     )
-    if not has_intermediate_step(plan):
-        print(f"running {running}, target {plan.target}, no intermediate step, leaving the operator", flush=True)
+    if plan.error:
+        sys.exit(plan.error)
+    if not operator_must_stop(plan):
+        print(f"running {running}, target {plan.target}, no version step, leaving the operator", flush=True)
         return
     print(f"running {running}, target {plan.target}, scaling the operator to 0 before the custom resource changes", flush=True)
-    _scale_operator_to_zero(apps, namespace)
+    try:
+        _scale_operator(apps, namespace, 0)
+    except Exception as exc:
+        print(f"{exc}, restoring operator replicas", flush=True)
+        try:
+            _scale_operator(apps, namespace, 1)
+        except Exception as restore_error:
+            sys.exit(f"{exc}; failed to restore operator: {restore_error}")
+        sys.exit(str(exc))
 
 
 if __name__ == "__main__":

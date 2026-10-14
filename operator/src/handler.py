@@ -1608,6 +1608,18 @@ class KubernetesHelper:
     def _resume_continues_chain(self):
         if self._version_chain_marked():
             return True
+        versions, read_error = self._read_pod_versions()
+        if read_error or not versions:
+            return True
+        try:
+            properties = load_properties(default_properties_path())
+            target = parse_major_minor(
+                target_from_properties(properties["lines"], self._spec['rabbitmq'].get('dockerImage'))
+            )
+        except Exception:
+            return True
+        if target is None or any(version != target for version in versions):
+            return True
         image = self._statefulset_rabbit_image()
         return bool(image) and image != self._spec['rabbitmq'].get('dockerImage')
 
@@ -1828,23 +1840,6 @@ class KubernetesHelper:
             time.sleep(khepri_retry_interval)
 
         logger.info("Khepri metadata migration verified successfully")
-
-    def annotate_migration_state(self):
-        """Set requireManualMigration annotation on the CR for 3.x clusters.
-
-        The annotation is read by the Helm upgrade gate when deploying 4.x
-        to verify the cluster is free of classic mirrored queues / HA policies.
-        """
-        if self._target_version_at_least(4, 0):
-            return
-        rabbit_helper = self._build_rabbit_helper()
-        try:
-            requires = "true" if rabbit_helper.is_classic_mirroring_in_use() else "false"
-        except Exception as e:
-            logger.warning("Cannot assess migration state, annotation unchanged: %s", e)
-            return
-        self.update_custom_resource({"metadata": {"annotations": {"requireManualMigration": requires}}})
-        logger.info("requireManualMigration=%s annotated on CR", requires)
 
     def is_nodeport_required(self):
         if 'nodePortService' in self._spec['rabbitmq']:
@@ -2272,22 +2267,6 @@ def on_resume(spec, **kwargs):
         kub_helper.apply_version_chain(plan)
 
 
-@kopf.timer(api_group, cr_version, 'rabbitmqservices', interval=300, initial_delay=60)
-def mirroring_state_monitor(spec, **kwargs):
-    """Periodically refresh the requireManualMigration annotation on 3.x clusters.
-
-    Runs every 5 minutes so the annotation stays current even when HA policies
-    are added or removed without a CR change.
-    """
-    kub_helper = KubernetesHelper(spec)
-    if kub_helper._target_version_at_least(4, 0):
-        return
-    if not kub_helper.check_rabbit_pods_readiness():
-        logger.debug("RabbitMQ not ready, skipping mirroring state check")
-        return
-    kub_helper.annotate_migration_state()
-
-
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
 def on_create(body, meta, spec, status, **kwargs):
     kub_helper = KubernetesHelper(spec)
@@ -2345,7 +2324,6 @@ def on_create(body, meta, spec, status, **kwargs):
             kub_helper.get_previously_managed_pvc_annotations(kub_helper.get_custom_resource_status()))
         kub_helper.enable_feature_flags()
         kub_helper.verify_khepri_migration()
-        kub_helper.annotate_migration_state()
         if not kub_helper.check_backup_daemon():
             kub_helper.update_status(
                 FAILED,
@@ -2604,7 +2582,6 @@ def on_update(body, meta, spec, status, old, new, diff, **kwargs):
             old_image = old.get('spec', {}).get('rabbitmq', {}).get('dockerImage', '')
             if rabbit_exist_before and old_image != spec.get('rabbitmq', {}).get('dockerImage', ''):
                 kub_helper.verify_khepri_migration()
-            kub_helper.annotate_migration_state()
             pprint.pprint(list(diff))
             if not kub_helper.check_backup_daemon():
                 kub_helper.update_status(

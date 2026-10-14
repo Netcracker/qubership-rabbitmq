@@ -153,6 +153,12 @@ def target_from_properties(lines, docker_image):
     return lines[max(lines)]
 
 
+def operator_must_stop(plan):
+    if plan.error or not plan.running or plan.running == plan.target:
+        return has_intermediate_step(plan)
+    return True
+
+
 def has_intermediate_step(plan):
     if any(step.intermediate for step in plan.steps):
         return True
@@ -223,6 +229,12 @@ def plan_upgrade(
             target=target_key,
         )
     running_text = str(initial_mm)
+    if target_mm < initial_mm:
+        return UpgradePlan(
+            error=f"running {running_text}, target {target_key}, downgrade is not supported",
+            running=running_text,
+            target=target_key,
+        )
     if initial_mm == target_mm and pods_use_target_image:
         return UpgradePlan(steps=[], running=running_text, target=target_key)
 

@@ -1171,6 +1171,8 @@ then check the Release Notes and Breaking Changes sections for `0.2.0` and `0.3.
 
 **Important**: Do not change the `rabbitmq.hostpath_configuration` parameter during the upgrade. Upgrade from a predefined PV to storage class is not supported, use reinstall instead.
 
+Any upgrade can be performed only on a working RabbitMQ. If RabbitMQ is not working, restore it first by installing the same version that was deployed.
+
 ## Scale In
 
 Scale In (decreasing) replicas are not supported out of the box. You need to be sure that the removed nodes do not contain not-replicated unique data.
@@ -1205,7 +1207,7 @@ For example to upgrade from `3.10.x` to `3.12.x` you need to upgrade from `3.10.
 
 The operator follows `intermediateVersions` from `operator/rabbitmq.properties`. Comparison uses only major and minor, so the patch does not change the step. A stop equal to the running major.minor or equal to the target is skipped. When a selected stop has no image in the custom resource, the upgrade fails before feature flags are enabled and before the cluster changes.
 
-A pre-upgrade hook scales the operator Deployment to 0 and waits until it has no pods only when the new `rabbitmq.properties` puts an intermediate stop between the running RabbitMQ version and the target. Helm then starts the new operator. A direct upgrade to the target image leaves the operator running. The custom resource changes after that hook.
+A pre-upgrade hook scales the operator Deployment to 0 when the running RabbitMQ major.minor is lower than the target, including a direct move such as 4.2 to 4.3. Helm then starts the new operator and the custom resource changes after that hook. The hook does not run the check when the StatefulSet already uses the requested RabbitMQ image, so an operator-only upgrade proceeds while RabbitMQ is down. A target older than the running version is rejected. If the hook itself fails after scaling, it sets replicas back to 1.
 
 The same hook rejects an upgrade to 4.x when the running RabbitMQ is older than 3.13. From 3.13 it calls the RabbitMQ management API `/api/deprecated-features/used` and stops the upgrade while classic queue mirroring is still in use. If the hook Job fails, its logs are described in [Pre-upgrade Job Failed](troubleshooting.md#pre-upgrade-job-failed).
 

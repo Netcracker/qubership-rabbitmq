@@ -7,7 +7,7 @@ ENV WORKDIR=/opt/operator/ \
 COPY build/requirements.txt requirements.txt
 COPY src/handler.py ${WORKDIR}
 COPY src/upgrade_path.py ${WORKDIR}
-COPY src/rollout_gate.py ${WORKDIR}
+COPY src/upgrade_gate.py ${WORKDIR}
 COPY src/rabbitconstants.py ${WORKDIR}
 COPY src/rabbit_helper.py ${WORKDIR}
 COPY src/backup_helper.py ${WORKDIR}
@@ -24,13 +24,19 @@ RUN apk add --update --no-cache bash build-base apk-tools \
 RUN python -m pip install --no-cache-dir --upgrade "pip>=26.0" "setuptools==80.10.1" "jaraco.context>=6.1.0" \
     && pip install --no-cache-dir -r requirements.txt
 
+COPY src /tmp/operator-tests/src
+COPY test_upgrade_path.py /tmp/operator-tests/test_upgrade_path.py
+COPY charts/helm/rabbitmq/values.yaml /tmp/operator-tests/charts/helm/rabbitmq/values.yaml
+RUN python -m unittest discover -s /tmp/operator-tests -p "test_*.py" \
+    && rm -rf /tmp/operator-tests
+
 RUN chmod 777 /usr/local/bin/user_setup && \
 chmod 777 /usr/local/bin/entrypoint && \
 chmod 777 /opt/operator/rabbitconstants.py && \
 chmod 777 /opt/operator/rabbit_helper.py && \
 chmod 777 /opt/operator/handler.py && \
 chmod 777 /opt/operator/upgrade_path.py && \
-chmod 777 /opt/operator/rollout_gate.py && \
+chmod 777 /opt/operator/upgrade_gate.py && \
 chmod 777 /opt/operator/rabbitmq.properties && \
 chmod 777 /opt/operator/velero_delete_pods_rmqlocal.py
 RUN /usr/local/bin/user_setup
