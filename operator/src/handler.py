@@ -1411,9 +1411,9 @@ class KubernetesHelper:
     def check_cluster_state(self):
         rabbit_helper = self._build_rabbit_helper()
         for i in range(0, 30):
+            time.sleep(30)
             if rabbit_helper.is_cluster_alive(self._spec['rabbitmq']['replicas']):
                 return
-            time.sleep(30)
         self.update_status(
             FAILED,
             "Error",
