@@ -547,6 +547,10 @@
         "replicas": { "type": "integer", "default": 3 },
         "dockerImage": { "type": "string" },
         "dockerImage3": { "type": "string" },
+        "intermediateImages": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
         "resources": { "$ref": "#/$defs/rabbitmqResources" },
         "storage": {
           "type": "string",

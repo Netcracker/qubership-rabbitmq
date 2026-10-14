@@ -24,6 +24,7 @@ The following topics are covered in this chapter:
   * [Problems with .erlang.cookie](#problems-with-erlangcookie)
   * [badmatch,{error,einval} error on NFS Storage](#badmatcherror-einval-error-on-nfs-storage)
   * [Operator Contains "Object is being deleted: statefulsets.apps already exists..." Error](#operator-contains-object-is-being-deleted-statefulsetsapps-already-exists-error)
+  * [Pre-upgrade Job Failed](#pre-upgrade-job-failed)
 <!-- TOC -->
 
 This section provides detailed troubleshooting procedures for the RabbitMQ cluster.
@@ -481,3 +482,15 @@ To resolve this issue, follow these steps:
 
 3. Restart the rmqlocal-0 pod after changing the ownership. Repeat steps 1 and 2 for all other RabbitMQ pods.
 4. Run the Deployer job with upgrade mode to apply the changes.
+
+## Pre-upgrade Job Failed
+
+Helm runs the `rabbitmq-operator-rollout` Job before an upgrade. A failed Job stops the release, and the Job is kept so its logs stay available.
+
+Read them with:
+
+```sh
+kubectl logs job/rabbitmq-operator-rollout -n <namespace>
+```
+
+The log names the running RabbitMQ version, the target, and the reason the Job exited. A running version below 3.13 cannot move to 4.x. A 3.13 cluster moving to 4.x is rejected while `classic_queue_mirroring` is still reported by `/api/deprecated-features/used`.

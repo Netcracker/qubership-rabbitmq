@@ -70,6 +70,9 @@ jobs:
           - name: qubership-rabbitmq-image-3
             file: rabbitmq-docker/3.13/Dockerfile
             context: rabbitmq-docker
+          - name: qubership-rabbitmq-image-4.2
+            file: rabbitmq-docker/intermediate-versions/4.2/Dockerfile
+            context: rabbitmq-docker
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
