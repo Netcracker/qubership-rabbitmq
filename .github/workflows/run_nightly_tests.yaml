@@ -6,10 +6,10 @@ on:
 
 jobs:
   Nightly-Rabbitmq-Pipeline:
-    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@e1905f040398e9ae733b0cefa7e7793b6204ecfe # v1.16.0
+    uses: Netcracker/qubership-test-pipelines/.github/workflows/rabbitmq.yaml@96118c398ac5bb4f8e8dff69b05a71789e873684 # v1.17.2
     with:
       service_branch: 'main'
-      pipeline_branch: 'e1905f040398e9ae733b0cefa7e7793b6204ecfe' # v1.16.0 renovate: depName=Netcracker/qubership-test-pipelines
+      pipeline_branch: '96118c398ac5bb4f8e8dff69b05a71789e873684' # v1.17.2 renovate: depName=Netcracker/qubership-test-pipelines
       scope: 'nightly'
       allure: true
       verify_timeout_minutes: 80
