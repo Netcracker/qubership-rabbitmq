@@ -39,7 +39,7 @@ spec:
             - name: DOCKER_IMAGE
               value: {{ include "rabbitmq.image" . | quote }}
             - name: INTERMEDIATE_IMAGES
-              value: {{ join "," .Values.rabbitmq.intermediateImages | quote }}
+              value: {{ include "rabbitmq.intermediateImages" . | fromYamlArray | join "," | quote }}
             - name: RABBITMQ_URL
               value: {{ printf "%s://rabbitmq.%s:%s" (include "rabbitmq.protocol" .) .Release.Namespace (include "rabbitmq.port" .) | quote }}
           command:
