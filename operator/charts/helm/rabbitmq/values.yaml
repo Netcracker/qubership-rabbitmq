@@ -187,7 +187,8 @@ rabbitmq:
   # customConfigProperties:
   #   - log.file = true
   #   - queue_master_locator = client-local
-  customConfigProperties: []
+  customConfigProperties:
+    - deprecated_features.permit.transient_nonexcl_queues = true
   # Custom advanced configuration properties for RabbitMQ (advanced.config) in multi-line format. For example,
   # customAdvancedProperties:
   #   - |-
