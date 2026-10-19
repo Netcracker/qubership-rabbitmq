@@ -1577,25 +1577,6 @@ class KubernetesHelper:
             pods_use_target_image=self._pods_use_target_image(),
         )
 
-    def _version_chain_marked(self):
-        try:
-            status = self.get_custom_resource_status().get('status') or {}
-        except Exception:
-            return False
-        return bool(status.get('versionChain'))
-
-    def _mark_version_chain(self, active):
-        cr_status = self.get_custom_resource_status()
-        status = cr_status.get('status') or {}
-        if not isinstance(status, dict):
-            status = {}
-        if active:
-            status['versionChain'] = True
-        else:
-            status.pop('versionChain', None)
-        cr_status['status'] = status
-        self.update_custom_resource_status(cr_status)
-
     def _statefulset_rabbit_image(self):
         try:
             name = 'rmqlocal-0' if self.is_hostpath() else 'rmqlocal'
@@ -1604,24 +1585,6 @@ class KubernetesHelper:
             return containers[0]['image']
         except Exception:
             return None
-
-    def _resume_continues_chain(self):
-        if self._version_chain_marked():
-            return True
-        versions, read_error = self._read_pod_versions()
-        if read_error or not versions:
-            return True
-        try:
-            properties = load_properties(default_properties_path())
-            target = parse_major_minor(
-                target_from_properties(properties["lines"], self._spec['rabbitmq'].get('dockerImage'))
-            )
-        except Exception:
-            return True
-        if target is None or any(version != target for version in versions):
-            return True
-        image = self._statefulset_rabbit_image()
-        return bool(image) and image != self._spec['rabbitmq'].get('dockerImage')
 
     def _rabbit_pod_names(self):
         replicas = self._spec['rabbitmq']['replicas']
@@ -1668,7 +1631,6 @@ class KubernetesHelper:
             self._wait_until_pod_ready_on_image(pod_name, image)
 
     def apply_version_chain(self, plan):
-        self._mark_version_chain(True)
         try:
             for index, step in enumerate(plan.steps):
                 if index > 0:
@@ -1699,7 +1661,6 @@ class KubernetesHelper:
                 self._wait_until_nodes_report(step.version)
         finally:
             self._image_override = None
-        self._mark_version_chain(False)
 
     def _pods_use_target_image(self):
         image = self._statefulset_rabbit_image()
@@ -1992,8 +1953,6 @@ class KubernetesHelper:
             status_dict['pvcStatus'] = preserved_pvc_status
         if preserved_disaster_recovery_status is not None:
             status_dict['disasterRecoveryStatus'] = preserved_disaster_recovery_status
-        if existing_status.get('versionChain'):
-            status_dict['versionChain'] = True
         cr_status['status'] = status_dict
         self.update_custom_resource_status(cr_status)
 
@@ -2250,21 +2209,7 @@ def on_resume(spec, **kwargs):
         logger.info("RabbitMQ StatefulSet is absent on resume, installing")
         on_create(spec=spec, **kwargs)
         return
-    if not kub_helper._resume_continues_chain():
-        logger.info("Custom resource is unchanged on resume, waiting for the upgrade")
-        return
-    plan = kub_helper.prepare_version_plan()
-    if plan.error == VERSION_UNREADABLE:
-        logger.info("RabbitMQ version is not readable yet on resume, will retry")
-        raise kopf.TemporaryError(plan.error, delay=30)
-    if plan.error:
-        kub_helper.update_status(FAILED, "Error", plan.error)
-        raise kopf.PermanentError(plan.error)
-    if not plan.steps:
-        kub_helper._mark_version_chain(False)
-        return
-    with rabbit_operation():
-        kub_helper.apply_version_chain(plan)
+    logger.info("RabbitMQ StatefulSet is present on resume, leaving the upgrade to on_update")
 
 
 @kopf.on.create(api_group, cr_version, 'rabbitmqservices')
