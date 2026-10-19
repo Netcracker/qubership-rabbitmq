@@ -223,6 +223,20 @@ Find a RabbitMQ image in various places.
 {{- end -}}
 
 {{/*
+RabbitMQ intermediate images for a multi-step upgrade.
+Rendered as a YAML list of quoted image references.
+*/}}
+{{- define "rabbitmq.intermediateImages" -}}
+  {{- if .Values.rabbitmq.intermediateImages }}
+    {{- range .Values.rabbitmq.intermediateImages }}
+      {{- printf "- %s\n" (. | quote) }}
+    {{- end }}
+  {{- else }}
+    {{- printf "[]" }}
+  {{- end }}
+{{- end -}}
+
+{{/*
 Storage class from various places.
 */}}
 {{- define "rabbitmq.storageclass" -}}

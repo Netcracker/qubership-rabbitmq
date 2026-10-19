@@ -118,9 +118,7 @@ spec:
     {{- end }}
     dockerImage: {{ template "rabbitmq.image" . }}
     intermediateImages:
-      {{- range .Values.rabbitmq.intermediateImages }}
-      - {{ . | quote }}
-      {{- end }}
+      {{- include "rabbitmq.intermediateImages" . | trim | nindent 6 }}
     resources:
       requests:
         cpu: {{ default "1" .Values.rabbitmq.resources.requests.cpu }}
