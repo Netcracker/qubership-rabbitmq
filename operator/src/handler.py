@@ -1246,7 +1246,7 @@ class KubernetesHelper:
             else:
                 self.delete_ignore_not_found(self._v1_apps_api.delete_namespaced_pod, name=f'rmqlocal-{idx}')
                 self.check_cluster_state()
-                perform_rabbit_pods_readiness_check(self)
+                self.check_rabbit_pods_readiness()
             logger.info(f'pod {idx} rebooted successfully')
         if self.is_hostpath():
             self.check_cluster_state()
