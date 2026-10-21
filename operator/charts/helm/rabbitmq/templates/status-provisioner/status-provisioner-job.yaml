@@ -10,6 +10,10 @@ metadata:
     app.kubernetes.io/name: rabbitmq-status-provisioner
     app.kubernetes.io/instance: rabbitmq-status-provisioner{{ .Values.DELIMITER }}{{ .Release.Namespace }}
     name: rabbitmq-status-provisioner
+  annotations:
+    "helm.sh/hook": post-install,post-upgrade
+    "helm.sh/hook-weight": "1"
+    "helm.sh/hook-delete-policy": before-hook-creation
 spec:
   ttlSecondsAfterFinished: {{ .Values.statusProvisioner.lifetimeAfterCompletion | default 600 }}
   template:
