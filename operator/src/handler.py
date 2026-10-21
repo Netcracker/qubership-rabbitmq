@@ -87,6 +87,8 @@ secret_name = 'rabbitmq-default-secret'
 vct_name = 'default-vct-name'
 telegraf_name = 'telegraf'
 username_change_attr = ('data', 'user')
+password_change_attr = ('data', 'password')
+credential_change_attrs = (username_change_attr, password_change_attr)
 tests_name = 'rabbitmq-integration-tests'
 nodeport_service_name = 'rabbitmq-nodeport'
 cr_version = "v2"
@@ -309,8 +311,14 @@ class KubernetesHelper:
         else:
             return None
 
+    def _core_v1_api_for_exec(self):
+        # stream() temporarily replaces ApiClient.request with a websocket
+        # transport. A dedicated client keeps that monkey-patch off the shared
+        # REST client used by concurrent kopf handlers/timers.
+        return client.CoreV1Api(client.ApiClient(configuration=self._api_client.configuration))
+
     def exec_command_in_pod(self, pod_name, exec_command):
-        v1api = self._v1_apps_api
+        v1api = self._core_v1_api_for_exec()
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=False,
@@ -333,7 +341,7 @@ class KubernetesHelper:
     
     def exec_command_in_pod_interactive(self, pod_name, commands):
         exec_command = ['/bin/sh']
-        v1api = self._v1_apps_api
+        v1api = self._core_v1_api_for_exec()
         resp = stream(v1api.connect_get_namespaced_pod_exec, pod_name, self._workspace,
                       command=exec_command,
                       stderr=True, stdin=True,
@@ -1827,8 +1835,10 @@ def change_rabbitmq_config(meta, **kwargs):
     return meta['name'] == configmap_name
 
 
-def change_rabbitmq_secret(meta, **kwargs):
-    return meta['name'] == secret_name
+def change_rabbitmq_secret(meta, diff, **kwargs):
+    if meta.get('name') != secret_name:
+        return False
+    return any(len(change) > 1 and change[1] in credential_change_attrs for change in diff)
 
 
 def check_cluster_state(spec, v1_apps_api, namespace):
