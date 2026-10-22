@@ -121,12 +121,19 @@ Set Replicas
 
 Change Rabbitmq Password With Function
     [Arguments]  ${pod_name}  ${password}
-    ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
-    ${username}=  Get User From Secret  ${secret}
-    ${result}  ${error}=  Execute Command In Pod  ${pod_name}  ${NAMESPACE}
-    ...  change_password ${username} ${password}
-    ${error}=  Normalize Exec Stderr  ${error}
-    Log  result: ${result} error: ${error}
+    FOR  ${i}  IN RANGE  30
+        ${secret}=  Get Secret  rabbitmq-default-secret  ${NAMESPACE}
+        ${username}=  Get User From Secret  ${secret}
+        ${result}  ${error}=  Execute Command In Pod  ${pod_name}  ${NAMESPACE}
+        ...  change_password ${username} ${password}
+        ${error}=  Normalize Exec Stderr  ${error}
+        Log  result: ${result} error: ${error}
+        ${ok}=  Run Keyword And Return Status  Should Be Empty  ${error}
+        Exit For Loop If  ${ok}
+        ${down}=  Run Keyword And Return Status  Should Contain  ${error}  not running
+        Should Be True  ${down}  ${error}
+        Sleep  10s
+    END
     Should Be Empty  ${error}
     Sleep  10s
 
