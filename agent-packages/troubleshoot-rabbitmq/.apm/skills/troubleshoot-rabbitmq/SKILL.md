@@ -13,6 +13,9 @@ cluster.
 [references/troubleshooting.md](./references/troubleshooting.md) is the fact source for known failure
 modes. It is a copy of `docs/public/troubleshooting.md` in this
 repository. Do **not** read it in full for a single symptom.
+[references/installation.md](./references/installation.md) is the fact source for known failure
+modes. It is a copy of `docs/public/installation.md` in this
+repository. Do **not** read it in full for a single symptom.
 
 ## Architecture
 
