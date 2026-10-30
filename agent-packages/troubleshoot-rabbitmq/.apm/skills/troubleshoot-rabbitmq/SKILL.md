@@ -10,7 +10,7 @@ deploys and reconciles in Kubernetes or OpenShift. Clients connect
 straight to the `rabbitmq` Service; the operator only manages the
 cluster.
 
-`references/troubleshooting.md` is the fact source for known failure
+[references/troubleshooting.md](./references/troubleshooting.md) is the fact source for known failure
 modes. It is a copy of `docs/public/troubleshooting.md` in this
 repository. Do **not** read it in full for a single symptom.
 
