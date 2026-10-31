@@ -1,0 +1,45 @@
+name: Sync Troubleshooting Skill
+run-name: "Sync troubleshooting skill #${{ github.run_number }} — triggered by ${{ github.actor }} (${{ github.event_name }})"
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+    inputs:
+      auto-merge:
+        description: "Automatically enable auto-merge for the created pull request"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Sync public docs into skill references
+        uses: netcracker/qubership-workflow-hub/actions/sync-files-action@0eefd4976131d113c986281eed8bc642b6da303d # v2.8.1
+        with:
+          files: |
+            [
+              { "from": "docs/public/troubleshooting.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/troubleshooting.md" },
+              { "from": "docs/public/installation.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/installation.md" },
+              { "from": "docs/public/maintenance.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/maintenance.md" },
+              { "from": "docs/public/disasterRecovery.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/disasterRecovery.md" },
+              { "from": "docs/public/monitoring.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/monitoring.md" },
+              { "from": "docs/public/security.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/security.md" },
+              { "from": "docs/public/TLS.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/TLS.md" }
+            ]
+          title: "chore: sync troubleshooting skill references"
+          commit-message: "chore: sync troubleshooting skill references"
+          auto-merge: ${{ inputs.auto-merge || 'true' }}
+          token: ${{ secrets.GITHUB_TOKEN }}
