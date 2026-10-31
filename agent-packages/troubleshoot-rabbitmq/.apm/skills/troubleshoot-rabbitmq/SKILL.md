@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-rabbitmq
-description: Diagnose Qubership RabbitMQ Prometheus alerts (NoMetrics, ClusterError, SomePodsAreNotWorking, MemoryAlarm, DiskAlarm), cluster formation and network partitions, queue or vhost data corruption, memory/disk alarms, .erlang.cookie and NFS storage errors, operator StatefulSet conflicts, and failed pre-upgrade Jobs. Use when triaging RabbitMQ tickets, rmqlocal pods not joining the cluster, blocked publishers, "vhost is down" errors, or operator and Deployer job failures.
+description: Diagnose Qubership RabbitMQ Prometheus alerts (NoMetrics, ClusterError, SomePodsAreNotWorking, MemoryAlarm, DiskAlarm), cluster formation and network partitions, queue or vhost data corruption, memory/disk alarms, .erlang.cookie and NFS storage errors, operator StatefulSet conflicts, and failed pre-upgrade Jobs. Use when triaging RabbitMQ tickets, rmqlocal pods not joining the cluster, OOMKilled or CrashLoopBackOff rmqlocal pods, liveness probe restarts, blocked publishers or connection.blocked clients, "vhost is down" errors, or operator and Deployer job failures.
 ---
 
 # Troubleshooting RabbitMQ
@@ -10,12 +10,19 @@ deploys and reconciles in Kubernetes or OpenShift. Clients connect
 straight to the `rabbitmq` Service; the operator only manages the
 cluster.
 
-[references/troubleshooting.md](./references/troubleshooting.md) is the fact source for known failure
-modes. It is a copy of `docs/public/troubleshooting.md` in this
-repository. Do **not** read it in full for a single symptom.
-[references/installation.md](./references/installation.md) is the fact source for known failure
-modes. It is a copy of `docs/public/installation.md` in this
-repository. Do **not** read it in full for a single symptom.
+The reference files are copies of `docs/public/*.md` in this
+repository, synced by the `Sync Troubleshooting Skill` workflow. Do
+**not** read any of them in full for a single symptom.
+
+| Reference | Fact source for |
+| --- | --- |
+| [references/troubleshooting.md](./references/troubleshooting.md) | Alerts and known failure modes (primary). |
+| [references/installation.md](./references/installation.md) | Deployment parameters, Deployer job errors, upgrade path, partition handling. |
+| [references/maintenance.md](./references/maintenance.md) | Password/user change, backup and restore, ports, pod restarts and liveness. |
+| [references/disasterRecovery.md](./references/disasterRecovery.md) | DR modes, switchover, `/healthz`, `/sitemanager`. |
+| [references/monitoring.md](./references/monitoring.md) | Dashboards, metrics, and alert expressions. |
+| [references/security.md](./references/security.md) | Ports, default user, secrets, security settings. |
+| [references/TLS.md](./references/TLS.md) | TLS secrets and certificate renewal. |
 
 ## Architecture
 
@@ -53,25 +60,33 @@ RabbitMQ namespace
   memory/disk alarm therefore restarts the pod, and a down vhost keeps
   it NotReady.
 
-## Reading the reference file
+## Reading the reference files
 
-1. Grep headers with line numbers first:
+1. Grep headers with line numbers first, for example:
    `grep -n '^#' references/troubleshooting.md`
-2. Match the symptom against the jump table below (or the raw headers
-   if the table is stale).
+2. Match the symptom against the jump tables below (or the raw headers
+   if the tables are stale).
 3. Read from the matched header through the **next header of the same
    or higher level**. A `##` section includes its `###` children; stop
    at the next `##` or `#`. Never load the whole file for one lookup.
 
 ## Symptom → reference section
 
-| Symptom | Header in references/troubleshooting.md |
+Tickets rarely name the Prometheus alert. Match on what the reporter
+actually sees — pod status, `kubectl describe` events, log lines,
+client errors — not only on alert names.
+
+| Symptom | Header in [references/troubleshooting.md](./references/troubleshooting.md) |
 | --- | --- |
-| Alert `NoMetrics`; no `rabbitmq_identity_info` series | NoMetrics |
+| Alert `NoMetrics`; no `rabbitmq_identity_info` series; empty RabbitMQ dashboards | NoMetrics |
 | Alert `ClusterError`; more than one `rabbitmq_cluster` in the namespace | ClusterError |
-| Alert `SomePodsAreNotWorking`; app stopped by `rabbitmqctl stop_app` | SomePodsAreNotWorking |
-| Alert `MemoryAlarm` | MemoryAlarm |
-| Alert `DiskAlarm` (free disk below 50 MB) | DiskAlarm |
+| Alert `SomePodsAreNotWorking`; app stopped by `rabbitmqctl stop_app`; pod Running but node absent from `cluster_status` | SomePodsAreNotWorking |
+| Alert `MemoryAlarm`; memory near `vm_memory_high_watermark`; `rabbitmq-diagnostics alarms` lists a memory alarm | MemoryAlarm, then Memory Limit Alarm |
+| Pod `OOMKilled` (`Last State: Terminated, Reason: OOMKilled`, exit code 137); restarts under load | MemoryAlarm, then [maintenance.md](./references/maintenance.md) `Problems with Restarting RabbitMQ Pods and Liveness Probe` |
+| Pod in `CrashLoopBackOff` or restarting on liveness failure with a memory or disk alarm active | MemoryAlarm / DiskAlarm, then Memory Limit Alarm / Disk Limit Alarm |
+| Alert `DiskAlarm` (free disk below 50 MB); PV almost full; `No space left on device` | DiskAlarm, then Disk Limit Alarm |
+| Clients report `connection.blocked`, publishers hang or time out, consumers still work | Memory Limit Alarm / Disk Limit Alarm |
+| Pod stuck NotReady after restart while `check_virtual_hosts` fails | Vhost is Down due to a Corrupted Recovery File |
 | Before any action: is the monitoring pod up? | Dispositions |
 | Persistent pods never formed one cluster on first install | Cluster Formation |
 | `cluster_status` shows partitions; pause_minority / autoheal | Network Partition Recovery |
@@ -89,20 +104,20 @@ RabbitMQ namespace
 | Operator log: `object is being deleted: StatefulSet.apps "rmqlocal" already exists` (409) | Operator Contains "Object is being deleted: statefulsets.apps already exists..." Error |
 | Helm upgrade stopped by Job `rabbitmq-operator-rollout` | Pre-upgrade Job Failed |
 
-### Other docs (not in the troubleshooting reference)
+### Other reference files
 
-| Symptom | Doc |
+| Symptom | Reference and header |
 | --- | --- |
-| Deployer job fails: status check, unknown CRD fields, template errors, `Forbidden: updates to statefulset spec` | `docs/public/installation.md` headers starting with `Deployer Job` |
-| Upgrade path, feature flags, intermediate 4.2 image | `docs/public/installation.md` header `Version Upgrade and Feature Flags` |
-| Classic mirrored queues blocking 4.x | `docs/public/installation.md` header `Migration From CMQ to Quorum queues` |
-| Default partition handling per replica count | `docs/public/installation.md` header `Partition handling` |
-| Pod restart loops, liveness failures, more than 500 channels per connection | `docs/public/maintenance.md` header `Problems with Restarting RabbitMQ Pods and Liveness Probe` |
-| Password or user change | `docs/public/maintenance.md` headers `Change RabbitMQ Default Password`, `Change RabbitMQ Username and Password` |
-| Definitions backup and restore, manual message (Mnesia) backup | `docs/public/maintenance.md` header `Backup and Recovery` |
-| DR switchover, `/healthz`, `/sitemanager` | `docs/public/disasterRecovery.md` |
-| Dashboards and alert expressions | `docs/public/monitoring.md` |
-| Ports, default user, TLS secrets, certificate renewal | `docs/public/security.md`, `docs/public/TLS.md` |
+| Deployer job fails: status check, unknown CRD fields, template errors, `Forbidden: updates to statefulset spec` | [installation.md](./references/installation.md) headers starting with `Deployer Job` |
+| Upgrade path, feature flags, intermediate 4.2 image | [installation.md](./references/installation.md) header `Version Upgrade and Feature Flags` |
+| Classic mirrored queues blocking 4.x | [installation.md](./references/installation.md) header `Migration From CMQ to Quorum queues` |
+| Default partition handling per replica count | [installation.md](./references/installation.md) header `Partition handling` |
+| Pod restart loops, liveness failures, more than 500 channels per connection | [maintenance.md](./references/maintenance.md) header `Problems with Restarting RabbitMQ Pods and Liveness Probe` |
+| Password or user change | [maintenance.md](./references/maintenance.md) headers `Change RabbitMQ Default Password`, `Change RabbitMQ Username and Password` |
+| Definitions backup and restore, manual message (Mnesia) backup | [maintenance.md](./references/maintenance.md) header `Backup and Recovery` |
+| DR switchover, `/healthz`, `/sitemanager` | [disasterRecovery.md](./references/disasterRecovery.md) |
+| Dashboards and alert expressions | [monitoring.md](./references/monitoring.md) |
+| Ports, default user, TLS secrets, certificate renewal | [security.md](./references/security.md), [TLS.md](./references/TLS.md) |
 
 Start from the exact error text, the pod name (`rmqlocal-N` or
 `rmqlocal-N-0`), and whether the failure is in a RabbitMQ pod, in the
@@ -226,8 +241,8 @@ only (vhosts, users, queues, exchanges), never messages.
 - Health: `GET /healthz` returns `up`, `degraded`, `down`, or
   `disable`.
 - Failed switchover: retry in the order active → standby, then
-  standby → active (`docs/public/disasterRecovery.md` header
-  `Troubleshooting`).
+  standby → active ([disasterRecovery.md](./references/disasterRecovery.md)
+  header `Troubleshooting`).
 
 Do not recommend restoring definitions or rebuilding the cluster
 solely because the site is in standby.
