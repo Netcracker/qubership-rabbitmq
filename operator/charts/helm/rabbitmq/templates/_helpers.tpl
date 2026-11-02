@@ -977,7 +977,7 @@ Service Account for Site Manager depending on smSecureAuth
 Return type for gateway
 */}}
 {{- define "gateway.type" -}}
-{{- if and .Values.GATEWAY_SYSTEM_TYPE .Values.global.cloudIntegrationEnabled }}
+{{- if .Values.GATEWAY_SYSTEM_TYPE }}
     {{- .Values.GATEWAY_SYSTEM_TYPE }}
 {{- else }}
     {{- "legacy-ingress" }}
