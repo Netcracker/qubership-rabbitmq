@@ -223,6 +223,20 @@ Find a RabbitMQ image in various places.
 {{- end -}}
 
 {{/*
+Major of the RabbitMQ image being installed.
+*/}}
+{{- define "rabbitmq.major" -}}
+  {{- $image := include "rabbitmq.image" . | trim -}}
+  {{- $name := base (regexReplaceAll "@.*$" $image "") -}}
+  {{- $repo := regexReplaceAll ":.*" $name "" -}}
+  {{- if regexMatch "rabbitmq-image-[0-9]+" $repo -}}
+    {{- regexFind "rabbitmq-image-[0-9]+" $repo | trimPrefix "rabbitmq-image-" -}}
+  {{- else -}}
+    4
+  {{- end -}}
+{{- end -}}
+
+{{/*
 RabbitMQ intermediate images for a multi-step upgrade.
 Rendered as a YAML list of quoted image references.
 */}}

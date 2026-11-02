@@ -1,4 +1,4 @@
-{{ if not .Values.externalRabbitmq.enabled }}
+{{ if and (not .Values.externalRabbitmq.enabled) (ge (include "rabbitmq.major" . | int) 4) }}
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:

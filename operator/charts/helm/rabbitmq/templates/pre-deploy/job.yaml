@@ -1,4 +1,4 @@
-{{ if not .Values.externalRabbitmq.enabled }}
+{{ if and (not .Values.externalRabbitmq.enabled) (ge (include "rabbitmq.major" . | int) 4) }}
 apiVersion: batch/v1
 kind: Job
 metadata:
