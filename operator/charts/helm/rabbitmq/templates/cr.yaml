@@ -117,8 +117,10 @@ spec:
     replicas: {{ default "3" .Values.rabbitmq.replicas }}
     {{- end }}
     dockerImage: {{ template "rabbitmq.image" . }}
+    {{- if ge (include "rabbitmq.major" . | int) 4 }}
     intermediateImages:
       {{- include "rabbitmq.intermediateImages" . | trim | nindent 6 }}
+    {{- end }}
     resources:
       requests:
         cpu: {{ default "1" .Values.rabbitmq.resources.requests.cpu }}
