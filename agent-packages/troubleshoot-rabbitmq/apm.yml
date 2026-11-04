@@ -1,0 +1,13 @@
+name: troubleshoot-rabbitmq
+version: 1.0.0
+description: Diagnose RabbitMQ alerts, cluster formation and partitions, queue/vhost corruption, resource alarms, storage and permission failures, and upgrade hook errors.
+author: Netcracker
+targets:
+  - claude
+  - copilot
+  - cursor
+dependencies:
+  apm: []
+  mcp: []
+includes: auto
+scripts: {}

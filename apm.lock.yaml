@@ -1,0 +1,242 @@
+lockfile_version: '1'
+apm_version: 0.33.0
+dependencies:
+- repo_url: _local/troubleshoot-rabbitmq
+  name: troubleshoot-rabbitmq
+  version: 1.0.0
+  package_type: apm_package
+  deployed_files:
+  - .agents/skills/troubleshoot-rabbitmq
+  - .agents/skills/troubleshoot-rabbitmq/SKILL.md
+  - .agents/skills/troubleshoot-rabbitmq/references/TLS.md
+  - .agents/skills/troubleshoot-rabbitmq/references/disasterRecovery.md
+  - .agents/skills/troubleshoot-rabbitmq/references/installation.md
+  - .agents/skills/troubleshoot-rabbitmq/references/maintenance.md
+  - .agents/skills/troubleshoot-rabbitmq/references/monitoring.md
+  - .agents/skills/troubleshoot-rabbitmq/references/security.md
+  - .agents/skills/troubleshoot-rabbitmq/references/troubleshooting.md
+  - .claude/rules/troubleshoot-rabbitmq.md
+  - .claude/skills/troubleshoot-rabbitmq
+  - .claude/skills/troubleshoot-rabbitmq/SKILL.md
+  - .claude/skills/troubleshoot-rabbitmq/references/TLS.md
+  - .claude/skills/troubleshoot-rabbitmq/references/disasterRecovery.md
+  - .claude/skills/troubleshoot-rabbitmq/references/installation.md
+  - .claude/skills/troubleshoot-rabbitmq/references/maintenance.md
+  - .claude/skills/troubleshoot-rabbitmq/references/monitoring.md
+  - .claude/skills/troubleshoot-rabbitmq/references/security.md
+  - .claude/skills/troubleshoot-rabbitmq/references/troubleshooting.md
+  - .cursor/rules/troubleshoot-rabbitmq.mdc
+  - .github/instructions/troubleshoot-rabbitmq.instructions.md
+  deployed_file_hashes:
+    .agents/skills/troubleshoot-rabbitmq/SKILL.md: sha256:a0da5397a67826b1ef7aaeeba790db6df3c64f8fa8a5fbe4fdcd27b2760784c6
+    .agents/skills/troubleshoot-rabbitmq/references/TLS.md: sha256:5e148e090593bd6c8d07856b2dfb554b585e1d273b715a578bd5337b43c19218
+    .agents/skills/troubleshoot-rabbitmq/references/disasterRecovery.md: sha256:828fc4536f2da87a130aac73a55c29e3e7c257752156600ab957ac353c837969
+    .agents/skills/troubleshoot-rabbitmq/references/installation.md: sha256:3997f8da90b05c7a5f74aef54d98d7ba4af88b2acc28e520c56291ff8ddb749f
+    .agents/skills/troubleshoot-rabbitmq/references/maintenance.md: sha256:77c18a154354d1a0960fc277165c42066be83476098d21f02d4ec653eb783142
+    .agents/skills/troubleshoot-rabbitmq/references/monitoring.md: sha256:d425e5c1c38d07848e72e2d6bee05f00ef2898907de2de7e136576da2c3579d5
+    .agents/skills/troubleshoot-rabbitmq/references/security.md: sha256:be375ffafc134e5b12d9145a173970cb959477b3c4401ba4ba1faafe5bfabbc1
+    .agents/skills/troubleshoot-rabbitmq/references/troubleshooting.md: sha256:62dafda1632cb790a6ad82369dd4a325ce7a343f789ca68679e26526e1c07245
+    .claude/rules/troubleshoot-rabbitmq.md: sha256:0d06cafc7349d8ad0a62df27f683abbdb5e1addc9d4fe44ce62b769d8627bcc5
+    .claude/skills/troubleshoot-rabbitmq/SKILL.md: sha256:a0da5397a67826b1ef7aaeeba790db6df3c64f8fa8a5fbe4fdcd27b2760784c6
+    .claude/skills/troubleshoot-rabbitmq/references/TLS.md: sha256:5e148e090593bd6c8d07856b2dfb554b585e1d273b715a578bd5337b43c19218
+    .claude/skills/troubleshoot-rabbitmq/references/disasterRecovery.md: sha256:828fc4536f2da87a130aac73a55c29e3e7c257752156600ab957ac353c837969
+    .claude/skills/troubleshoot-rabbitmq/references/installation.md: sha256:3997f8da90b05c7a5f74aef54d98d7ba4af88b2acc28e520c56291ff8ddb749f
+    .claude/skills/troubleshoot-rabbitmq/references/maintenance.md: sha256:77c18a154354d1a0960fc277165c42066be83476098d21f02d4ec653eb783142
+    .claude/skills/troubleshoot-rabbitmq/references/monitoring.md: sha256:d425e5c1c38d07848e72e2d6bee05f00ef2898907de2de7e136576da2c3579d5
+    .claude/skills/troubleshoot-rabbitmq/references/security.md: sha256:be375ffafc134e5b12d9145a173970cb959477b3c4401ba4ba1faafe5bfabbc1
+    .claude/skills/troubleshoot-rabbitmq/references/troubleshooting.md: sha256:62dafda1632cb790a6ad82369dd4a325ce7a343f789ca68679e26526e1c07245
+    .cursor/rules/troubleshoot-rabbitmq.mdc: sha256:226e30fd24108755afa79e308ddfc13bb30e22229c953d82fb8752c5aac7c236
+    .github/instructions/troubleshoot-rabbitmq.instructions.md: sha256:875387e3bb0c70d94f35a1b0529c3e7fd60cca8eb39ed127d507b9a785928d2f
+  source: local
+  local_path: ./agent-packages/troubleshoot-rabbitmq/
+  is_dev: true
+deployments:
+- kind: project-relative
+  target: claude
+  value: .claude/rules/troubleshoot-rabbitmq.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:0d06cafc7349d8ad0a62df27f683abbdb5e1addc9d4fe44ce62b769d8627bcc5
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: null
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:a0da5397a67826b1ef7aaeeba790db6df3c64f8fa8a5fbe4fdcd27b2760784c6
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/TLS.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:5e148e090593bd6c8d07856b2dfb554b585e1d273b715a578bd5337b43c19218
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/disasterRecovery.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:828fc4536f2da87a130aac73a55c29e3e7c257752156600ab957ac353c837969
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/installation.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:3997f8da90b05c7a5f74aef54d98d7ba4af88b2acc28e520c56291ff8ddb749f
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/maintenance.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:77c18a154354d1a0960fc277165c42066be83476098d21f02d4ec653eb783142
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/monitoring.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:d425e5c1c38d07848e72e2d6bee05f00ef2898907de2de7e136576da2c3579d5
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/security.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:be375ffafc134e5b12d9145a173970cb959477b3c4401ba4ba1faafe5bfabbc1
+- kind: project-relative
+  target: claude
+  value: .claude/skills/troubleshoot-rabbitmq/references/troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:62dafda1632cb790a6ad82369dd4a325ce7a343f789ca68679e26526e1c07245
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: null
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/SKILL.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:a0da5397a67826b1ef7aaeeba790db6df3c64f8fa8a5fbe4fdcd27b2760784c6
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/TLS.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:5e148e090593bd6c8d07856b2dfb554b585e1d273b715a578bd5337b43c19218
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/disasterRecovery.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:828fc4536f2da87a130aac73a55c29e3e7c257752156600ab957ac353c837969
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/installation.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:3997f8da90b05c7a5f74aef54d98d7ba4af88b2acc28e520c56291ff8ddb749f
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/maintenance.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:77c18a154354d1a0960fc277165c42066be83476098d21f02d4ec653eb783142
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/monitoring.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:d425e5c1c38d07848e72e2d6bee05f00ef2898907de2de7e136576da2c3579d5
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/security.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:be375ffafc134e5b12d9145a173970cb959477b3c4401ba4ba1faafe5bfabbc1
+- kind: project-relative
+  target: copilot
+  value: .agents/skills/troubleshoot-rabbitmq/references/troubleshooting.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:62dafda1632cb790a6ad82369dd4a325ce7a343f789ca68679e26526e1c07245
+- kind: project-relative
+  target: copilot
+  value: .github/instructions/troubleshoot-rabbitmq.instructions.md
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:875387e3bb0c70d94f35a1b0529c3e7fd60cca8eb39ed127d507b9a785928d2f
+- kind: project-relative
+  target: cursor
+  value: .cursor/rules/troubleshoot-rabbitmq.mdc
+  runtime: null
+  scope: project
+  owners:
+  - ./agent-packages/troubleshoot-rabbitmq/
+  active_owner: ./agent-packages/troubleshoot-rabbitmq/
+  content_hash: sha256:226e30fd24108755afa79e308ddfc13bb30e22229c953d82fb8752c5aac7c236
