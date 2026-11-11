@@ -41,12 +41,19 @@ repository, synced by the `Sync Troubleshooting Skill` workflow. Do
 | Reference | Fact source for |
 | --- | --- |
 | [references/troubleshooting.md](./references/troubleshooting.md) | Alerts and known failure modes (primary). |
-| [references/installation.md](./references/installation.md) | Deployment parameters, Deployer job errors, upgrade path, partition handling. |
 | [references/maintenance.md](./references/maintenance.md) | Password/user change, backup and restore, ports, pod restarts and liveness. |
-| [references/disasterRecovery.md](./references/disasterRecovery.md) | DR modes, switchover, `/healthz`, `/sitemanager`. |
-| [references/monitoring.md](./references/monitoring.md) | Dashboards, metrics, and alert expressions. |
-| [references/security.md](./references/security.md) | Ports, default user, secrets, security settings. |
-| [references/TLS.md](./references/TLS.md) | TLS secrets and certificate renewal. |
+
+Other guides are not bundled with the skill. When the repository is
+available, read them by path with the same header-first method; when
+it is not, rely on the facts already summarised in this file:
+
+| Repository path | Fact source for |
+| --- | --- |
+| `docs/public/installation.md` | Deployment parameters, Deployer job errors, upgrade path, partition handling. |
+| `docs/public/disasterRecovery.md` | DR modes, switchover, `/healthz`, `/sitemanager`. |
+| `docs/public/monitoring.md` | Dashboards, metrics, and alert expressions. |
+| `docs/public/security.md` | Ports, default user, secrets, security settings. |
+| `docs/public/TLS.md` | TLS secrets and certificate renewal. |
 
 ## Component Overview
 
@@ -194,7 +201,7 @@ Template traps (verified with `helm template`):
 - Classic mirrored queues (`ha-mode` policies) are removed in 4.x and
   block the 3.13 → 4.x upgrade. Move them to quorum queues with
   `rabbitmq.queueMigration.enabled` on 3.13
-  ([installation.md](./references/installation.md) `Migration From CMQ to Quorum queues`).
+  (`docs/public/installation.md` `Migration From CMQ to Quorum queues`).
 - With `rabbitmq.setDefaultQueueTypeClassic: true`, the operator sets
   `classic` daily on vhosts whose default queue type is missing or
   `undefined`. Set it to `false` only when the cluster intentionally
@@ -296,7 +303,7 @@ a restart with a full PV.
   documented procedure. The chart does not resize existing PVCs
   `default-vct-name-rmqlocal-N`: `rabbitmq.resources.storage` only
   changes the volume claim template
-  ([installation.md](./references/installation.md) header starting
+  (`docs/public/installation.md` header starting
   with `Deployer Job Fails and Operator Contains "Forbidden`). Growing
   an existing PVC depends on `allowVolumeExpansion` of its storage
   class; keep `rabbitmq.resources.storage` equal to the new size.
@@ -381,16 +388,16 @@ client errors — not only on alert names.
 
 | Symptom | Reference and header |
 | --- | --- |
-| Deployer job fails: status check, unknown CRD fields, template errors, `Forbidden: updates to statefulset spec` | [installation.md](./references/installation.md) headers starting with `Deployer Job` |
-| Upgrade path, feature flags, intermediate 4.2 image | [installation.md](./references/installation.md) header `Version Upgrade and Feature Flags` |
-| Classic mirrored queues blocking 4.x | [installation.md](./references/installation.md) header `Migration From CMQ to Quorum queues` |
-| Default partition handling per replica count | [installation.md](./references/installation.md) header `Partition handling` |
+| Deployer job fails: status check, unknown CRD fields, template errors, `Forbidden: updates to statefulset spec` | `docs/public/installation.md` headers starting with `Deployer Job` |
+| Upgrade path, feature flags, intermediate 4.2 image | `docs/public/installation.md` header `Version Upgrade and Feature Flags` |
+| Classic mirrored queues blocking 4.x | `docs/public/installation.md` header `Migration From CMQ to Quorum queues` |
+| Default partition handling per replica count | `docs/public/installation.md` header `Partition handling` |
 | Pod restart loops, liveness failures, more than 500 channels per connection | [maintenance.md](./references/maintenance.md) header `Problems with Restarting RabbitMQ Pods and Liveness Probe` |
 | Password or user change | [maintenance.md](./references/maintenance.md) headers `Change RabbitMQ Default Password`, `Change RabbitMQ Username and Password` |
 | Definitions backup and restore, manual message (Mnesia) backup | [maintenance.md](./references/maintenance.md) header `Backup and Recovery` |
-| DR switchover, `/healthz`, `/sitemanager` | [disasterRecovery.md](./references/disasterRecovery.md) |
-| Dashboards and alert expressions | [monitoring.md](./references/monitoring.md) |
-| Ports, default user, TLS secrets, certificate renewal | [security.md](./references/security.md), [TLS.md](./references/TLS.md) |
+| DR switchover, `/healthz`, `/sitemanager` | `docs/public/disasterRecovery.md` |
+| Dashboards and alert expressions | `docs/public/monitoring.md` |
+| Ports, default user, TLS secrets, certificate renewal | `docs/public/security.md`, `docs/public/TLS.md` |
 
 Start from the exact error text, the pod name (`rmqlocal-N` or
 `rmqlocal-N-0`), and whether the failure is in a RabbitMQ pod, in the
@@ -423,7 +430,7 @@ only (vhosts, users, queues, exchanges), never messages.
 - Health: `GET /healthz` returns `up`, `degraded`, `down`, or
   `disable`.
 - Failed switchover: retry in the order active → standby, then
-  standby → active ([disasterRecovery.md](./references/disasterRecovery.md)
+  standby → active (`docs/public/disasterRecovery.md`
   header `Troubleshooting`).
 
 Do not recommend restoring definitions or rebuilding the cluster
@@ -455,7 +462,7 @@ Failed install or upgrade — check in this order:
      changed on upgrade; reinstall is required.
 3. CR status: `kubectl get rabbitmqservices rabbitmq-service -o yaml`.
 4. CRD or Helm release problems: unknown fields after an upgrade →
-   [installation.md](./references/installation.md) `CRD Upgrade` and
+   `docs/public/installation.md` `CRD Upgrade` and
    `Automatic CRD Upgrade`; Kubernetes upgraded before the application
    → `What to Do if a Kubernetes Version is Upgraded Before Application?`.
 
@@ -605,18 +612,18 @@ Operator (`deployment/rabbitmq-operator`, kopf):
 | Fixed string in the log | Header or meaning |
 | --- | --- |
 | `object is being deleted: StatefulSet.apps "rmqlocal" already exists` (409) | Operator Contains "Object is being deleted: statefulsets.apps already exists..." Error |
-| `Forbidden: updates to statefulset spec for fields` (422) | [installation.md](./references/installation.md) `Deployer Job Fails and Operator Contains "Forbidden: updates to statefulset spec for fields..." Error` |
+| `Forbidden: updates to statefulset spec for fields` (422) | `docs/public/installation.md` `Deployer Job Fails and Operator Contains "Forbidden: updates to statefulset spec for fields..." Error` |
 | `Handler 'on_create'` / `Handler 'on_update'` … `failed with an exception. Will retry.` | Retried. Read the traceback's `ApiException` and `"message"` lines. |
 | † `PermanentError` | Not retried. Use the message on the same line (below), fix the cause, and rerun the upgrade. |
 | † `please create RabbitMQ secret.` | `rabbitmq-default-secret` is missing (`Deploy channel`) |
 | † `RabbitMQ pods are not ready` / `RabbitMQ cluster fails to come up.` | Pods did not reach the replica count; continue with the RabbitMQ pod logs |
 | † `RabbitMQ pods are not ready, skip changing credentials` | The password change was skipped; see `Secrets` and [maintenance.md](./references/maintenance.md) `Change RabbitMQ Default Password` |
 | † `Changing storage configuration is not allowed.` | Storage mode changed on upgrade; reinstall is required |
-| † `Failed to enable RabbitMQ feature flags in pod` | [installation.md](./references/installation.md) `Version Upgrade and Feature Flags` |
-| † `RabbitMQ upgrade failed.` (CR status `failed to enable all feature flags`) | [installation.md](./references/installation.md) `Version Upgrade and Feature Flags` |
+| † `Failed to enable RabbitMQ feature flags in pod` | `docs/public/installation.md` `Version Upgrade and Feature Flags` |
+| † `RabbitMQ upgrade failed.` (CR status `failed to enable all feature flags`) | `docs/public/installation.md` `Version Upgrade and Feature Flags` |
 | `timeout_waiting_for_tables` | Network Partition Recovery (step 6) |
 | † `Environment variable "…" is incorrect` | An `rabbitmq.environmentVariables` entry does not contain exactly one `=` and was dropped |
-| † `Switchover failed` | [disasterRecovery.md](./references/disasterRecovery.md) `Troubleshooting` |
+| † `Switchover failed` | `docs/public/disasterRecovery.md` `Troubleshooting` |
 
 Pre-upgrade Job (`job/rabbitmq-operator-rollout`). Its decision and
 error lines start with `running <version>, target <version>`. Start
@@ -624,8 +631,8 @@ from `Pre-upgrade Job Failed` for all of them:
 
 | Fixed string in the log | Next header |
 | --- | --- |
-| † `upgrade to 4.x requires RabbitMQ 3.13 or newer` | [installation.md](./references/installation.md) `Version Upgrade and Feature Flags` |
-| † `classic mirrored queues are still in use` | [installation.md](./references/installation.md) `Migration From CMQ to Quorum queues` |
+| † `upgrade to 4.x requires RabbitMQ 3.13 or newer` | `docs/public/installation.md` `Version Upgrade and Feature Flags` |
+| † `classic mirrored queues are still in use` | `docs/public/installation.md` `Migration From CMQ to Quorum queues` |
 | † `missing image <major.minor>` | The intermediate or target image is not in the CR; check `rabbitmq.intermediateImages` and `Version Upgrade and Feature Flags` |
 | † `downgrade is not supported` | The target is older than the running version |
 | † `target version is absent`, `version file is unreadable`, `running version could not be determined` | The target or running version could not be read |
@@ -687,9 +694,11 @@ what the evidence could not answer. Do not invent a root cause.
   upgrade.
 - Do not recommend wiping data or deleting PVCs as a fix for a
   configuration problem.
-- Look the parameter up in [installation.md](./references/installation.md)
-  (`grep -n '<parameter>' references/installation.md`) before
-  recommending it. Use a dedicated parameter when one exists.
+- Recommend only parameters listed in `Critical configuration paths`,
+  or ones confirmed with `grep -n '<parameter>'` in
+  `docs/public/installation.md` or
+  `operator/charts/helm/rabbitmq/values.yaml` when the repository is
+  available. Use a dedicated parameter when one exists.
 - Use `customConfigProperties` only for a `rabbitmq.conf` key that is
   valid for the running RabbitMQ version (3.13 or 4.x). When you cannot
   confirm the key, omit the recommendation — do not fall back to

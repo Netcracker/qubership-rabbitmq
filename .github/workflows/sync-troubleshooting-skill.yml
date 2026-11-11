@@ -32,12 +32,7 @@ jobs:
           files: |
             [
               { "from": "docs/public/troubleshooting.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/troubleshooting.md" },
-              { "from": "docs/public/installation.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/installation.md" },
-              { "from": "docs/public/maintenance.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/maintenance.md" },
-              { "from": "docs/public/disasterRecovery.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/disasterRecovery.md" },
-              { "from": "docs/public/monitoring.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/monitoring.md" },
-              { "from": "docs/public/security.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/security.md" },
-              { "from": "docs/public/TLS.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/TLS.md" }
+              { "from": "docs/public/maintenance.md", "to": "agent-packages/troubleshoot-rabbitmq/.apm/skills/troubleshoot-rabbitmq/references/maintenance.md" }
             ]
           title: "chore: sync troubleshooting skill references"
           commit-message: "chore: sync troubleshooting skill references"
