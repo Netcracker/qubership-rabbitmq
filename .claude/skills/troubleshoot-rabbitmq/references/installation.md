@@ -69,7 +69,7 @@ The following Custom Resource Definitions should be installed to the cloud befor
 not have the necessary rights, you need to perform the steps described in
 the [Deployment Permissions](#deployment-permissions) section before the installation.
 
-**Note**: If you deploy RabbitMQ Service to Kubernetes version less than 1.16, you have to manually install [CRD](/docs/sources/crds/oc311crd.yaml) and disable automatic CRD creation by Helm in the following
+**Note**: If you deploy RabbitMQ Service to Kubernetes version less than 1.16, you have to manually install [CRD](./docs/sources/crds/oc311crd.yaml) and disable automatic CRD creation by Helm in the following
 way:
 
 * Specify `--skip-crds` in the `ADDITIONAL_OPTIONS`.
@@ -264,7 +264,7 @@ The following rules require `cluster-wide` permissions. If it is not possible to
 * Custom resource definition `RabbitMQService` should be created/applied before the installation if the corresponding
   rights cannot be provided to the deployment user.
   <!-- #GFCFilterMarkerStart# -->
-  The CRD for this version is stored in [crd.yaml](../../operator/charts/helm/rabbitmq/crds/crd.yaml) and can be
+  The CRD for this version is stored in [crd.yaml](./operator/charts/helm/rabbitmq/crds/crd.yaml) and can be
   applied with the following command:
 
   ```sh
@@ -541,7 +541,7 @@ backupDaemon:
 
 The RabbitMQ installation parameters must be specified in the **values.yaml** file.
 <!-- #GFCFilterMarkerStart# -->
-Refer to [values.yaml](/operator/charts/helm/rabbitmq/values.yaml).
+Refer to [values.yaml](./operator/charts/helm/rabbitmq/values.yaml).
 <!-- #GFCFilterMarkerEnd# -->
 It can be done manually or automatically through jobs.
 
@@ -551,7 +551,7 @@ It can be done manually or automatically through jobs.
 |-------------------------------|---------|-----------|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | INFRA_RABBITMQ_ADMIN_USERNAME | string  | yes       | `""`          | This parameter specifies the RabbitMQ default user. It has no default value and the value needs to be specified.                                                                                                                                                                                                                                |
 | INFRA_RABBITMQ_ADMIN_PASSWORD | string  | yes       | `""`          | This parameter specifies the RabbitMQ default password. It has no default value and the value needs to be specified.                                                                                                                                                                                                                            |
-| MONITORING_ENABLED            | boolean | no        | `false`       | This parameter specifies if RabbitMQ Prometheus monitoring needs to be installed. By default, Prometheus monitoring is not installed. For more information, refer to [RabbitMQ Operator Service Monitoring](/docs/public/monitoring.md) in the **Cloud Platform Monitoring Guide**.                                                             |
+| MONITORING_ENABLED            | boolean | no        | `false`       | This parameter specifies if RabbitMQ Prometheus monitoring needs to be installed. By default, Prometheus monitoring is not installed. For more information, refer to [RabbitMQ Operator Service Monitoring](monitoring.md) in the **Cloud Platform Monitoring Guide**.                                                             |
 | STORAGE_RWO_CLASS             | string  | yes       | `""`          | This parameter specifies the RabbitMQ storage class. When used for deployment on local PVs, it must be the same as what is set on the PVs. When the storage class is not set, use `''`. When the storage class is empty, use `"''"` (`"\"\""` with ESCAPE_SEQUENCE=true;). **This parameter is required for installation using storage class**. |
 | INFRA_RABBITMQ_FS_GROUP       | integer | no        |               | Specifies the group ID used inside RabbitMQ pods.                                                                                                                                                                                                                                                                                               |
 | INFRA_RABBITMQ_REPLICAS       | integer | no        |               | Specifies the RabbitMQ replicas count.                                                                                                                                                                                                                                                                                                          |
@@ -640,7 +640,7 @@ It can be done manually or automatically through jobs.
 | disasterRecovery.resources.limits.memory                          | string  | no        | 32Mi                        | This parameter specifies the Disaster Recovery RabbitMQ operator container memory limits.                                                                                                                                                                                                                     |
 | disasterRecovery.resources.requests.cpu                           | string  | no        | 10m                         | This parameter specifies the Disaster Recovery RabbitMQ operator container CPU requests.                                                                                                                                                                                                                      |
 | disasterRecovery.resources.requests.memory                        | string  | no        | 10Mi                        | This parameter specifies the Disaster Recovery RabbitMQ operator container memory requests.                                                                                                                                                                                                                   |
-| disasterRecovery.tls.enabled                                      | boolean | no        | `true`                      | This parameter specifies whether to use SSL to connect DRD. For more information about DRD SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                                                                                                      |
+| disasterRecovery.tls.enabled                                      | boolean | no        | `true`                      | This parameter specifies whether to use SSL to connect DRD. For more information about DRD SSL, refer to the [TLS Encryption for RabbitMQ](TLS.md) chapter.                                                                                                                                      |
 | disasterRecovery.tls.certificates.crt                             | string  | no        | `""`                        | The certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                                   |
 | disasterRecovery.tls.certificates.key                             | string  | no        | `""`                        | The private key in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                                   |
 | disasterRecovery.tls.certificates.ca                              | string  | no        | `""`                        | The root CA certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                           |
@@ -654,8 +654,8 @@ It can be done manually or automatically through jobs.
 
 | Parameter                                                 | Type    | Mandatory | Default value                                                                                                           | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 |-----------------------------------------------------------|---------|-----------|-------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| rabbitmq.eventLogging                                     | boolean | no        | `true`                                                                                                                  | This parameter specifies whether to enable event logging in RabbitMQ. For more information about RabbitMQ event logging, refer to the [RabbitMQ Operator Event Logging](/docs/public/eventLogging.md) section in _Cloud Platform Maintenance Guide_.                                                                                                                                                                                                                                                                                                                           |
-| rabbitmq.tls.enabled                                      | boolean | no        | `true`                                                                                                                  | This parameter specifies whether to use SSL to connect RabbitMQ. For more information about RabbitMQ with SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                                                                                                                                                                                                                                                                                                                                                        |
+| rabbitmq.eventLogging                                     | boolean | no        | `true`                                                                                                                  | This parameter specifies whether to enable event logging in RabbitMQ. For more information about RabbitMQ event logging, refer to the [RabbitMQ Operator Event Logging](./docs/public/eventLogging.md) section in _Cloud Platform Maintenance Guide_.                                                                                                                                                                                                                                                                                                                           |
+| rabbitmq.tls.enabled                                      | boolean | no        | `true`                                                                                                                  | This parameter specifies whether to use SSL to connect RabbitMQ. For more information about RabbitMQ with SSL, refer to the [TLS Encryption for RabbitMQ](TLS.md) chapter.                                                                                                                                                                                                                                                                                                                                                                                        |
 | rabbitmq.tls.certificates.crt                             | string  | no        | `""`                                                                                                                    | The certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                                                                                                                                                                                                                                                                                                    |
 | rabbitmq.tls.certificates.key                             | string  | no        | `""`                                                                                                                    | The private key in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                                                                                                                                                                                                                                                                                                    |
 | rabbitmq.tls.certificates.ca                              | string  | no        | `""`                                                                                                                    | The root CA certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.                                                                                                                                                                                                                                                                                                                            |
@@ -790,7 +790,7 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 | backupDaemon.image                                            | string  | no        | calculated automatically              | This parameter specifies the Docker image for RabbitMQ backup daemon. The image is included in the manifest.                                                                                                                                        |
 | backupDaemon.enabled                                          | boolean | no        | `false`                               | This parameter enables the RabbitMQ backup daemon deployment.                                                                                                                                                                                                                                           |
 | backupDaemon.cloudBackuper.enableAnnotations                  | boolean | no        | `true`                                | This parameter enables adding the `cloud-backuper.netcracker.com/use-backup-daemon: "true"` label to the `rabbitmq-backup-daemon` Service.                                                      |
-| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                          |
+| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](TLS.md) chapter.                                                          |
 | backupDaemon.tls.certificates.crt                             | string  | no        | `""`                                  | The certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.key                             | string  | no        | `""`                                  | The private key in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.ca                              | string  | no        | `""`                                  | The root CA certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`. |
@@ -865,9 +865,9 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 
 | Parameter                          | Type    | Mandatory | Default value            | Description                                                                                                                                                                                                                                                                                                                       |
 |------------------------------------|---------|-----------|--------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| rabbitmqPrometheusMonitoring       | boolean | no        | `false`                  | This parameter specifies if RabbitMQ Prometheus monitoring needs to be installed. By default, Prometheus monitoring is not installed. For more information, refer to [RabbitMQ Operator Service Monitoring](/docs/public/monitoring.md) in the _Cloud Platform Monitoring Guide_.                                                 |
+| rabbitmqPrometheusMonitoring       | boolean | no        | `false`                  | This parameter specifies if RabbitMQ Prometheus monitoring needs to be installed. By default, Prometheus monitoring is not installed. For more information, refer to [RabbitMQ Operator Service Monitoring](monitoring.md) in the _Cloud Platform Monitoring Guide_.                                                 |
 | rabbitmq.perQueueMetrics           | boolean | no        | `false`                  | This parameter enables per queue metrics in the `rabbitmq_prometheus` plugin.                                                                                                                                                                                                                                                     |
-| telegraf.install                   | boolean | no        | `false`                  | This parameter specifies if the RabbitMQ Telegraf monitoring agent needs to be installed. For more information, refer to [RabbitMQ Service Monitoring](/docs/public/monitoring.md) in the _Cloud Platform Monitoring Guide_.<br>**Note**: This option is designed to work only with OpenShift environments.                       |
+| telegraf.install                   | boolean | no        | `false`                  | This parameter specifies if the RabbitMQ Telegraf monitoring agent needs to be installed. For more information, refer to [RabbitMQ Service Monitoring](monitoring.md) in the _Cloud Platform Monitoring Guide_.<br>**Note**: This option is designed to work only with OpenShift environments.                       |
 | telegraf.resources.limits.cpu      | string  | no        | 150m                     | This parameter specifies the telegraf CPU limits.                                                                                                                                                                                                                                                                                 |
 | telegraf.resources.limits.memory   | string  | no        | 150Mi                    | This parameter specifies the telegraf memory limits.                                                                                                                                                                                                                                                                              |
 | telegraf.resources.requests.cpu    | string  | no        | 150m                     | This parameter specifies the telegraf CPU requests.                                                                                                                                                                                                                                                                               |
@@ -912,7 +912,7 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 ### Helm
 
 To deploy via Helm you need to prepare yaml file with custom deploy parameters and run the following
-command in [RabbitMQ Chart](/operator/charts/helm/rabbitmq):
+command in [RabbitMQ Chart](./operator/charts/helm/rabbitmq):
 
 ```bash
 helm install [release-name] ./ -f [parameters-yaml] -n [namespace]
@@ -1013,7 +1013,7 @@ backupDaemon:
     runAsUser: 1000
 ```
 
-For more information, refer to the [RabbitMQ Disaster Recovery](/docs/public/disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
+For more information, refer to the [RabbitMQ Disaster Recovery](disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
 
 ## Google Cloud Examples
 
@@ -1111,7 +1111,7 @@ backupDaemon:
     keySecret: "s3keysecret"
 ```
 
-For more information, refer to the [RabbitMQ Disaster Recovery](/docs/public/disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
+For more information, refer to the [RabbitMQ Disaster Recovery](disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
 
 </details>
 
@@ -1216,7 +1216,7 @@ The same hook rejects an upgrade to 4.x when the running RabbitMQ is older than 
 Custom resource definition `RabbitMQService` should be upgraded before the installation if the new version has major
 changes.
 <!-- #GFCFilterMarkerStart# -->
-The CRD for this version is stored in [crd.yaml](../../operator/charts/helm/rabbitmq/crds/crd.yaml) and can be
+The CRD for this version is stored in [crd.yaml](./operator/charts/helm/rabbitmq/crds/crd.yaml) and can be
 applied with the following command:
 
   ```sh
@@ -1317,7 +1317,7 @@ We are not implementing any migration automation on our side.
 
 ## HA to DR Scheme
 
-For more information, refer to the [RabbitMQ Disaster Recovery](/docs/public/disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
+For more information, refer to the [RabbitMQ Disaster Recovery](disasterRecovery.md) section in _Cloud Platform Disaster Recovery Guide_.
 
 # Additional Features
 
@@ -1487,7 +1487,7 @@ RabbitMQ chart allows you to deploy Backup Daemon or Monitoring with AmazonMQ cl
 
 The process of deployment to Amazon Kubernetes Cluster does not differ from the usual deployment to Kubernetes, but AmazonMQ can be used instead of platform's RabbitMQ.
 
-For examples and details, refer to the [Deploying Side Services Using AmazonMQ](/docs/public/managed/amazon/README.md) section.
+For examples and details, refer to the [Deploying Side Services Using AmazonMQ](./docs/public/managed/amazon/README.md) section.
 
 # Queue Recommendations
 

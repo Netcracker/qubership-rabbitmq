@@ -41,7 +41,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Kubernetes Metrics Overview
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/KUBERNETES_METRICS_OVERVIEW_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/KUBERNETES_METRICS_OVERVIEW_section.png)
 
 * `Cluster state` - Displays the state of cluster. The following cluster states are displayed:
   * `UP` - All nodes are running.
@@ -80,7 +80,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Rabbit Overview
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/RABBIT_OVERVIEW_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/RABBIT_OVERVIEW_section.png)
 
 * `Ready messages`
 * `Incoming messages / s`
@@ -95,7 +95,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Nodes
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/NODES_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/NODES_section.png)
 
 * Table with the following information about containers :
   * `Container`
@@ -120,7 +120,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Queued Messages
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/QUEUED_MESSAGES_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/QUEUED_MESSAGES_section.png)
 
 * `Messages ready to be delivered to consumers` - Total number of ready messages ready to be delivered to consumers.
   Aim to keep this value as low as possible. RabbitMQ behaves best when messages are flowing through it. It's OK for publishers to occasionally outpace consumers,
@@ -139,7 +139,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Incoming Messages
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/INCOMING_MESSAGES_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/INCOMING_MESSAGES_section.png)
 
 * `Messages published / s` - The incoming message rate before any routing rules are applied.
   If this value is lower than the number of messages published to queues, it may indicate that some messages are delivered to more than one queue.
@@ -172,7 +172,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Outgoing Messages
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/OUTGOING_QUEUE_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/OUTGOING_QUEUE_section.png)
 
 * `Messages delivered / s` - The rate of messages delivered to consumers. It includes messages that have been redelivered.
   This metric does not include messages that have been fetched by consumers using `basic.get` (consumed by polling).
@@ -223,7 +223,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Queues
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/QUEUES_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/QUEUES_section.png)
 
 * `Total queues` - Total number of queue masters  per node.
   This metric makes it easy to see sub-optimal queue distribution in a cluster.
@@ -247,7 +247,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Channels
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/CHANNELS_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/CHANNELS_section.png)
 
 * `Total channels` - Total number of channels on all currently opened connections.
   If this metric grows monotonically it is highly likely a channel leak in one of the applications. Confirm channel leaks by using the _Channels opened_ and _Channels closed_ metrics.
@@ -268,7 +268,7 @@ The panels in the community RabbitMQ dashboard include explanation for all metri
 
 ### Connections
 
-![Dashboard](./images/monitoring/RabbitMQ-Overview/CONNECTIONS_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Overview/CONNECTIONS_section.png)
 
 * `Total connections` - Total number of client connections.
   If this metric grows monotonically it is highly likely a connection leak in one of the applications.
@@ -306,7 +306,7 @@ For example `\\w+`.
 
 ### List of all queues
 
-![Dashboard](./images/monitoring/RabbitMQ-Queues/List_of_all_queues_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Queues/List_of_all_queues_section.png)
 
 * `Queues` - table with main information about queues:
   * `Queue name` - Specific queue name.
@@ -316,7 +316,7 @@ For example `\\w+`.
 
 ### Queue Messages Numbers
 
-![Dashboard](./images/monitoring/RabbitMQ-Queues/QUEUE_MESSAGES_NUMBERS_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Queues/QUEUE_MESSAGES_NUMBERS_section.png)
 
 * `Total queue messages` - Displays the sum of ready and unacknowledged messages - total queue depth.
 
@@ -336,7 +336,7 @@ For example `\\w+`.
 
 ### Queue Messages Memory
 
-![Dashboard](./images/monitoring/RabbitMQ-Queues/QUEUE_MESSAGES_MEMORY_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Queues/QUEUE_MESSAGES_MEMORY_section.png)
 
 * `Average size of ready messages in queue` - Displays the average size of ready messages. This is calculated as the size of ready messages in queue in bytes divided by the number of messages.
 
@@ -354,7 +354,7 @@ For example `\\w+`.
 
 ### Other Queue Metrics
 
-![Dashboard](./images/monitoring/RabbitMQ-Queues/OTHER_QUEUE_METRICS_section.png)
+![Dashboard](./docs/public/images/monitoring/RabbitMQ-Queues/OTHER_QUEUE_METRICS_section.png)
 
 * `Number of consumers` - Displays the number of consumers for a queue.
 

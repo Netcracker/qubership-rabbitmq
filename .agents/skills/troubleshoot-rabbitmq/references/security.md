@@ -57,9 +57,9 @@ RabbitMQ does not support disabling user accounts.
 
 Password changing procedures for RabbitMQ Service in this guide:
 
-* [Password changing guide](/docs/public/maintenance.md#change-rabbitmq-default-password)
+* [Password changing guide](maintenance.md#change-rabbitmq-default-password)
 
 ## Logging
 
 Security events and critical operations should be logged for audit purposes. You can find more details about enabling
-audit logging in [Audit guide](/docs/public/audit.md).
+audit logging in [Audit guide](./docs/public/audit.md).
