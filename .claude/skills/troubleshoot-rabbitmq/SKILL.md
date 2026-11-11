@@ -197,11 +197,6 @@ Template traps (verified with `helm template`):
   fail to boot. Changes reach pods only after restart (OnDelete).
 
 #### Queue types and plugins
-
-- Classic mirrored queues (`ha-mode` policies) are removed in 4.x and
-  block the 3.13 → 4.x upgrade. Move them to quorum queues with
-  `rabbitmq.queueMigration.enabled` on 3.13
-  (`docs/public/installation.md` `Migration From CMQ to Quorum queues`).
 - With `rabbitmq.setDefaultQueueTypeClassic: true`, the operator sets
   `classic` daily on vhosts whose default queue type is missing or
   `undefined`. Set it to `false` only when the cluster intentionally

@@ -4,7 +4,7 @@ The section provides information about Disaster Recovery in RabbitMQ service.
 
 The Disaster Recovery scheme implies two separate RabbitMQ clusters, one of which is in the `active` mode, and the other is in the `standby` mode.
 
-![DR scheme](./docs/public/images/rabbitmq_dr_backup.drawio.png)
+![DR scheme](images/rabbitmq_dr_backup.drawio.png)
 
 The `active` RabbitMQ cluster has an active backup daemon. The `standby` RabbitMQ cluster has a down backup daemon. When disaster recovery mode
 is switched on `standby`/`active` the RabbitMQ backup daemon is down/up. RabbitMQ backup daemon performs full backup before it will be down (switchover from `active` to `standby`).

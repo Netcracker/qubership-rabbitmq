@@ -58,7 +58,7 @@ After you update the secret, restart the monitoring pod.
 
 # Change the Number of Running Pods or Configuration
 
-To change number of RabbiMQ pods or RabbitMQ configuration, refer to the **[Upgrade](installation.md#upgrade)** section in the _RabbitMQ Operator Installation Procedure_.
+To change number of RabbiMQ pods or RabbitMQ configuration, refer to the **Upgrade** section in the _RabbitMQ Operator Installation Procedure_.
 
 # Backup and Recovery
 
@@ -326,7 +326,7 @@ To restore from a backup:
 # Robot Tests
 
 Robot-tests, which are included in RabbitMQ manifest, can be used to validate RabbitMQ deployment.
-For more information, refer to **[Running Robot Tests](installation.md#tests)** section in the _RabbitMQ Operator Installation Procedure_.
+For more information, refer to **Running Robot Tests** section in the _RabbitMQ Operator Installation Procedure_.
 
 # List of Service Ports and Dependencies
 
@@ -374,8 +374,8 @@ If you see a high memory consumption, consider increasing the memory limit for t
 
 # Monitoring
 
-For more information about monitoring, refer to [RabbitMQ Operator Service Monitoring](monitoring.md) in _Cloud Platform Monitoring Guide_.
+For more information about monitoring, refer to RabbitMQ Operator Service Monitoring in _Cloud Platform Monitoring Guide_.
 
 # Disaster Recovery
 
-For more information about Disaster Recovery, refer to [RabbitMQ Disaster Recovery](disasterRecovery.md) in _Cloud Platform Disaster Recovery Guide_.
+For more information about Disaster Recovery, refer to RabbitMQ Disaster Recovery in _Cloud Platform Disaster Recovery Guide_.
