@@ -261,6 +261,13 @@ evidence:
   the other site and overwrites them.
 - Recommend HiPE (`RABBITMQ_HIPE_COMPILE`, `hipe_compile`). The images
   run RabbitMQ 3.13 and 4.x, which have no HiPE support.
+- `rabbitmqctl set_policy | set_parameter` against operator-managed
+  vhosts — reverted.
+- `rabbitmqctl stop_app / start_app / forget_cluster_node` — operational
+  commands; recommend only when the operator's documented procedure
+  includes them.
+- Manual edits to `rabbitmq.conf` on the pod — operator regenerates the
+  file from `CUSTOM_PARAMS` deployer values.
 
 ## Common Failure Modes
 
