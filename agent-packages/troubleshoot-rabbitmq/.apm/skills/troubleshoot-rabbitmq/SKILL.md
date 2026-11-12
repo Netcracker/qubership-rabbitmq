@@ -1,6 +1,6 @@
 ---
 name: troubleshoot-rabbitmq
-description: Diagnose and resolve Qubership RabbitMQ failures in clusters managed by the rabbitmq-operator (operator/charts/helm/rabbitmq chart), including Prometheus alerts (NoMetrics, ClusterError, SomePodsAreNotWorking, MemoryAlarm, DiskAlarm), cluster formation, network partitions, queue or vhost data corruption, resource alarms, storage errors, and failed upgrades, and search provided logs for documented error signatures. Use when rmqlocal pods do not join the cluster, are OOMKilled or in CrashLoopBackOff, or are restarted by liveness probes, a memory or disk alarm is set, clients receive connection.blocked, logs show "vhost is down", cluster_status shows a partition, queue or vhost data is corrupted, .erlang.cookie or NFS errors stop the boot, the operator reports a StatefulSet conflict, the pre-upgrade job rabbitmq-operator-rollout or an upgrade fails, rmqlocal, operator, or job logs are attached for analysis, or a rabbitmq.conf setting or RABBITMQ_* variable must be changed through Helm values.
+description: RabbitMQ — operational guidance, common failure modes, and Helm value paths for `rabbitmq.conf`-equivalent settings via the THIRDPARTY.Platform.Services / RabbitMQ operator. Load when the ticket touches a RabbitMQ cluster, vhost / queue / exchange behaviour, memory / disk-alarm watermarks, HiPE compilation, mirrored / quorum queues, or an `RABBITMQ_*` runtime env knob.
 ---
 
 # Troubleshoot RabbitMQ
