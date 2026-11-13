@@ -1,4 +1,4 @@
-FROM telegraf:1.40.1-alpine@sha256:6606553b5019151de171984e9ce938eac859d6987aa5329c420597737bf1a9a0
+FROM telegraf:1.40.3-alpine@sha256:10fe8c974752c8088858f012cb47b71f5bb67c5695829be56d87dfbf8e0092b8
 
 ENV RABBITMQ_MONITORING_HOME=/opt/rabbitmq-monitoring \
     MONITORING_LOGS=/tmp/monitoring/logs \
