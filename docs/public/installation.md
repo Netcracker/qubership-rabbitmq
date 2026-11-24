@@ -7,19 +7,28 @@ Overall, the RabbitMQ configuration is similar to the RabbitMQ deployed with an 
 The following topics are covered in this chapter:
 
 <!-- TOC -->
+* [Deployment Structure](#deployment-structure)
+  * [Deployment Units](#deployment-units)
+  * [Main app: rabbitmq](#main-app-rabbitmq)
+  * [CRD app: rabbitmq-crd](#crd-app-rabbitmq-crd)
+  * [Installation and Upgrade Order](#installation-and-upgrade-order)
 * [Prerequisites](#prerequisites)
   * [Common](#common)
     * [Custom Resource Definitions](#custom-resource-definitions)
     * [Deployment Permissions](#deployment-permissions)
-    * [Kubernetes](#kubernetes)
-    * [OpenShift](#openshift)
-    * [Google Cloud](#google-cloud)
-    * [AWS](#aws)
+  * [Kubernetes](#kubernetes)
+  * [OpenShift](#openshift)
+  * [Google Cloud](#google-cloud)
+  * [AWS](#aws)
 * [Best Practices and Recommendations](#best-practices-and-recommendations)
   * [HWE](#hwe)
     * [Small](#small)
     * [Medium](#medium)
     * [Large](#large)
+* [Configure RabbitMQ](#configure-rabbitmq)
+  * [RabbitMQ Properties](#rabbitmq-properties)
+  * [Environment Variables](#environment-variables)
+  * [What Not to Do](#what-not-to-do)
 * [Parameters](#parameters)
   * [Cloud Integration Parameters](#cloud-integration-parameters)
   * [Global](#global)
@@ -30,22 +39,150 @@ The following topics are covered in this chapter:
     * [Partition handling](#partition-handling)
   * [Backup Daemon](#backup-daemon)
   * [Tests](#tests)
+    * [Integration test tags description](#integration-test-tags-description)
   * [Monitoring](#monitoring)
   * [Status Provisioner](#status-provisioner)
 * [Installation](#installation)
   * [Before You Begin](#before-you-begin)
     * [Helm](#helm)
+  * [On-Prem Examples](#on-prem-examples)
+    * [HA Scheme](#ha-scheme)
+    * [DR Scheme](#dr-scheme)
+  * [Google Cloud Examples](#google-cloud-examples)
+    * [HA Scheme](#ha-scheme-1)
+    * [DR Scheme](#dr-scheme-1)
+  * [AWS Examples](#aws-examples)
+    * [External Scheme](#external-scheme)
+    * [DR Scheme](#dr-scheme-2)
+  * [Azure Examples](#azure-examples)
+    * [HA Scheme](#ha-scheme-2)
+    * [DR Scheme](#dr-scheme-3)
 * [Upgrade](#upgrade)
   * [Common](#common-1)
-  * [Scale-In Cluster](#scale-in-cluster)
-  * [Rolling Upgrade](#rolling-upgrade)
+  * [Scale In](#scale-in)
+  * [Version Upgrade and Feature Flags](#version-upgrade-and-feature-flags)
   * [CRD Upgrade](#crd-upgrade)
-  * [Migration](#migration)
+    * [Automatic CRD Upgrade](#automatic-crd-upgrade)
+  * [Migration From DVM to Helm](#migration-from-dvm-to-helm)
   * [Migration From CMQ to Quorum queues](#migration-from-cmq-to-quorum-queues)
+    * [Overview](#overview)
+    * [Prerequisites](#prerequisites-1)
+    * [Web UI](#web-ui)
+    * [Usage](#usage)
+    * [Disclaimer](#disclaimer)
+  * [HA to DR Scheme](#ha-to-dr-scheme)
 * [Additional Features](#additional-features)
   * [Multiple Availability Zone Deployment](#multiple-availability-zone-deployment)
+    * [Affinity](#affinity)
+      * [Replicas Fewer Than Availability Zones](#replicas-fewer-than-availability-zones)
+      * [Replicas More Than Availability Zones](#replicas-more-than-availability-zones)
+* [Deployment With Managed External RabbitMQ](#deployment-with-managed-external-rabbitmq)
+  * [AmazonMQ in AWS](#amazonmq-in-aws)
+* [Queue Recommendations](#queue-recommendations)
+* [Frequently Asked Questions](#frequently-asked-questions)
+  * [What to Do if a Kubernetes Version is Upgraded Before Application?](#what-to-do-if-a-kubernetes-version-is-upgraded-before-application)
+  * [Deployer Job Failed With Status Check but Application Works Fine](#deployer-job-failed-with-status-check-but-application-works-fine)
+  * [Deployer Job Failed With Unknown Fields in CRD](#deployer-job-failed-with-unknown-fields-in-crd)
+  * [Deployer Job Failed With an Error in Templates](#deployer-job-failed-with-an-error-in-templates)
+  * [Deployer Job Fails and Operator Contains "Forbidden: updates to statefulset spec for fields..." Error](#deployer-job-fails-and-operator-contains-forbidden-updates-to-statefulset-spec-for-fields-error)
 <!-- TOC -->
 <!-- #GFCFilterMarkerEnd# -->
+
+# Deployment Structure
+
+RabbitMQ is delivered as two **applications** (deployment units): one carries the Custom Resource Definition,
+one carries the workload. Each application is built, versioned and promoted separately by the CI pipeline,
+and is installed separately — with its own set of deployment parameters and its own set of rights required from the deployment user.
+
+## Deployment Units
+
+RabbitMQ is delivered with the following applications:
+
+- Main app: `rabbitmq`
+- CRD app: `rabbitmq-crd`
+
+| Application    | Type     | Contents                                                                                                 | Custom resource   | Service account     | Deploy user rights                        |
+|----------------|----------|----------------------------------------------------------------------------------------------------------|-------------------|---------------------|-------------------------------------------|
+| `rabbitmq`     | Main app | RabbitMQ operator, RabbitMQ nodes, the supplementary services listed below, and the `RabbitMQService` CR | `RabbitMQService` | `rabbitmq-operator` | Namespace `admin` / project-level Role    |
+| `rabbitmq-crd` | CRD app  | `RabbitMQService` CRD (`rabbitmqservices.netcracker.com`)                                                | n/a               | n/a                 | Cluster administrator (CRD create/update) |
+
+Definitions of the deployment unit types:
+
+- **Main app** — the primary deployment unit of the product. It installs the operator and the product's own workloads
+  (RabbitMQ pods, services, secrets, config maps, PVCs) into a single namespace. This is the unit you redeploy when
+  you change RabbitMQ configuration. RabbitMQ keeps the core cluster and the supplementary services in a single main
+  application: they are installed, upgraded and scaled together in one namespace.
+- **CRD app** — a deployment unit that contains only the Custom Resource Definitions of the main app. CRDs are
+  cluster-scoped objects, so creating or updating them requires cluster administrator rights that a namespace-level
+  deployment user normally does not have. Splitting the CRDs into their own application lets the cluster
+  administrator install and upgrade them independently of (and before) the namespace deployments that consume them.
+  The CRD app installs nothing into the product namespace.
+
+**Note**: The main app ships its CRD in the `crds/` folder of the chart, so a plain `helm install`/`helm upgrade`
+creates the `RabbitMQService` CRD together with the rest of the release. In environments where the deployment user
+has no cluster-wide rights, the CRD is not created by Helm — it is installed by the `rabbitmq-crd`
+application, or applied out-of-band by a cluster administrator. See
+[Custom Resource Definitions](#custom-resource-definitions), [Deployment Permissions](#deployment-permissions),
+[CRD Upgrade](#crd-upgrade) and [Automatic CRD Upgrade](#automatic-crd-upgrade).
+
+## Main app: rabbitmq
+
+The `rabbitmq` application installs the RabbitMQ cluster and the operator that manages it. It consists
+of the following components:
+
+| Component                   | Deployment parameter | Purpose                                                                                                                                                                                                                                                           |
+|-----------------------------|----------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `RabbitMQ operator`         | always installed     | Kubernetes operator that reconciles the `RabbitMQService` custom resource: manages the `rmqlocal` StatefulSet, services, secrets and config maps, applies configuration changes, performs version upgrades and watches the `rabbitmq-config` ConfigMap.           |
+| `RabbitMQ`                  | `rabbitmq`           | The RabbitMQ broker nodes of the cluster, managed by the operator as the `rmqlocal` StatefulSet.                                                                                                                                                                  |
+
+In addition to the core components, the same application ships the following supplementary services. Each one has its
+own `enabled` flag, so a deployment enables only the services it needs:
+
+| Service            | Deployment parameter           | Purpose                                                                                                                                                                              | `enabled` default |
+|--------------------|--------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|
+| Monitoring         | `rabbitmqPrometheusMonitoring` | Collects RabbitMQ metrics and ships them to the monitoring stack. Ships the Grafana dashboards and Prometheus rules; requires the monitoring operator CRDs to be installed first.    | `false`           |
+| Telegraf           | `telegraf`                     | The Telegraf agent deployment that ships RabbitMQ metrics to InfluxDB. Created by the operator when `telegraf.install` is `true`; designed to work only with OpenShift environments. | `false`           |
+| Backup Daemon      | `backupDaemon`                 | Manages RabbitMQ snapshots on a schedule and applies the retention policy; can store the snapshots in S3. Required when Disaster Recovery is enabled.                                | `false`           |
+| Integration tests  | `tests`                        | Integration test suite executed during installation or upgrade to verify the deployment.                                                                                             | `false`           |
+| Status Provisioner | `statusProvisioner`            | Waits for the RabbitMQ cluster to become ready and publishes the deployment status to the deployment tooling. Required for external RabbitMQ installation.                           | `true`            |
+| Disaster Recovery  | `disasterRecovery`             | Setting `disasterRecovery.mode` to `active` or `standby` enables the Disaster Recovery mode with region-tagged backups and the `SiteManager` custom resource for DR switchover.      | `false`           |
+
+For the deployment parameters of each service, see the [Parameters](#parameters) section.
+
+## CRD app: rabbitmq-crd
+
+Installs the `RabbitMQService` CRD (`rabbitmqservices.netcracker.com`) only. Deploying it has no effect in the
+product namespace.
+
+## Installation and Upgrade Order
+
+Install and upgrade the applications in this order:
+
+1. `rabbitmq-crd` — the `RabbitMQService` CRD must be in place before the main app. The other CRDs listed
+   in [Custom Resource Definitions](#custom-resource-definitions) are provided by their own products (the monitoring
+   stack, Site Manager) and are installed by them. See [CRD Upgrade](#crd-upgrade).
+2. `rabbitmq` — wait for all nodes to be ready before you continue:
+
+    ```bash
+    kubectl -n <namespace> get pods --selector app=rmqlocal
+    ```
+
+    All `rabbitmq.replicas` RabbitMQ nodes should be `Running` and `1/1 Ready`.
+
+The CRD and the application that uses it must be the same version. A version mismatch makes the operator send a CR
+that the installed schema rejects, which surfaces as CR apply and validation errors — see
+[Deployer Job Failed With Unknown Fields in CRD](#deployer-job-failed-with-unknown-fields-in-crd).
+
+Two deviations from this order are supported:
+
+- For an externally managed RabbitMQ, the operator and the nodes are not installed at all. Set `externalRabbitmq.enabled`
+  to `true` together with `externalRabbitmq.url`, `username`, `password`, `replicas` and `clusterName`, and the chart
+  installs the supplementary services against the existing cluster. See the [External RabbitMQ](#external-rabbitmq) parameters.
+- In environments without cluster-wide permissions, the CRD is created out-of-band by a cluster administrator instead
+  of by the CRD app. See [Custom Resource Definitions](#custom-resource-definitions).
+
+To change RabbitMQ configuration of an installed cluster, see [Configure RabbitMQ](#configure-rabbitmq).
+
 # Prerequisites
 
 ## Common
@@ -537,6 +674,77 @@ backupDaemon:
 
 </details>
 
+# Configure RabbitMQ
+
+RabbitMQ node configuration is delivered through the values of the **`rabbitmq`** Helm chart: RabbitMQ properties
+are the values of the `rabbitmq` section. Use this section when the change has to survive redeploys — that is, in any environment
+delivered through the deployment pipeline (App Deployer, deployment tooling) or through plain `helm upgrade`.
+
+## RabbitMQ Properties
+
+RabbitMQ node properties — logging, clustering, memory, authentication, queue defaults and similar — are set
+through the `rabbitmq.customConfigProperties` value. The value is a list: each entry is a `key = value` line of the
+[rabbitmq.conf new format](https://www.rabbitmq.com/docs/configuration-new), with the property names of the
+[RabbitMQ configuration reference](https://www.rabbitmq.com/docs/configuration-new#rabbitmq-conf-properties).
+
+Example — enable file logging and pin the queue master locator:
+
+```yaml
+rabbitmq:
+  customConfigProperties:
+    - log.file = true
+    - queue_master_locator = client-local
+```
+
+Keep in mind the following:
+
+* Write property names exactly as in the RabbitMQ documentation.
+* The entries are appended to the end of the `rabbitmq.conf` rendered by the chart, so they override the chart's own
+  entries for the same key, such as `cluster_name` or `vm_memory_high_watermark.relative`.
+* `rabbitmq.customAdvancedProperties` works the same way for the `advanced.config` file: each entry is a multi-line
+  Erlang term appended to the rendered file.
+* `rabbitmq.enabledPlugins` is the list of the RabbitMQ plugins enabled on the nodes.
+
+After editing the deployment parameters, redeploy the `rabbitmq` chart through your delivery mechanism, for example,
+`helm upgrade`. The chart renders the values into the `rabbitmq-config` ConfigMap, which the operator mounts into
+every node pod as `/etc/rabbitmq/rabbitmq.conf`, `/etc/rabbitmq/advanced.config` and `/etc/rabbitmq/enabled_plugins`.
+When the ConfigMap changes, operator reboots the node pods one after another only when `rabbitmq.auto_reboot` is `true`;
+with `auto_reboot` set to `false` the new files are picked up the next time the pods are restarted for any reason.
+
+## Environment Variables
+
+Additional environment variables of the node pods are set through the `rabbitmq.environmentVariables` value. The
+value is a list of `KEY=value` entries, for example `RABBITMQ_DISTRIBUTION_BUFFER_SIZE=384000`:
+
+```yaml
+rabbitmq:
+  environmentVariables:
+    - RABBITMQ_DISTRIBUTION_BUFFER_SIZE=384000
+```
+
+The chart always adds `ERL_MAX_PORTS=65536` on top of the list. The variables are delivered through the
+`RabbitMQService` custom resource, so they reach the node pods on the next operator reconciliation; the pods are
+restarted the same way as for the configuration files — by the operator when `rabbitmq.auto_reboot` is `true`,
+otherwise on the next natural pod restart.
+
+## What Not to Do
+
+The following do not survive redeploys and must not be used to change RabbitMQ parameters in deployed environments:
+
+- **Direct changes of the cluster state** via the RabbitMQ management API (the HTTP API on the `15672`/`15671`
+  ports) or via `rabbitmqctl` in a node pod — policies, vhosts, runtime parameters, feature flags and similar.
+  Such changes live only in the cluster state and are not reflected in the values of the `rabbitmq` chart. The
+  chart values are the single source of truth of the deployment: they are what every deployment run and
+  `helm upgrade` renders, so the running configuration silently drifts from the deployed one. Set the property
+  through [RabbitMQ Properties](#rabbitmq-properties) instead.
+- **Editing `rabbitmq.conf`, `advanced.config` or the other configuration files inside a node pod.** The files are
+  mounted read-only from the `rabbitmq-config` ConfigMap, which is rendered from the chart values: whenever the pod
+  is replaced (rolling update, scaling, configuration change), the files come back in the state of the deployed
+  values, and any manual change is lost.
+- **Ad-hoc `kubectl edit rabbitmqservices rabbitmq-service ...`** against a managed cluster *as a way to change
+  deploy-time configuration*. The edit lives only in the live custom resource and drifts on the next deployment run
+  or `helm upgrade` of the `rabbitmq` chart.
+
 # Parameters
 
 The RabbitMQ installation parameters must be specified in the **values.yaml** file.
@@ -578,7 +786,7 @@ It can be done manually or automatically through jobs.
 | global.tls.generateCerts.durationDays      | integer | no        | `365`                    | This parameter specifies the SSL certificate validity duration in days.                                                                                                                                                                                                                                                                                                               |
 | global.tls.generateCerts.clusterIssuerName | string  | no        | `""`                     | This parameter specifies the name of the ClusterIssuer resource. If the parameter is not set or empty, the Issuer resource in the current Kubernetes namespace is used. It is used when the `global.tls.generateCerts.certProvider` parameter is set to cert-manager. **Important**: This parameter must be set for the production environment.                                       |
 | global.cloudIntegrationEnabled             | boolean | no        | true                     | This parameter specifies whether to apply [Cloud Integration Parameters](#cloud-integration-parameters) instead of parameters described in RabbitMQ. If it is set to `false` or global parameter is absent, corresponding parameter from RabbiMQ is applied.                                                                                                                          |
-| pvc.metadata.annotations                   | object  | no        | `{}`                     | Custom annotations applied to RabbitMQ PVCs by the operator and to the Backup Daemon PVC by Helm (`backup-daemon-pvc.yaml`). When the parameter is omitted or empty, existing PVC annotations managed by the operator are not changed.                                                                                                                                                 |
+| pvc.metadata.annotations                   | object  | no        | `{}`                     | Custom annotations applied to RabbitMQ PVCs by the operator and to the Backup Daemon PVC by Helm (`backup-daemon-pvc.yaml`). When the parameter is omitted or empty, existing PVC annotations managed by the operator are not changed.                                                                                                                                                |
 | allowEvents                                | boolean | no        | `false`                  | This parameter specifies whether the RabbitMQ operator should have permissions to create Kubernetes events.                                                                                                                                                                                                                                                                           |
 
 ## Operator
@@ -668,10 +876,10 @@ It can be done manually or automatically through jobs.
 | rabbitmq.ingress.className                                | string  | no        | `""`                                                                                                                    | This parameter specifies the class name of RabbitMQ Ingress.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | rabbitmq.envoyGateway.enabled                             | boolean | no        | `false`                                                                                                                 | Enables Gateway API resources for RabbitMQ.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | rabbitmq.envoyGateway.host                                | string  | no        | `""`                                                                                                                    | Specifies the hostname used by the RabbitMQ HTTPRoute. if empty, `rabbitmq.ingress.host` will be used .                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
-| rabbitmq.envoyGateway.parentRefs                          | list    | no        | [`{"name":"default-external-gateway","namespace":"gateway-system"}`]                                                     | Defines the Gateway resources that the RabbitMQ HTTPRoute attaches to.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| rabbitmq.envoyGateway.parentRefs                          | list    | no        | [`{"name":"default-external-gateway","namespace":"gateway-system"}`]                                                    | Defines the Gateway resources that the RabbitMQ HTTPRoute attaches to.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
 | rabbitmq.secret_change                                    | string  | no        | `1`                                                                                                                     | This parameter must be updated when the password in the RabbitMQ secret is manually changed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | rabbitmq.tolerations                                      | list    | no        | `[]`                                                                                                                    | This parameter allows to specify tolerations in the JSON format. When specified, it affects all RabbitMQ deployment pods (operator, rabbitmq, telegraf, tests). It does not work for RabbitMQ pods in an obsolete `hostpath` configuration.                                                                                                                                                                                                                                                                                                                                    |
-| rabbitmq.dockerImage                                      | string  | no        | calculated automatically                                                                                                | This parameter specifies the RabbitMQ Docker image. The image is included in the manifest. RabbitMQ major.minor versions and `intermediateVersions` are not chart parameters. They are read from `operator/rabbitmq.properties`. The image name for a version is that same major.minor. Deleting an entry from `intermediateVersions` removes that stop.                                                                                                                                                      |
+| rabbitmq.dockerImage                                      | string  | no        | calculated automatically                                                                                                | This parameter specifies the RabbitMQ Docker image. The image is included in the manifest. RabbitMQ major.minor versions and `intermediateVersions` are not chart parameters. They are read from `operator/rabbitmq.properties`. The image name for a version is that same major.minor. Deleting an entry from `intermediateVersions` removes that stop.                                                                                                                                                                                                                       |
 | rabbitmq.ipv6_enabled                                     | boolean | no        | `false`                                                                                                                 | This parameter specifies whether IPv6 is enabled. Set it to `true` when RabbitMQ is installed in the IPv6 cluster. This configuration supports only RabbitMQ deployment by using storage class.                                                                                                                                                                                                                                                                                                                                                                                |
 | rabbitmq.ldap.enabled                                     | boolean | no        | `false`                                                                                                                 | This parameter specifies whether to enable LDAP integration for RabbitMQ.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | rabbitmq.ldap.server                                      | string  | no        | `""`                                                                                                                    | LDAP server hostname for connection.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
@@ -683,12 +891,12 @@ It can be done manually or automatically through jobs.
 | rabbitmq.ldap.base                                        | string  | no        | `""`                                                                                                                    | LDAP search base, for example `DC=testad,DC=local`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | rabbitmq.ldap.sslOptions.trustedCerts                     | object  | no        | `[]`                                                                                                                    | The root CA certificate of LDAPS.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | rabbitmq.ldap.advancedConfig                              | string  | no        | `"{rabbitmq_auth_backend_ldap, [{tag_queries, [{administrator, {constant, false}}, {management, {constant, true}}]}]}"` | This parameter specifies the advanced configuration properties for RabbitMQ.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| rabbitmq.queueMigration.enabled                           | string  | no        | `false` | This parameter is specified for migration of classic queues to quorum queues                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| rabbitmq.queueMigration.snapshotMode                      | string  | no        | `tar`   | The plugin for queue migration creates snapshots before migration to enable rollback in case of failure. Snapshots capture the RabbitMQ data directory state, allowing recovery if migration encounters issues.<br><br>Supported modes:<br>- ebs – Creates AWS EBS snapshots.<br>- tar (default) – Creates tar archive snapshots.<br>- none – Disables snapshot creation. Use when snapshots are managed externally or are not required.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| rabbitmq.queueMigration.enabled                           | string  | no        | `false`                                                                                                                 | This parameter is specified for migration of classic queues to quorum queues                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| rabbitmq.queueMigration.snapshotMode                      | string  | no        | `tar`                                                                                                                   | The plugin for queue migration creates snapshots before migration to enable rollback in case of failure. Snapshots capture the RabbitMQ data directory state, allowing recovery if migration encounters issues.<br><br>Supported modes:<br>- ebs – Creates AWS EBS snapshots.<br>- tar (default) – Creates tar archive snapshots.<br>- none – Disables snapshot creation. Use when snapshots are managed externally or are not required.                                                                                                                                       |
 | rabbitmq.clean_rabbitmq_pvs                               | boolean | no        | `false`                                                                                                                 | When set to "true", RabbitMQ tries to clean the PVs specified in the `PV_NAME` parameter. **Warning**: When upgrading RabbitMQ, setting this parameter to "true" deletes all the RabbitMQ user data from the previous installation, including messages, queues, users, vhosts, and so on.                                                                                                                                                                                                                                                                                      |
 | rabbitmq.auto_reboot                                      | boolean | no        | `false`                                                                                                                 | This parameter specifies the RabbitMQ upgrade. If set to "false", the new configuration is applied, but the RabbitMQ pods are not rebooted. This means that the new configuration is not applied until the pods are rebooted for any reason (with the exception of the default password - the new password is applied even without the reboot). If set to "true", the RabbitMQ pods are rebooted one after the other during the update, and it checks the cluster formation.                                                                                                   |
 | rabbitmq.hostpath_configuration                           | boolean | no        | `false`                                                                                                                 | This parameter specifies whether local PVs can be used. If set to "true", RabbitMQ tries to deploy on local PVs using the PV and node values/labels provided in other parameters. If set to "false", RabbitMQ is deployed using the storage class. <br> **Note**: The `hostpath` configuration is obsolete, consider using the storage class.                                                                                                                                                                                                                                  |
-| rabbitmq.cluster_partition_handling                       | string  | no        | `""`                                                                                                                  | Controls RabbitMQ's `cluster_partition_handling` setting. Leave it empty to use the helper-driven default: clusters with fewer than three replicas are rendered with `autoheal`, while clusters with three or more replicas use `pause_minority`. Provide a value (for example, `ignore`, `autoheal`, `pause_minority`) only when you must override this logic. See [Partition handling](#partition-handling) for detailed mode descriptions. |
+| rabbitmq.cluster_partition_handling                       | string  | no        | `""`                                                                                                                    | Controls RabbitMQ's `cluster_partition_handling` setting. Leave it empty to use the helper-driven default: clusters with fewer than three replicas are rendered with `autoheal`, while clusters with three or more replicas use `pause_minority`. Provide a value (for example, `ignore`, `autoheal`, `pause_minority`) only when you must override this logic. See [Partition handling](#partition-handling) for detailed mode descriptions.                                                                                                                                  |
 | rabbitmq.validate_state                                   | boolean | no        | `false`                                                                                                                 | This parameter specifies the validation of cluster formation during the RabbitMQ installation.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | rabbitmq.custom_params.rabbitmq_cluster_name              | string  | no        | `rabbitmq`                                                                                                              | This parameter specifies the RabbitMQ cluster_name. It is used to identify a cluster, and by the federation and Shovel plugins to record the origin or path of transferred messages. For example, `rabbitmq`.                                                                                                                                                                                                                                                                                                                                                                  |
 | rabbitmq.custom_params.rabbitmq_vm_memory_high_watermark  | string  | no        | `80%`                                                                                                                   | This parameter specifies the RabbitMQ vm_memory_high_watermark. It sets RabbitMQ memory as a percentage of the maximum available memory in a pod. For example, `80%`. For more information about the `vm_memory_high_watermark` parameter, refer to the official RabbitMQ documentation at [https://www.rabbitmq.com/memory.html](https://www.rabbitmq.com/memory.html).                                                                                                                                                                                                       |
@@ -721,8 +929,7 @@ It can be done manually or automatically through jobs.
 | rabbitmq.livenessProbe                                    | object  | no        | `{}`                                                                                                                    | This parameter parameter allows specifying liveness probe for the RabbitMQ pods.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
 | rabbitmq.readinessProbe                                   | object  | no        | `{}`                                                                                                                    | This parameter parameter allows specifying readiness probe for the RabbitMQ pods.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | rabbitmq.deleteStatefulSetOnForbiddenUpdate               | boolean | no        | `true`                                                                                                                  | This parameter specifies whether to handle a case of forbidden `rmqlocal` StatefulSet update. If it is set to `true` and operator gets "Forbidden: updates to statefulset spec for fields..." error, operator removes presented `rmqlocal` StatefulSet without deleting pods and creates `rmqlocal` StatefulSet with new parameters. If it is set to `false` and operator gets "Forbidden: updates to statefulset spec for fields..." error, operator fails with the error.                                                                                                    |
-| rabbitmq.setDefaultQueueTypeClassic                       | boolean | no        | `true`                                                                                                                  | This parameter automatically sets the queue type to classic if it is not specified in the request. Additionally, it enables the RabbitMQ operator to run a daily script to patch existing vhosts and queues, setting their default queue type to classic. 
-
+| rabbitmq.setDefaultQueueTypeClassic                       | boolean | no        | `true`                                                                                                                  | This parameter automatically sets the queue type to classic if it is not specified in the request. Additionally, it enables the RabbitMQ operator to run a daily script to patch existing vhosts and queues, setting their default queue type to classic.                                                                                                                                                                                                                                                                                                                      |
 
 Where:
 
@@ -788,9 +995,9 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 | Parameter                                                     | Type    | Mandatory | Default value                         | Description                                                                                                                                                                                                                                         |
 |---------------------------------------------------------------|---------|-----------|---------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | backupDaemon.image                                            | string  | no        | calculated automatically              | This parameter specifies the Docker image for RabbitMQ backup daemon. The image is included in the manifest.                                                                                                                                        |
-| backupDaemon.enabled                                          | boolean | no        | `false`                               | This parameter enables the RabbitMQ backup daemon deployment.                                                                                                                                                                                                                                           |
-| backupDaemon.cloudBackuper.enableAnnotations                  | boolean | no        | `true`                                | This parameter enables adding the `cloud-backuper.netcracker.com/use-backup-daemon: "true"` label to the `rabbitmq-backup-daemon` Service.                                                      |
-| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                          |
+| backupDaemon.enabled                                          | boolean | no        | `false`                               | This parameter enables the RabbitMQ backup daemon deployment.                                                                                                                                                                                       |
+| backupDaemon.cloudBackuper.enableAnnotations                  | boolean | no        | `true`                                | This parameter enables adding the `cloud-backuper.netcracker.com/use-backup-daemon: "true"` label to the `rabbitmq-backup-daemon` Service.                                                                                                          |
+| backupDaemon.tls.enabled                                      | boolean | no        | `true`                                | This parameter specifies whether to use SSL to connect backup daemon. For more information about backup daemon SSL, refer to the [TLS Encryption for RabbitMQ](/docs/public/TLS.md) chapter.                                                        |
 | backupDaemon.tls.certificates.crt                             | string  | no        | `""`                                  | The certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.key                             | string  | no        | `""`                                  | The private key in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`.         |
 | backupDaemon.tls.certificates.ca                              | string  | no        | `""`                                  | The root CA certificate in BASE64 format. It is required if `global.tls.enabled` parameter is set to `true`, `global.tls.generateCerts.certProvider` parameter is set to `helm` and `global.tls.generateCerts.enabled` parameter is set to `false`. |
@@ -819,7 +1026,7 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 | backupDaemon.s3.bucket                                        | string  | no        |                                       | This parameter specifies the bucket in S3 storage.                                                                                                                                                                                                  |
 | backupDaemon.s3.keyId                                         | string  | no        |                                       | This parameter specifies the key ID for S3 storage.                                                                                                                                                                                                 |
 | backupDaemon.s3.keySecret                                     | string  | no        |                                       | This parameter specifies the secret for S3 storage.                                                                                                                                                                                                 |
-| backupDaemon.s3Aliases                                        | list    | no        | `[]`                                  | List of named S3 backup-storage aliases. If empty, aliases secret is not rendered and aliases are not mounted to backup daemon.                                                                                                                   |
+| backupDaemon.s3Aliases                                        | list    | no        | `[]`                                  | List of named S3 backup-storage aliases. If empty, aliases secret is not rendered and aliases are not mounted to backup daemon.                                                                                                                     |
 | backupDaemon.customLabels                                     | object  | no        | `{}`                                  | This parameter allows specifying custom labels for the RabbitMQ Service Backup daemon pod.                                                                                                                                                          |
 | backupDaemon.securityContext                                  | object  | no        | `{}`                                  | This parameter allows specifying pod security context for the RabbitMQ Service Backup daemon pod.                                                                                                                                                   |
 
@@ -911,7 +1118,7 @@ For deeper guidance on when to pick each mode, see the [RabbitMQ partition handl
 
 ### Helm
 
-To deploy via Helm you need to prepare yaml file with custom deploy parameters and run the following
+To deploy via Helm you need to prepare YAML file with custom deploy parameters and run the following
 command in [RabbitMQ Chart](/operator/charts/helm/rabbitmq):
 
 ```bash
