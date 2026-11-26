@@ -48,7 +48,7 @@ permissions:
 
 jobs:
   security-scan:
-    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@faf6c63d2a7db1b540ff8e4bc35726d8990f16d6 # main
+    uses: netcracker/qubership-workflow-hub/.github/workflows/re-security-scan.yml@084df7187ccd6217d8eb012f431cc4addc569efb # main
     with:
       target: ${{ github.event.inputs.target || 'source' }}
       image: ${{ github.event.inputs.image || '' }}
